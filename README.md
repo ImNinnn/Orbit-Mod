@@ -552,7 +552,9 @@ Development runs (run directories are under `run/`):
 
 Versions: `mod_version` in `gradle.properties`.
 `./gradlew publishRelease` builds and signs the jars and hands them to Orbit Cloud, which offers them to
-players (the release key never leaves the maintainer's computer).
+players (the release key never leaves the maintainer's computer). `./gradlew storeRelease` puts the jars for mod sites
+(Modrinth, CurseForge: no self-updating) into `~/orbit-data/releases/<version>-store/`, which Orbit Cloud never
+offers as an update.
 
 Project layout:
 

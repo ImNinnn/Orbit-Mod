@@ -36,6 +36,9 @@ subprojects {
 //                                              builds every Minecraft version, signs the jars and puts them into
 //                                              ~/orbit-data/releases/<version>/ (or ORBIT_RELEASES_DIR, -PreleasesDir)
 //                                              where Orbit Cloud offers them. minimumVersion refuses older games.
+//   ./gradlew storeRelease                     builds the jars for mod sites (Modrinth, CurseForge: no self-updating)
+//                                              and puts them into ~/orbit-data/releases/<version>-store/. Orbit Cloud
+//                                              never offers that folder as an update (its name is not a version).
 
 def releaseKeyFile = file(System.getenv('ORBIT_RELEASE_KEY') ?: "${System.getProperty('user.home')}/.config/orbit-release.key")
 def publicKeyFile = file('Mod (client side)/src/main/resources/orbit-release.pub')
@@ -111,5 +114,38 @@ tasks.register('publishRelease') {
 			throw new GradleException("Could not move ${staging} to ${folder}")
 		}
 		logger.lifecycle("Published Orbit Cosmetic {} for Minecraft {} to {}{}", version, files.keySet().join(', '), folder, minimum ? " (minimum ${minimum})" : '')
+	}
+}
+
+tasks.register('storeRelease') {
+	group = 'orbit'
+	description = 'Builds the jars for mod sites (without self-updating) into the releases folder, as <version>-store.'
+	dependsOn clientProjects.collect { "${it}:storeJar" }
+	doLast {
+		def version = project.mod_version
+		if (!(version ==~ /\d+\.\d+\.\d+/)) {
+			throw new GradleException("Versions look like 0.2.1 (mod_version ${version})")
+		}
+		def releases = file(project.findProperty('releasesDir') ?: System.getenv('ORBIT_RELEASES_DIR') ?: "${System.getProperty('user.home')}/orbit-data/releases")
+		def folder = new File(releases, "${version}-store")
+		if (folder.exists()) {
+			throw new GradleException("${folder} already exists: raise mod_version in gradle.properties for a new release")
+		}
+		def staging = new File(releases, ".${version}-store.tmp")
+		project.delete(staging)
+		staging.mkdirs()
+		def files = [:]
+		clientProjects.each { path ->
+			def client = project(path)
+			def jar = client.tasks.named('storeJar').get().archiveFile.get().asFile
+			def bytes = jar.bytes
+			new File(staging, jar.name).bytes = bytes
+			files[client.minecraft_version] = [file: jar.name, size: bytes.length, sha256: java.security.MessageDigest.getInstance('SHA-256').digest(bytes).encodeHex().toString()]
+		}
+		new File(staging, 'store.json').text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson([version: version, store: true, files: files])) + '\n'
+		if (!staging.renameTo(folder)) {
+			throw new GradleException("Could not move ${staging} to ${folder}")
+		}
+		logger.lifecycle("Made the mod-site jars of Orbit {} for Minecraft {} in {}", version, files.keySet().join(', '), folder)
 	}
 }
