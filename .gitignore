@@ -3,6 +3,7 @@
 /*
 !/.gitignore
 !/README.md
+!/CNAME
 !/build.gradle
 !/settings.gradle
 !/gradle.properties

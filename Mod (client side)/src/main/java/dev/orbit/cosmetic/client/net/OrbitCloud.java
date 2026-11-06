@@ -13,7 +13,7 @@ public final class OrbitCloud {
 	 * The date of the current Terms of Service and Privacy Policy. Orbit Cloud is only used once the player accepted
 	 * this version (see {@code ClientConfig.termsAccepted}); a new date asks again.
 	 */
-	public static final String TERMS_VERSION = "2026-11-02";
+	public static final String TERMS_VERSION = "2026-11-06";
 	public static final String TERMS_URL = "https://orbitcosmetics.dev/terms.html";
 	public static final String PRIVACY_URL = "https://orbitcosmetics.dev/privacy.html";
 
