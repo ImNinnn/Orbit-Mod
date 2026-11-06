@@ -1,0 +1,36 @@
+{
+	"schemaVersion": 1,
+	"id": "orbit_cosmetic",
+	"version": "${version}",
+	"name": "Orbit",
+	"description": "Wear your own Blockbench cosmetics, emotes and body parts that every Orbit player sees on any server, chat with friends (end-to-end encrypted), host your worlds for them, manage and edit your screenshots, and zoom (default key: C).",
+	"icon": "assets/orbit_cosmetic/icon.png",
+	"environment": "client",
+	"entrypoints": {
+		"preLaunch": [
+			"dev.orbit.cosmetic.client.update.UpdateCheck"
+		],
+		"client": [
+			"dev.orbit.cosmetic.client.OrbitClient"
+		],
+		"modmenu": [
+			"dev.orbit.cosmetic.client.gui.OrbitModMenu"
+		]
+	},
+	"custom": {
+		"orbit_cosmetic:target": "${target}"
+	},
+	"mixins": [
+		"orbit_cosmetic.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.20.1",
+		"minecraft": "${minecraft}",
+		"java": ">=25",
+		"fabric-api": "*"
+	},
+	"suggests": {
+		"entity_model_features": "*",
+		"e4mc": "*"
+	}
+}

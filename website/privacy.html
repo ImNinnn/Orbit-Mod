@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Privacy Policy – Orbit</title>
+	<meta name="description" content="What Orbit Cloud stores about you, why, for how long, and what stays on your computer.">
+	<meta name="theme-color" content="#141416">
+	<link rel="canonical" href="https://orbitcosmetics.dev/privacy.html">
+	<link rel="icon" type="image/png" sizes="32x32" href="assets/img/icon-32.png">
+	<link rel="apple-touch-icon" href="assets/img/icon-180.png">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen&display=swap">
+	<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+	<header class="site-header">
+		<div class="wrap">
+			<a class="logo" href="./"><span class="dot" aria-hidden="true"></span>Orbit</a>
+			<button class="nav-toggle" aria-expanded="false" aria-controls="nav">Menu</button>
+			<nav class="nav" id="nav">
+				<a href="./#features">Features</a>
+				<a href="./#start">Get started</a>
+				<a href="./#servers">Servers</a>
+				<a href="guide.html">Creator guide</a>
+				<a href="https://github.com/ImNinnn/Orbit-Cosmetics">GitHub</a>
+			</nav>
+		</div>
+	</header>
+
+	<main class="wrap doc">
+		<aside class="toc">
+			<p>On this page</p>
+			<a href="#short">In short</a>
+			<a href="#stored">What Orbit Cloud stores</a>
+			<a href="#messages">Messages</a>
+			<a href="#local">On your computer</a>
+			<a href="#others">Other services</a>
+			<a href="#keep">How long</a>
+			<a href="#choices">Your choices</a>
+			<a href="#changes">Changes</a>
+		</aside>
+
+		<article class="prose">
+			<p class="eyebrow">Last updated 2 November 2026</p>
+			<h1>Privacy Policy</h1>
+			<p>This page explains what Orbit Cloud (<code>api.orbitcosmetics.dev</code>) stores when you use the Orbit mod, and why. Orbit asks you to accept it, and the <a href="terms.html">Terms of Service</a>, the first time you start the game with it.</p>
+
+			<h2 id="short">In short</h2>
+			<ul>
+				<li>Orbit knows you by your Minecraft name and UUID. It never sees your password or your Microsoft account.</li>
+				<li>Orbit Cloud deletes messages to friends 30 days after they're seen. Turn on end-to-end encryption in a conversation (the lock) and Orbit Cloud can't read its messages at all.</li>
+				<li>There are no ads, no analytics and no tracking, and nothing is sold.</li>
+			</ul>
+
+			<h2 id="stored">What Orbit Cloud stores</h2>
+			<ul>
+				<li><strong>Your player:</strong> your Minecraft UUID and name, and when you first and last used Orbit Cloud. Your friends see when you were last online.</li>
+				<li><strong>Sign-in:</strong> sign-in uses Minecraft's own check, the same one Minecraft servers use. Orbit Cloud keeps a session for 24 hours, and stores only a hash of the session key.</li>
+				<li><strong>What you wear:</strong> on a server, the cosmetics and emote you're using and your skin's texture ID, so other Orbit players there can see them. This is deleted about 90 seconds after you stop sending it.</li>
+				<li><strong>Your cosmetics and emotes:</strong> the files you share, with their name and your UUID. A file nobody has used for 24 hours is deleted.</li>
+				<li><strong>Friends:</strong> your friends, your friend requests, and the players you blocked.</li>
+				<li><strong>Your statistics page:</strong> your time played (counted by Orbit), how many screenshots, cosmetics, emotes and body parts you have, and your profile: the page's colour, the description and pronouns you wrote, and the cosmetics of the outfit you chose (their files are uploaded so friends can see them), so your friends can see it. Turn off <em>Share statistics</em> in Orbit's settings and it's deleted from Orbit Cloud.</li>
+				<li><strong>Hosted worlds:</strong> while you host a world, its address, name and description, so your friends see it in their Multiplayer screen. This is kept in memory only and forgotten two minutes after you stop.</li>
+				<li><strong>Your computers:</strong> one public key for each computer you use Orbit on, so friends can encrypt messages for it. The private key never leaves your computer.</li>
+				<li><strong>Reports and bans:</strong> when someone reports a player, the reporter, the reported player, the reason and note, and the cosmetics involved. Reports are sent to Orbit's moderators on Discord, and Orbit Cloud deletes them after 7 days. Bans and blocked cosmetics are kept for as long as they apply.</li>
+				<li><strong>Internet addresses:</strong> your IP address is used in memory to limit how many requests one computer can make. Failed sign-ins are logged with their address.</li>
+			</ul>
+
+			<h2 id="messages">Messages</h2>
+			<p>Each conversation has a lock that turns end-to-end encryption on or off for your new messages in it. It's off at first.</p>
+			<ul>
+				<li><strong>Encryption on:</strong> messages, pictures, shared cosmetics and invitations are encrypted on your computer, for your friend's computers and your own. Orbit Cloud stores only the encrypted message, who sent it to whom, and when. It can't read what you wrote or see your pictures. In the game, these messages have a dashed outline.</li>
+				<li><strong>Encryption off:</strong> messages travel encrypted over HTTPS, but Orbit Cloud stores them as they are, so any computer you sign in on can read them. Pictures are still encrypted, but the key is in the message, so Orbit Cloud could open them.</li>
+			</ul>
+			<p>A message stays on Orbit Cloud until your friend has seen it, and is deleted 30 days after that, along with its picture. Your game keeps its own copy of your conversations.</p>
+
+			<h2 id="local">On your computer</h2>
+			<p>Your cosmetics, outfits, screenshots, conversation history and encryption keys stay in your <code>Orbit</code> folder and game folder. They're only sent when you share them yourself.</p>
+
+			<h2 id="others">Other services</h2>
+			<ul>
+				<li><strong>Cloudflare</strong> carries the connection between your game and Orbit Cloud.</li>
+				<li><strong>Mojang</strong> handles sign-in and skins: Orbit asks Minecraft's own services for players' skins.</li>
+				<li><strong>e4mc</strong>, if you host a world with it, handles that connection under its own terms.</li>
+				<li><strong>Discord</strong> receives reports, for the moderators. If you leave <em>Discord status</em> on, the Discord app on your computer also shows what you're doing in the game, including the server's address, on your Discord profile.</li>
+				<li><strong>GitHub</strong> hosts this website.</li>
+			</ul>
+
+			<h2 id="keep">How long</h2>
+			<p>Sessions last 24 hours, and what you wear is deleted after about 90 seconds. Unused shared files are deleted after 24 hours, and messages 30 days after they're seen. Your player, friends and blocks stay until you ask for them to be deleted. Reports are deleted after 7 days. Bans and blocked cosmetics stay as long as they apply.</p>
+
+			<h2 id="choices">Your choices</h2>
+			<ul>
+				<li>Turn off <em>Use Orbit Cloud</em> in Orbit's settings: Orbit then sends nothing to Orbit Cloud.</li>
+				<li>Remove friends, or block players, at any time in Social.</li>
+				<li>Turn off <em>Share statistics</em>: your statistics page is deleted from Orbit Cloud.</li>
+				<li>To get a copy of your data, or to have it deleted, open an issue on <a href="https://github.com/ImNinnn/Orbit-Cosmetics/issues">GitHub</a> and ask for a private way to reach us. Don't post private details there.</li>
+			</ul>
+
+			<h2 id="changes">Changes</h2>
+			<p>When this policy changes, the date at the top changes too, and Orbit asks you to accept the new version the next time you start the game.</p>
+		</article>
+	</main>
+
+	<footer class="site-footer">
+		<div class="wrap">
+			<a class="logo" href="./"><span class="dot" aria-hidden="true"></span>Orbit</a>
+			<nav>
+				<a href="./">Home</a>
+				<a href="terms.html">Terms</a>
+				<a href="privacy.html" aria-current="page">Privacy</a>
+				<a href="https://github.com/ImNinnn/Orbit-Cosmetics">Source code</a>
+				<a href="https://github.com/ImNinnn/Orbit-Cosmetics/issues">Report a bug</a>
+			</nav>
+			<p>Not affiliated with Mojang or Microsoft.</p>
+		</div>
+	</footer>
+
+	<script src="assets/site.js" defer></script>
+</body>
+</html>

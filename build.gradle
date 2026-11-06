@@ -1,0 +1,115 @@
+plugins {
+	id 'net.fabricmc.fabric-loom' version "${loom_version}" apply false
+}
+
+subprojects {
+	group = project.maven_group
+	version = project.mod_version
+
+	apply plugin: 'java'
+
+	java {
+		toolchain {
+			languageVersion = JavaLanguageVersion.of(25)
+		}
+	}
+
+	tasks.withType(JavaCompile).configureEach {
+		options.encoding = 'UTF-8'
+		options.release = 25
+	}
+
+	repositories {
+		mavenCentral()
+	}
+}
+
+// ---------------------------------------------------------------- releases
+//
+// The mod updates itself from Orbit Cloud (its releases folder, read by the private backend). Every jar is signed with the release
+// key, which stays on this computer; the mod only installs updates signed with it.
+//
+//   ./gradlew releaseKey                       makes the key once (~/.config/orbit-release.key) and puts its public
+//                                              half into the mod (orbit-release.pub). Keep a backup of the key: without
+//                                              it, players have to update by hand once.
+//   ./gradlew publishRelease [-PminimumVersion=0.2.0]
+//                                              builds every Minecraft version, signs the jars and puts them into
+//                                              ~/orbit-data/releases/<version>/ (or ORBIT_RELEASES_DIR, -PreleasesDir)
+//                                              where Orbit Cloud offers them. minimumVersion refuses older games.
+
+def releaseKeyFile = file(System.getenv('ORBIT_RELEASE_KEY') ?: "${System.getProperty('user.home')}/.config/orbit-release.key")
+def publicKeyFile = file('Mod (client side)/src/main/resources/orbit-release.pub')
+def clientProjects = ['26.1', '26.2', '26.3'].collect { ":client-${it}" }
+
+tasks.register('releaseKey') {
+	group = 'orbit'
+	description = 'Makes the release signing key (once) and puts its public half into the mod.'
+	doLast {
+		if (releaseKeyFile.exists()) {
+			def lines = releaseKeyFile.readLines()
+			publicKeyFile.text = lines[1].trim() + '\n'
+			logger.lifecycle("The release key already exists ({}); its public half is in {}", releaseKeyFile, publicKeyFile)
+			return
+		}
+		def pair = java.security.KeyPairGenerator.getInstance('Ed25519').generateKeyPair()
+		def encoder = Base64.getEncoder()
+		releaseKeyFile.parentFile.mkdirs()
+		releaseKeyFile.text = ''
+		java.nio.file.Files.setPosixFilePermissions(releaseKeyFile.toPath(), java.nio.file.attribute.PosixFilePermissions.fromString('rw-------'))
+		releaseKeyFile.text = encoder.encodeToString(pair.private.encoded) + '\n' + encoder.encodeToString(pair.public.encoded) + '\n'
+		publicKeyFile.text = encoder.encodeToString(pair.public.encoded) + '\n'
+		logger.lifecycle("Made the release key {} (keep a backup of it; never share it) and wrote its public half to {}", releaseKeyFile, publicKeyFile)
+	}
+}
+
+tasks.register('publishRelease') {
+	group = 'orbit'
+	description = 'Builds, signs and publishes this version to the releases folder of Orbit Cloud.'
+	dependsOn clientProjects.collect { "${it}:build" }
+	doLast {
+		if (!releaseKeyFile.exists()) {
+			throw new GradleException("No release key at ${releaseKeyFile}: run ./gradlew releaseKey first")
+		}
+		def lines = releaseKeyFile.readLines()
+		if (lines.size() < 2 || publicKeyFile.text.trim() != lines[1].trim()) {
+			throw new GradleException("${publicKeyFile} does not match the release key: run ./gradlew releaseKey and build again")
+		}
+		def privateKey = java.security.KeyFactory.getInstance('Ed25519').generatePrivate(new java.security.spec.PKCS8EncodedKeySpec(Base64.getDecoder().decode(lines[0].trim())))
+		def version = project.mod_version
+		def minimum = project.findProperty('minimumVersion')
+		if (!(version ==~ /\d+\.\d+\.\d+/) || (minimum != null && !(minimum ==~ /\d+\.\d+\.\d+/))) {
+			throw new GradleException("Versions look like 0.2.1 (mod_version ${version}, minimumVersion ${minimum})")
+		}
+		def releases = file(project.findProperty('releasesDir') ?: System.getenv('ORBIT_RELEASES_DIR') ?: "${System.getProperty('user.home')}/orbit-data/releases")
+		def folder = new File(releases, version)
+		if (folder.exists()) {
+			throw new GradleException("${folder} already exists: raise mod_version in gradle.properties for a new release")
+		}
+		def staging = new File(releases, ".${version}.tmp")
+		project.delete(staging)
+		staging.mkdirs()
+		def files = [:]
+		clientProjects.each { path ->
+			def client = project(path)
+			def jar = client.tasks.named('jar').get().archiveFile.get().asFile
+			def target = client.minecraft_version
+			def bytes = jar.bytes
+			def sha = java.security.MessageDigest.getInstance('SHA-256').digest(bytes).encodeHex().toString()
+			def signer = java.security.Signature.getInstance('Ed25519')
+			signer.initSign(privateKey)
+			signer.update("orbit-release\n${version}\n${target}\n${sha}".getBytes('UTF-8'))
+			new File(staging, jar.name).bytes = bytes
+			files[target] = [file: jar.name, size: bytes.length, sha256: sha, signature: Base64.getEncoder().encodeToString(signer.sign())]
+		}
+		def manifest = [version: version, files: files]
+		if (minimum != null) {
+			manifest.minimum = minimum
+		}
+		new File(staging, 'release.json').text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(manifest)) + '\n'
+		// Appears to Orbit Cloud only once complete.
+		if (!staging.renameTo(folder)) {
+			throw new GradleException("Could not move ${staging} to ${folder}")
+		}
+		logger.lifecycle("Published Orbit Cosmetic {} for Minecraft {} to {}{}", version, files.keySet().join(', '), folder, minimum ? " (minimum ${minimum})" : '')
+	}
+}

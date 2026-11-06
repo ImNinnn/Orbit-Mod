@@ -1,0 +1,25 @@
+pluginManagement {
+	repositories {
+		maven {
+			name = 'Fabric'
+			url = 'https://maven.fabricmc.net/'
+		}
+		mavenCentral()
+		gradlePluginPortal()
+	}
+}
+
+plugins {
+	id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
+
+rootProject.name = 'orbit-cosmetic'
+
+// Platform-independent code: model parsing, animation, and the encoding of what players wear.
+include 'common'
+
+// The client mod, built once per supported Minecraft version from the same sources (see Mod (client side)/version.gradle).
+['26.1', '26.2', '26.3'].each { version ->
+	include "client-${version}"
+	project(":client-${version}").projectDir = file("Mod (client side)/versions/${version}")
+}

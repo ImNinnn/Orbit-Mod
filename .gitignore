@@ -1,0 +1,26 @@
+# The repository holds only what builds the mod, the website and the README. Everything else in this folder
+# (Orbit Cloud's private backend, test runs, art, notes, the old history in .git-old) stays local.
+/*
+!/.gitignore
+!/README.md
+!/build.gradle
+!/settings.gradle
+!/gradle.properties
+!/gradlew
+!/gradlew.bat
+!/gradle/
+!/common/
+!/Mod (client side)/
+!/website/
+!/.github/
+
+# Build output and tests, development-only harness
+build/
+.gradle/
+/common/src/test/
+/Mod (client side)/src/testmod/
+
+# Secrets: never commit tokens or keys
+.env
+*.env
+*.key

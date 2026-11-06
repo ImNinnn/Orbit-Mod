@@ -1,0 +1,169 @@
+// Build of the Orbit client for one Minecraft version. Every project in versions/ applies this script: the code in
+// ../../src is shared, and versions/<version>/src holds the few classes that differ between Minecraft versions
+// (dev.orbit.cosmetic.client.compat.Compat). The version's gradle.properties picks Minecraft and Fabric API.
+apply plugin: 'net.fabricmc.fabric-loom'
+
+def shared = file('../../src')
+// The development test harness (screenshots, diagnostics) is only on the maintainer's computer, not in the repository.
+def harness = new File(shared, 'testmod').isDirectory()
+
+base {
+	archivesName = "orbit-mod-mc${project.minecraft_version}"
+}
+
+sourceSets {
+	main {
+		java.srcDirs = [new File(shared, 'main/java'), 'src/main/java']
+		resources.srcDirs = [new File(shared, 'main/resources')]
+	}
+	// Development-only test harness (screenshots and diagnostics); never part of the released jar.
+	if (harness) {
+		testmod {
+			java.srcDirs = [new File(shared, 'testmod/java')]
+			resources.srcDirs = [new File(shared, 'testmod/resources')]
+			compileClasspath += main.compileClasspath + main.output
+			runtimeClasspath += main.runtimeClasspath + main.output
+		}
+	}
+}
+
+loom {
+	mods {
+		"orbit_cosmetic" {
+			sourceSet sourceSets.main
+		}
+		if (harness) {
+			"orbit_cosmetic_testharness" {
+				sourceSet sourceSets.testmod
+			}
+		}
+	}
+	runs {
+		configureEach {
+			// A run directory per Minecraft version, outside the source tree.
+			runDir = System.getenv('ORBIT_RUN_DIR') ?: "../../../run/client-${project.minecraft_version}"
+			vmArgs '-Xmx2G'
+		}
+		if (harness) testClient {
+			client()
+			name = 'Test Client'
+			source sourceSets.testmod
+			programArgs '--width', System.getenv('ORBIT_TEST_WIDTH') ?: '960', '--height', System.getenv('ORBIT_TEST_HEIGHT') ?: '540'
+			if (System.getenv('ORBIT_TEST_USERNAME')) {
+				programArgs '--username', System.getenv('ORBIT_TEST_USERNAME')
+			}
+			// Your own account for website screenshots with Orbit Cloud: a file with three lines (name, UUID, access
+			// token, each may start with a "label:") that is read here and never copied anywhere. Development runs only.
+			if (System.getenv('ORBIT_TEST_SESSION_FILE')) {
+				def session = new File(System.getenv('ORBIT_TEST_SESSION_FILE')).readLines().findAll { it.trim() }
+					.collect { it.contains(':') ? it.substring(it.indexOf(':') + 1).trim() : it.trim() }
+				programArgs '--username', session[0], '--uuid', session[1], '--accessToken', session[2], '--userType', 'msa'
+			}
+			// A local fake of Mojang's profile API and texture host (see the skins test), with a dummy token.
+			if (System.getenv('ORBIT_TEST_MOJANG')) {
+				vmArgs "-Dorbit.mojangApi=${System.getenv('ORBIT_TEST_MOJANG')}", "-Dorbit.mojangTextures=${System.getenv('ORBIT_TEST_MOJANG')}"
+				programArgs '--accessToken', 'orbit-test-token-not-a-real-one'
+			}
+			// The launch update check (normally skipped in development): -D options for the test, such as
+			// ORBIT_TEST_UPDATE="-Dorbit.updateCheck=force -Dorbit.updateAnswer=yes -Dorbit.updateMods=/tmp/mods".
+			if (System.getenv('ORBIT_TEST_UPDATE')) {
+				vmArgs System.getenv('ORBIT_TEST_UPDATE').split(' ')
+			}
+			// A local test Orbit Cloud instead of the real one (development runs only), e.g. http://127.0.0.1:8000.
+			if (System.getenv('ORBIT_TEST_BACKEND')) {
+				vmArgs "-Dorbit.backendUrl=${System.getenv('ORBIT_TEST_BACKEND')}"
+			}
+			// The host window as if e4mc were installed (the world only goes on LAN).
+			if (System.getenv('ORBIT_TEST_HOST')) {
+				vmArgs '-Dorbit.testE4mc=true'
+			}
+			// The player a development backend should take this client for: "<uuid> <name>" (friends tests).
+			if (System.getenv('ORBIT_TEST_DEV_PLAYER')) {
+				vmArgs "-Dorbit.devPlayer=${System.getenv('ORBIT_TEST_DEV_PLAYER')}"
+			}
+			// The "title" role stays on the title screen; the others join the local test server.
+			if (System.getenv('ORBIT_TEST_ROLE') != 'title') {
+				programArgs '--quickPlayMultiplayer', 'localhost:25599'
+			}
+		}
+	}
+}
+
+repositories {
+	maven {
+		name = 'TerraformersMC'
+		url = 'https://maven.terraformersmc.com/releases/'
+	}
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	implementation "net.fabricmc:fabric-loader:${loader_version}"
+	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+	implementation project(':common')
+	// Only for the Configure button in Mod Menu's list; the mod runs without Mod Menu.
+	compileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
+}
+
+processResources {
+	def properties = [version: project.version, minecraft: project.minecraft_dependency, target: project.minecraft_version]
+	inputs.properties properties
+	filesMatching('fabric.mod.json') {
+		expand properties
+	}
+}
+
+jar {
+	// Ship the shared library inside the mod jar.
+	from(project(':common').sourceSets.main.output)
+}
+
+// The build for mod sites (Modrinth, CurseForge): the same mod without its self-updater, since those sites update
+// mods themselves and refuse mods that replace their own files. Leaves out the update package, the release key and
+// the preLaunch entrypoint that starts the update check: orbit-mod-mc<version>-<mod version>-store.jar.
+def storeMeta = layout.buildDirectory.dir('store-meta')
+def storeMetadata = tasks.register('storeMetadata') {
+	dependsOn tasks.named('processResources')
+	def source = layout.buildDirectory.file('resources/main/fabric.mod.json')
+	inputs.file source
+	outputs.dir storeMeta
+	doLast {
+		def json = new groovy.json.JsonSlurper().parse(source.get().asFile)
+		json.entrypoints.remove('preLaunch')
+		def out = storeMeta.get().file('fabric.mod.json').asFile
+		out.parentFile.mkdirs()
+		out.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(json)) + '\n'
+	}
+}
+def storeJar = tasks.register('storeJar', Zip) {
+	group = 'build'
+	description = 'Builds the jar for mod sites, without self-updating.'
+	dependsOn tasks.named('jar'), storeMetadata
+	archiveBaseName = base.archivesName
+	archiveVersion = project.version
+	archiveClassifier = 'store'
+	archiveExtension = 'jar'
+	destinationDirectory = layout.buildDirectory.dir('libs')
+	from({ zipTree(tasks.named('jar').get().archiveFile) }) {
+		exclude 'dev/orbit/cosmetic/client/update/**', 'orbit-release.pub', 'fabric.mod.json'
+	}
+	from(storeMeta)
+	doLast {
+		// Nothing left may refer to the updater.
+		def jar = archiveFile.get().asFile
+		new java.util.zip.ZipFile(jar).withCloseable { zip ->
+			zip.entries().each { entry ->
+				if (!entry.directory && entry.name.endsWith('.class')) {
+					def text = new String(zip.getInputStream(entry).bytes, 'ISO-8859-1')
+					if (text.contains('dev/orbit/cosmetic/client/update/')) {
+						throw new GradleException("${entry.name} still refers to the updater; the store jar would not work")
+					}
+				}
+			}
+		}
+	}
+}
+tasks.named('build') {
+	dependsOn storeJar
+}

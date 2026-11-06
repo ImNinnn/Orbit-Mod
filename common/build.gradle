@@ -1,0 +1,18 @@
+// Pure Java: no Minecraft or Fabric classes may be referenced from here, so it is shared by every Minecraft version.
+// Gson is provided at runtime by Minecraft.
+dependencies {
+	compileOnly "com.google.code.gson:gson:${gson_version}"
+
+	testImplementation "com.google.code.gson:gson:${gson_version}"
+	testImplementation platform('org.junit:junit-bom:5.13.4')
+	testImplementation 'org.junit.jupiter:junit-jupiter'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+test {
+	useJUnitPlatform()
+	testLogging {
+		events = ['failed']
+		exceptionFormat = 'full'
+	}
+}
