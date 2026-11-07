@@ -63,12 +63,14 @@ final class GroupEditScreen extends OrbitScreen {
 		y += 24;
 		int half = (WIDTH - 16 - 78 - 4) / 2;
 		addRenderableWidget(new FlatButton(x + 74, y, half, 18, Component.translatable("orbit_cosmetic.social.group.picture.screenshot"), "image", FlatButton.Style.SECONDARY,
-			b -> Compat.setScreen(new PickScreenshotScreen(this, shot -> {
-				social.setGroupPicture(group.id(), shot.path());
-				Compat.setScreen(this);
-			}))));
+			b -> Compat.setScreen(new PickScreenshotScreen(this, shot ->
+				// Cropped (square), turned and drawn on as the player likes, then used.
+				Compat.setScreen(new dev.orbit.cosmetic.client.gui.ScreenshotEditScreen(this, shot, edited -> {
+					social.setGroupPicture(group.id(), edited);
+					Compat.setScreen(this);
+				}))))));
 		FlatButton heads = addRenderableWidget(new FlatButton(x + 74 + half + 4, y, half, 18, Component.translatable("orbit_cosmetic.social.group.picture.heads"), "account",
-			FlatButton.Style.SECONDARY, b -> social.setGroupPicture(group.id(), null)));
+			FlatButton.Style.SECONDARY, b -> social.setGroupPicture(group.id(), (java.nio.file.Path) null)));
 		heads.active = group.picture() != 0;
 		int by = top() + HEIGHT - 26;
 		int buttons = (WIDTH - 16 - 4) / 2;

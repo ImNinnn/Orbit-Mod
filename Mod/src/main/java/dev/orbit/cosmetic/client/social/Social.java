@@ -329,6 +329,20 @@ public final class Social {
 		groupCall("POST", "/groups/" + group + "/leader", body);
 	}
 
+	/** The group's picture from an edited image (the screenshot editor's result, which this closes). */
+	public void setGroupPicture(UUID group, com.mojang.blaze3d.platform.NativeImage image) {
+		Path file = OrbitClient.get().paths().cache().resolve("group-picture.png");
+		Util.ioPool().execute(() -> {
+			try (image) {
+				Files.createDirectories(file.getParent());
+				image.writeToFile(file);
+				Minecraft.getInstance().execute(() -> setGroupPicture(group, file));
+			} catch (IOException e) {
+				Minecraft.getInstance().execute(() -> Notifications.error(Component.translatable("orbit_cosmetic.social.failed"), Component.literal(String.valueOf(e.getMessage()))));
+			}
+		});
+	}
+
 	/** The group's picture from a screenshot (the middle square, made small), or back to the heads with null. */
 	public void setGroupPicture(UUID group, @Nullable Path screenshot) {
 		if (screenshot == null) {

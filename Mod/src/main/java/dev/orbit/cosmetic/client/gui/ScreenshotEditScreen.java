@@ -26,11 +26,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.function.Consumer;
 import java.util.function.IntUnaryOperator;
 
 /**
  * Edits a screenshot: draw on it (colour, opacity and brush size), crop it with the handles on its corners and
- * sides, rotate it, rename it. Saving writes a copy ("Copy of ..."), so the original stays as it was.
+ * sides, rotate it, rename it. Saving writes a copy ("Copy of ..."), so the original stays as it was. As a picture
+ * picker (a group chat's picture) the crop stays square and Use hands the edited picture back instead.
  */
 public final class ScreenshotEditScreen extends OrbitScreen {
 	private static final int BAR = 26;
@@ -42,6 +44,8 @@ public final class ScreenshotEditScreen extends OrbitScreen {
 	private static final int MAX_UNDO = 15;
 
 	private final ScreenshotLibrary.Shot shot;
+	/** Picking a square picture: gets the edited image (its owner closes it); null when editing a screenshot. */
+	private final @Nullable Consumer<NativeImage> picked;
 	private @Nullable NativeImage image;
 	private @Nullable Identifier textureId;
 	private int textureCount;
@@ -65,8 +69,14 @@ public final class ScreenshotEditScreen extends OrbitScreen {
 	private double lastY;
 
 	public ScreenshotEditScreen(@Nullable Screen parent, ScreenshotLibrary.Shot shot) {
-		super(Component.translatable("orbit_cosmetic.screenshots.edit.title"), parent);
+		this(parent, shot, null);
+	}
+
+	/** Crops (square), rotates and draws on a screenshot for a picture; {@code picked} gets the result. */
+	public ScreenshotEditScreen(@Nullable Screen parent, ScreenshotLibrary.Shot shot, @Nullable Consumer<NativeImage> picked) {
+		super(Component.translatable(picked != null ? "orbit_cosmetic.screenshots.edit.picture" : "orbit_cosmetic.screenshots.edit.title"), parent);
 		this.shot = shot;
+		this.picked = picked;
 		Util.ioPool().execute(() -> {
 			NativeImage loaded = null;
 			try (InputStream in = Files.newInputStream(shot.path())) {
@@ -85,6 +95,7 @@ public final class ScreenshotEditScreen extends OrbitScreen {
 				crop[1] = 0;
 				crop[2] = result.getWidth();
 				crop[3] = result.getHeight();
+				squareCrop();
 			});
 		});
 	}
@@ -98,8 +109,9 @@ public final class ScreenshotEditScreen extends OrbitScreen {
 		nameBox.setTextColor(Theme.TEXT);
 		nameBox.setMaxLength(100);
 		nameBox.setValue(name);
+		nameBox.visible = picked == null;
 		addRenderableWidget(nameBox);
-		Component saveLabel = Component.translatable("orbit_cosmetic.screenshots.edit.save");
+		Component saveLabel = Component.translatable(picked != null ? "orbit_cosmetic.screenshots.edit.use" : "orbit_cosmetic.screenshots.edit.save");
 		int saveW = font.width(saveLabel) + 30;
 		addRenderableWidget(new FlatButton(width - 8 - saveW, height - 24, saveW, 18, saveLabel, "check", FlatButton.Style.PRIMARY, b -> save()));
 
@@ -126,8 +138,23 @@ public final class ScreenshotEditScreen extends OrbitScreen {
 				crop[1] = 0;
 				crop[2] = image.getWidth();
 				crop[3] = image.getHeight();
+				squareCrop();
 			}
 		}));
+	}
+
+	/** For a picture: the largest square in the middle of the crop. */
+	private void squareCrop() {
+		if (picked == null) {
+			return;
+		}
+		int w = crop[2] - crop[0];
+		int h = crop[3] - crop[1];
+		int side = Math.min(w, h);
+		crop[0] += (w - side) / 2;
+		crop[1] += (h - side) / 2;
+		crop[2] = crop[0] + side;
+		crop[3] = crop[1] + side;
 	}
 
 	private int toolsTop() {
@@ -203,6 +230,7 @@ public final class ScreenshotEditScreen extends OrbitScreen {
 			crop[1] = 0;
 			crop[2] = next.getWidth();
 			crop[3] = next.getHeight();
+			squareCrop();
 		}
 		if (old != null && !undo.contains(old) && !redo.contains(old)) {
 			old.close();
@@ -228,6 +256,7 @@ public final class ScreenshotEditScreen extends OrbitScreen {
 		crop[1] = 0;
 		crop[2] = turned.getWidth();
 		crop[3] = turned.getHeight();
+		squareCrop();
 		if (!undo.contains(old)) {
 			old.close();
 		}
@@ -307,6 +336,10 @@ public final class ScreenshotEditScreen extends OrbitScreen {
 				out.setPixel(x, y, image.getPixel(crop[0] + x, crop[1] + y));
 			}
 		}
+		if (picked != null) {
+			picked.accept(out);
+			return;
+		}
 		String name = ScreenshotLibrary.cleanName(nameBox.getValue());
 		Path target = ScreenshotLibrary.unique(shot.path().getParent(), (name.isEmpty() ? stripPng(shot.name()) + " (edited)" : name) + ".png");
 		Util.ioPool().execute(() -> {
@@ -332,6 +365,10 @@ public final class ScreenshotEditScreen extends OrbitScreen {
 		float y0 = c[1] + crop[1] * s;
 		float x1 = c[0] + crop[2] * s;
 		float y1 = c[1] + crop[3] * s;
+		if (picked != null) {
+			// A square crop has its corners only.
+			return new float[][] {{x0, y0}, {x1, y0}, {x0, y1}, {x1, y1}};
+		}
 		return new float[][] {{x0, y0}, {x1, y0}, {x0, y1}, {x1, y1}, {(x0 + x1) / 2, y0}, {(x0 + x1) / 2, y1}, {x0, (y0 + y1) / 2}, {x1, (y0 + y1) / 2}};
 	}
 
@@ -426,6 +463,23 @@ public final class ScreenshotEditScreen extends OrbitScreen {
 			upload();
 			return true;
 		}
+		if (drag == Drag.HANDLE && picked != null) {
+			// A square: a corner moves, the opposite one stays, and the square stays inside the image.
+			if (handle > 3) {
+				return true;
+			}
+			boolean left = handle == 0 || handle == 2;
+			boolean top = handle == 0 || handle == 1;
+			int ax = left ? crop[2] : crop[0];
+			int ay = top ? crop[3] : crop[1];
+			int room = Math.min(left ? ax : image.getWidth() - ax, top ? ay : image.getHeight() - ay);
+			int side = (int) Math.round(Math.clamp(Math.max(Math.abs(ix - ax), Math.abs(iy - ay)), 16, Math.max(16, room)));
+			crop[0] = left ? ax - side : ax;
+			crop[2] = left ? ax : ax + side;
+			crop[1] = top ? ay - side : ay;
+			crop[3] = top ? ay : ay + side;
+			return true;
+		}
 		if (drag == Drag.HANDLE) {
 			int x = (int) Math.round(Math.clamp(ix, 0, image.getWidth()));
 			int y = (int) Math.round(Math.clamp(iy, 0, image.getHeight()));
@@ -494,7 +548,11 @@ public final class ScreenshotEditScreen extends OrbitScreen {
 	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
 		graphics.fill(0, 0, width, BAR, Theme.PANEL);
 		graphics.fill(0, BAR - 1, width, BAR, Theme.BORDER);
-		graphics.outline(width / 2 - 94, 5, 188, 16, nameBox.isFocused() ? Theme.BORDER_LIGHT : Theme.BORDER);
+		if (picked == null) {
+			graphics.outline(width / 2 - 94, 5, 188, 16, nameBox.isFocused() ? Theme.BORDER_LIGHT : Theme.BORDER);
+		} else {
+			graphics.centeredText(font, title, width / 2, 9, Theme.TEXT);
+		}
 		float[] c = canvas();
 		if (image != null && textureId != null) {
 			int x = Math.round(c[0]);

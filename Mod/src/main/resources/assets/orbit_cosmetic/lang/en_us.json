@@ -495,6 +495,8 @@
 	"orbit_cosmetic.screenshots.edit.rotate": "Rotate 90°",
 	"orbit_cosmetic.screenshots.edit.reset_crop": "Reset crop",
 	"orbit_cosmetic.screenshots.edit.save": "Save copy",
+	"orbit_cosmetic.screenshots.edit.use": "Use",
+	"orbit_cosmetic.screenshots.edit.picture": "Group picture",
 	"orbit_cosmetic.screenshots.edit.saved": "Saved the edited screenshot",
 	"orbit_cosmetic.screenshots.edit.copy_name": "Copy of %s",
 	"orbit_cosmetic.social.title": "Social",
