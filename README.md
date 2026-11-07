@@ -25,9 +25,9 @@ and zoom.
 
 | Minecraft | File |
 |---|---|
-| 26.1, 26.1.1, 26.1.2 | `Mod (client side)/versions/26.1/build/libs/orbit-mod-mc26.1-<version>.jar` |
-| 26.2 | `Mod (client side)/versions/26.2/build/libs/orbit-mod-mc26.2-<version>.jar` |
-| 26.3 | `Mod (client side)/versions/26.3/build/libs/orbit-mod-mc26.3-<version>.jar` |
+| 26.1, 26.1.1, 26.1.2 | `Mod/versions/26.1/build/libs/orbit-mod-mc26.1-<version>.jar` |
+| 26.2 | `Mod/versions/26.2/build/libs/orbit-mod-mc26.2-<version>.jar` |
+| 26.3 | `Mod/versions/26.3/build/libs/orbit-mod-mc26.3-<version>.jar` |
 
 Install the jar for your Minecraft version in `mods/`, with Fabric Loader 0.20.1+ and Fabric API. Java 25.
 Orbit is client-only: servers do not need it.
@@ -443,6 +443,16 @@ disappears if the team takes it back.
 An Orbit Cloud ban keeps your friends and messages; it only limits sharing: no cosmetics with a feature ban, no
 cosmetics or screenshots with a complete ban. The game learns of a ban, and of its end, within seconds.
 
+**Group chats.** The **+** at the top of Social makes a group with friends you pick (up to 10 members). Its name is
+its members' names until it gets one, and its picture their heads until it gets a screenshot. In the chat, others'
+messages show their head and name; the header says how many members are online. The members button opens the member
+list on the right. The player who made the group leads it: they add friends, remove members, pass the lead on, and
+set the name, colour and picture (the pencil). Group messages are not end-to-end encrypted.
+
+Each conversation is tinted with a colour: a friend's statistics page colour, or the group's own. Colours can be
+picked from the swatches or typed as a hex code (`#3A9D4A`). The settings' top right corner has buttons for the
+website, GitHub and Discord.
+
 Blocking a player removes them from your friends; they can no longer send you requests or messages, and their
 cosmetics are hidden for you (unblock them in the Friends tab).
 
@@ -561,7 +571,7 @@ Project layout:
 ```
 common/                     Pure Java, shared by every Minecraft version: .bbmodel parser and validation,
                             animation engine and Molang, emotes, the equip encoding
-Mod (client side)/
+Mod/
   src/                      The client mod: libraries, Orbit menu, emotes, rendering, Orbit Cloud
   versions/26.x/            One Gradle project per Minecraft version: its gradle.properties and the few
                             classes that differ between versions (compat/Compat, compat/PreviewRenderer)
@@ -572,7 +582,7 @@ website/                    orbitcosmetics.dev
 ### Adding a Minecraft version
 
 The shared code compiles against every 26.x release, but the compiled classes differ (methods and classes
-moved), so each version gets its own jar. To add one: copy `Mod (client side)/versions/26.3` to the new
+moved), so each version gets its own jar. To add one: copy `Mod/versions/26.3` to the new
 version's folder, set `minecraft_version`, `minecraft_dependency` and `fabric_api_version` in its
 `gradle.properties`, add the version to `settings.gradle`, and fix whatever its `compat` classes no longer
 compile against.

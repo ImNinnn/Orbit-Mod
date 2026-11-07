@@ -41,7 +41,7 @@ subprojects {
 //                                              never offers that folder as an update (its name is not a version).
 
 def releaseKeyFile = file(System.getenv('ORBIT_RELEASE_KEY') ?: "${System.getProperty('user.home')}/.config/orbit-release.key")
-def publicKeyFile = file('Mod (client side)/src/main/resources/orbit-release.pub')
+def publicKeyFile = file('Mod/src/main/resources/orbit-release.pub')
 def clientProjects = ['26.1', '26.2', '26.3'].collect { ":client-${it}" }
 
 tasks.register('releaseKey') {

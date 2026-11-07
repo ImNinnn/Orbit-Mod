@@ -11,7 +11,7 @@
 !/gradlew.bat
 !/gradle/
 !/common/
-!/Mod (client side)/
+!/Mod/
 !/website/
 !/.github/
 
@@ -19,7 +19,7 @@
 build/
 .gradle/
 /common/src/test/
-/Mod (client side)/src/testmod/
+/Mod/src/testmod/
 
 # Secrets: never commit tokens or keys
 .env

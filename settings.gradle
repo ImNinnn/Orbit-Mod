@@ -18,8 +18,8 @@ rootProject.name = 'orbit-cosmetic'
 // Platform-independent code: model parsing, animation, and the encoding of what players wear.
 include 'common'
 
-// The client mod, built once per supported Minecraft version from the same sources (see Mod (client side)/version.gradle).
+// The client mod, built once per supported Minecraft version from the same sources (see Mod/version.gradle).
 ['26.1', '26.2', '26.3'].each { version ->
 	include "client-${version}"
-	project(":client-${version}").projectDir = file("Mod (client side)/versions/${version}")
+	project(":client-${version}").projectDir = file("Mod/versions/${version}")
 }
