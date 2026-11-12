@@ -204,6 +204,7 @@ public final class OrbitClient implements ClientModInitializer {
 		dev.orbit.cosmetic.client.gui.servers.ServerTabs.register();
 		dev.orbit.cosmetic.client.screenshot.ScreenshotToasts.register();
 		dev.orbit.cosmetic.client.social.FloatingChats.register();
+		dev.orbit.cosmetic.client.hud.HudRenderer.register();
 		dev.orbit.cosmetic.client.social.SocialPopups.register();
 
 		library.reload();

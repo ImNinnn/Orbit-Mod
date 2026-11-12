@@ -26,6 +26,7 @@ public final class OrbitKeys {
 	private static KeyMapping chatPeek;
 	private static KeyMapping quickMenu;
 	private static KeyMapping toggleCosmetics;
+	private static KeyMapping hud;
 	private static final KeyMapping[] EMOTE_SLOTS = new KeyMapping[OrbitState.WHEEL_SLOTS];
 
 	private OrbitKeys() {
@@ -38,6 +39,7 @@ public final class OrbitKeys {
 		chatPeek = key("chat_peek", InputConstants.KEY_Z, category);
 		quickMenu = key("quick_menu", InputConstants.UNKNOWN.getValue(), category);
 		toggleCosmetics = key("toggle_cosmetics", InputConstants.UNKNOWN.getValue(), category);
+		hud = key("hud", InputConstants.UNKNOWN.getValue(), category);
 		for (int slot = 0; slot < EMOTE_SLOTS.length; slot++) {
 			EMOTE_SLOTS[slot] = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.orbit_cosmetic.emote_slot_" + (slot + 1), InputConstants.UNKNOWN.getValue(), category));
 		}
@@ -67,6 +69,11 @@ public final class OrbitKeys {
 		while (social.consumeClick()) {
 			if (free) {
 				Compat.setScreen(new SocialScreen(null));
+			}
+		}
+		while (hud.consumeClick()) {
+			if (free) {
+				dev.orbit.cosmetic.client.hud.HudEditorScreen.open(null);
 			}
 		}
 		while (screenshots.consumeClick()) {

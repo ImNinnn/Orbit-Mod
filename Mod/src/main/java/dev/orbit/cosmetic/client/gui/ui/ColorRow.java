@@ -23,13 +23,20 @@ public final class ColorRow {
 	public static final int WIDTH = COLORS.length * 17 + 4 + 56;
 
 	private final List<Hotspot> swatches = new ArrayList<>();
+	private final int[] colors;
 	private final EditBox hex;
 	private int color;
 
 	public ColorRow(Font font, int x, int y, int color, IntConsumer changed, Consumer<AbstractWidget> add) {
+		this(font, x, y, color, COLORS, changed, add);
+	}
+
+	/** With other swatches (at most as many as {@link #COLORS}, so the row keeps its width). */
+	public ColorRow(Font font, int x, int y, int color, int[] swatchColors, IntConsumer changed, Consumer<AbstractWidget> add) {
 		this.color = color & 0xFFFFFF;
-		for (int i = 0; i < COLORS.length; i++) {
-			int chosen = COLORS[i];
+		this.colors = swatchColors;
+		for (int i = 0; i < colors.length; i++) {
+			int chosen = colors[i];
 			Hotspot swatch = new Hotspot(Component.translatable("orbit_cosmetic.stats.color"), h -> {
 				this.color = chosen;
 				hexField().setValue(format(chosen));
@@ -40,7 +47,7 @@ public final class ColorRow {
 			swatches.add(swatch);
 			add.accept(swatch);
 		}
-		hex = new EditBox(font, x + COLORS.length * 17 + 8, y + 3, 48, 10, Component.translatable("orbit_cosmetic.color.hex"));
+		hex = new EditBox(font, x + colors.length * 17 + 8, y + 3, 48, 10, Component.translatable("orbit_cosmetic.color.hex"));
 		hex.setBordered(false);
 		hex.setMaxLength(7);
 		hex.setTextColor(Theme.TEXT);
@@ -86,9 +93,9 @@ public final class ColorRow {
 			Hotspot swatch = swatches.get(i);
 			int sx = swatch.getX();
 			int sy = swatch.getY();
-			boolean chosen = COLORS[i] == color;
-			graphics.fill(sx, sy, sx + 14, sy + 14, chosen || swatch.isHoveredOrFocused() ? Theme.TEXT : Theme.EDGE);
-			graphics.fill(sx + 1, sy + 1, sx + 13, sy + 13, 0xFF000000 | COLORS[i]);
+			boolean chosen = colors[i] == color;
+			graphics.fill(sx, sy, sx + 14, sy + 14, chosen || swatch.isHoveredOrFocused() ? Theme.RED : Theme.EDGE);
+			graphics.fill(sx + 1, sy + 1, sx + 13, sy + 13, 0xFF000000 | colors[i]);
 			swatch.drawFocus(graphics);
 		}
 		int fx = hex.getX() - 4;
@@ -96,7 +103,7 @@ public final class ColorRow {
 		boolean valid = parse(hex.getValue()) != null;
 		graphics.fill(fx, fy, fx + 56, fy + 14, 0x88000000);
 		graphics.outline(fx, fy, 56, 14, hex.isFocused() ? Theme.BORDER_LIGHT : valid ? Theme.BORDER : Theme.RED);
-		boolean custom = java.util.Arrays.stream(COLORS).noneMatch(c -> c == color);
+		boolean custom = java.util.Arrays.stream(colors).noneMatch(c -> c == color);
 		if (custom) {
 			graphics.fill(fx - 6, fy + 4, fx - 2, fy + 10, 0xFF000000 | color);
 		}

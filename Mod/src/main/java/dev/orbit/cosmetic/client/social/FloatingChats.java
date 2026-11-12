@@ -124,7 +124,8 @@ public final class FloatingChats {
 
 	/** The screens the windows can be used over: the chat, the pause menu and the message box. */
 	static boolean interactive(@Nullable Screen screen) {
-		return available() && (screen instanceof ChatScreen || screen instanceof PauseScreen || screen instanceof FloatingChatInput);
+		return available() && (screen instanceof ChatScreen || screen instanceof PauseScreen || screen instanceof FloatingChatInput
+			|| screen instanceof dev.orbit.cosmetic.client.hud.HudEditorScreen);
 	}
 
 	public static void register() {
@@ -165,7 +166,7 @@ public final class FloatingChats {
 
 	/** Hidden windows show see-through over the pause menu, where a click brings them back. */
 	private static boolean ghosts() {
-		return Compat.screen() instanceof PauseScreen;
+		return Compat.screen() instanceof PauseScreen || Compat.screen() instanceof dev.orbit.cosmetic.client.hud.HudEditorScreen;
 	}
 
 	/** Draws the windows; with {@code interactive}, hovers, drags and resizes follow the mouse. */

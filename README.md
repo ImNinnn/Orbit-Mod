@@ -22,6 +22,8 @@ and zoom.
 * Screenshots: F2 shows a preview to edit, favorite, copy or send the picture; a manager to browse them, and an
   editor to draw on, crop, rotate and rename them.
 * Zoom: hold **C**, scroll to zoom more or less.
+* HUD components: FPS, coordinates, rotation, keystrokes, CPS and mouse, a paperdoll, the inventory, a compass
+  ribbon and chat windows, placed and sized anywhere on the screen.
 
 | Minecraft | File |
 |---|---|
@@ -319,7 +321,7 @@ is always *Mobile*. Click **+** in the Emotes section for a new emote from a tem
 
 The title and pause screens show your player on one side of Minecraft's buttons, with **Wardrobe** (the Orbit
 menu) and **Players** (pause screen) under its feet, and Orbit's buttons on the other side: **Host**, **Social**,
-**Screenshots**, **Settings** and **Statistics**. Social shows how many unread messages and friend requests you have.
+**HUD components**, **Screenshots**, **Settings** and **Statistics**. Social shows how many unread messages and friend requests you have.
 News from the Orbit team ("Summer Cosmetics!") shows in a box under **Wardrobe** while it lasts (in the top left
 corner on small windows); a new one shows at once. In the Featured
 Catalog, the item you pick shows on the player without a selection tint.
@@ -349,8 +351,29 @@ sends their profile as it is to Orbit's moderators.
 
 All of Orbit's keys are in Controls, under Orbit: **B** the wardrobe, **R** the emote wheel (hold), **C** zoom
 (hold), **H** Host, **J** Social, **I** Screenshots, **Z** chat peek (hold to see the whole chat without typing).
-Not bound until you bind them: the quick menu (hold, point at Host, Social, Wardrobe, Settings or Players, and
-let go), showing or hiding every cosmetic, and one key per emote wheel slot (plays that slot's emote).
+Not bound until you bind them: the quick menu (hold, point at Host, Social, Wardrobe, Settings, Players or HUD
+components, and let go), the HUD components editor, showing or hiding every cosmetic, and one key per emote wheel slot (plays that slot's emote).
+
+### HUD components
+
+**HUD components** (under Social, in the settings, in the quick menu, or with its key) shows every component on the
+screen: drag one to move it (it snaps to the screen's edges and middle and lines up with the others), drag its
+bottom right corner to make it bigger or smaller, and click it for its settings: **In menus** (also show it over
+every menu, not only in game), **Background**, the text colour (white, Orbit red, any colour or a hex code),
+**Reset size** and **Remove** (or Delete). The arrow keys move the one picked by a pixel (ten with Shift).
+**Add component** adds any of them, as many times as you like:
+
+* **FPS**, **Coordinates** (X, Y, Z) and **Rotation** (yaw, pitch and the direction you face).
+* **Keystrokes**: W, A, S, D (with your own keys' names), the space bar, Sneak and Sprint, red while pressed.
+* **CPS & mouse**: clicks a second on each mouse button, with a dot between them that follows the mouse and settles
+  back in the middle. It is as wide as Keystrokes, to go under it.
+* **Paperdoll** (your player), **Inventory** (the 27 slots above the hotbar) and **Compass** (a ribbon of
+  directions, the way you look in the middle).
+* **Chat window**: pops a conversation out as a floating chat window (see Friends and messages), moved and resized
+  here like the others.
+
+Components that need a world show only in one. F1 hides them with the rest of the HUD. They are kept in
+`config/orbit_hud.json`.
 
 ### Multiplayer tabs
 
@@ -429,7 +452,7 @@ deleted one's content, so every computer shows it so, also one you start playing
 
 **Floating chat windows.** In a world, the pop-out button in a conversation's header turns it into a small window
 over the game. While you play, it shows on the screen and hides after 30 seconds without new messages. With the
-chat or the pause menu open, you can move it by its title bar, resize it from its bottom right corner, scroll it
+chat, the pause menu or the HUD components editor open, you can move it by its title bar, resize it from its bottom right corner, scroll it
 and click its message box to type (Enter sends, Escape goes back to the game). Encrypted messages have the dashed
 outline there too; screenshots, cosmetics and invites show as a grey *sent a screenshot* (and so on): open the
 conversation in Social to see them. **–** hides it until the next

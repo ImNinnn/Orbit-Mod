@@ -108,7 +108,7 @@ public final class MenuPlayer {
 		return new int[] {centerX, feetY, size, row};
 	}
 
-	private static final String[] STACK_LABELS = {"orbit_cosmetic.menu.host", "orbit_cosmetic.menu.social", "orbit_cosmetic.menu.screenshots", "orbit_cosmetic.menu.settings",
+	private static final String[] STACK_LABELS = {"orbit_cosmetic.menu.host", "orbit_cosmetic.menu.social", "orbit_cosmetic.menu.hud", "orbit_cosmetic.menu.screenshots", "orbit_cosmetic.menu.settings",
 		"orbit_cosmetic.menu.stats"};
 
 	/**
@@ -131,6 +131,7 @@ public final class MenuPlayer {
 		int width = stackWidth(screen);
 		buttons.add(stackButton(width, "host", "orbit_cosmetic.menu.host", b -> Compat.setScreen(new HostScreen(screen))));
 		buttons.add(stackButton(width, "social", "orbit_cosmetic.menu.social", b -> Compat.setScreen(new SocialScreen(screen))));
+		buttons.add(stackButton(width, "hud", "orbit_cosmetic.menu.hud", b -> dev.orbit.cosmetic.client.hud.HudEditorScreen.open(screen)));
 		buttons.add(stackButton(width, "image", "orbit_cosmetic.menu.screenshots", b -> Compat.setScreen(new ScreenshotsScreen(screen))));
 		buttons.add(stackButton(width, "settings", "orbit_cosmetic.menu.settings", b -> Compat.setScreen(new OrbitSettingsScreen(screen))));
 		String update = dev.orbit.cosmetic.client.Updates.available();
@@ -211,11 +212,11 @@ public final class MenuPlayer {
 		placeUpdateArrow(screen, buttons);
 	}
 
-	/** The update arrow, just left of the Settings button (the fourth of the stack). */
+	/** The update arrow, just left of the Settings button (the fifth of the stack). */
 	private static void placeUpdateArrow(Screen screen, List<FlatButton> buttons) {
 		FlatButton arrow = UPDATE.get(screen);
-		if (arrow != null && buttons.size() > 3) {
-			FlatButton settings = buttons.get(3);
+		if (arrow != null && buttons.size() > 4) {
+			FlatButton settings = buttons.get(4);
 			arrow.setPosition(settings.getX() - 24, settings.getY());
 		}
 	}

@@ -16,8 +16,8 @@ import java.util.List;
 import java.util.function.Supplier;
 
 /**
- * The quick menu: open while its key is held, like the emote wheel. Five squares in a cross (Host, Social,
- * Wardrobe in the middle, Settings, Players); point at one and let go of the key, or click it.
+ * The quick menu: open while its key is held, like the emote wheel. Squares in a cross (Host, Social,
+ * Wardrobe in the middle, Settings, Players) and HUD components in a corner; point at one and let go of the key, or click it.
  */
 public final class QuickMenuScreen extends Screen {
 	private record Entry(int column, int row, String icon, String key, Supplier<Screen> open) {
@@ -28,6 +28,7 @@ public final class QuickMenuScreen extends Screen {
 		new Entry(0, 1, "social", "orbit_cosmetic.quick.message", () -> new SocialScreen(null)),
 		new Entry(1, 1, "orbit", "orbit_cosmetic.menu.wardrobe", () -> new OrbitMenuScreen(null)),
 		new Entry(2, 1, "settings", "orbit_cosmetic.menu.settings", () -> new OrbitSettingsScreen(null)),
+		new Entry(2, 0, "hud", "orbit_cosmetic.menu.hud", () -> new dev.orbit.cosmetic.client.hud.HudEditorScreen(null)),
 		new Entry(1, 2, "player", "orbit_cosmetic.players.button", () -> new PlayersScreen(null)),
 	};
 
