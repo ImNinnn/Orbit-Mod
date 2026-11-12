@@ -71,4 +71,14 @@ public final class Compat {
 	public static boolean isLetter(net.minecraft.client.input.KeyEvent event, char letter) {
 		return event.key() == com.mojang.blaze3d.platform.InputConstants.KEY_A + (letter - 'a');
 	}
+
+	/** Whether a keyboard key (a GLFW key code) is held. */
+	public static boolean keyDown(int key) {
+		return com.mojang.blaze3d.platform.InputConstants.isKeyDown(net.minecraft.client.Minecraft.getInstance().getWindow(), key);
+	}
+
+	/** A keyboard key's name (a GLFW key code), as the controls show it. */
+	public static String keyName(int key) {
+		return com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM.getOrCreate(key).getDisplayName().getString();
+	}
 }

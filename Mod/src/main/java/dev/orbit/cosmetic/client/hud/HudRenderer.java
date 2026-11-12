@@ -17,6 +17,7 @@ public final class HudRenderer {
 	}
 
 	public static void register() {
+		HudLayout.components();
 		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(OrbitClient.MOD_ID, "hud_components"), (graphics, tick) -> {
 			if (Compat.hudHidden() || Compat.screen() instanceof HudEditorScreen) {
 				return;

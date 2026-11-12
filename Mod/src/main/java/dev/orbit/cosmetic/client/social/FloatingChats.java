@@ -1,9 +1,11 @@
 package dev.orbit.cosmetic.client.social;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.compat.Compat;
 import dev.orbit.cosmetic.client.gui.ui.Theme;
+import dev.orbit.cosmetic.client.hud.HudLayout;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents;
@@ -32,21 +34,25 @@ import java.util.UUID;
 public final class FloatingChats {
 	static final int TITLE = 16;
 	static final int INPUT = 14;
-	private static final int MIN_W = 130;
-	private static final int MIN_H = 90;
+	public static final int MIN_W = 130;
+	public static final int MIN_H = 90;
 	private static final int GRIP = 7;
 	private static final long AUTO_HIDE_MS = 30_000;
-	private static final int MINE = 0xFFB81B1B;
+	/** The default accent: the player's own bubbles and the bar on the window's left. */
+	public static final int DEFAULT_ACCENT = 0xB81B1B;
 	private static final int THEIRS = 0xFF34343C;
 
-	/** One floating conversation. */
-	static final class Window {
+	/** One floating conversation (placed in the HUD components editor like the components). */
+	public static final class Window {
 		final UUID friend;
 		final String name;
-		int x;
-		int y;
-		int w = 190;
-		int h = 150;
+		public int x;
+		public int y;
+		public int w = 190;
+		public int h = 150;
+		/** Hides 30 seconds after the last news while playing (else it stays). */
+		public boolean autoHide = true;
+		public int accent = DEFAULT_ACCENT;
 		/** Hidden with "–" until a new message. */
 		boolean hidden;
 		long active = System.currentTimeMillis();
@@ -57,6 +63,14 @@ public final class FloatingChats {
 		Window(UUID friend, String name) {
 			this.friend = friend;
 			this.name = name;
+		}
+
+		public UUID friend() {
+			return friend;
+		}
+
+		public String name() {
+			return name;
 		}
 
 		boolean canWrite() {
@@ -107,6 +121,91 @@ public final class FloatingChats {
 		window.hidden = false;
 		window.active = System.currentTimeMillis();
 		WINDOWS.add(window);
+		HudLayout.save();
+	}
+
+	/** The windows, last drawn on top (the HUD components editor moves and resizes them). */
+	public static List<Window> windows() {
+		HudLayout.components();
+		return WINDOWS;
+	}
+
+	public static void close(Window window) {
+		WINDOWS.remove(window);
+		HudLayout.save();
+	}
+
+	/** Brings a window to the front. */
+	public static void raise(Window window) {
+		if (WINDOWS.remove(window)) {
+			WINDOWS.add(window);
+		}
+	}
+
+	/** The open windows, for the HUD components file. */
+	public static JsonArray toJson() {
+		JsonArray array = new JsonArray();
+		for (Window window : WINDOWS) {
+			JsonObject json = new JsonObject();
+			json.addProperty("friend", window.friend.toString());
+			json.addProperty("name", window.name);
+			json.addProperty("x", window.x);
+			json.addProperty("y", window.y);
+			json.addProperty("w", window.w);
+			json.addProperty("h", window.h);
+			json.addProperty("autoHide", window.autoHide);
+			json.addProperty("accent", window.accent);
+			if (window.lastId != null) {
+				json.addProperty("last", window.lastId);
+			}
+			array.add(json);
+		}
+		return array;
+	}
+
+	/** The windows open when the game was last closed: back where they were, hidden until news (if they auto-hide). */
+	public static void restore(JsonArray array) {
+		for (var element : array) {
+			try {
+				JsonObject json = element.getAsJsonObject();
+				UUID friend = UUID.fromString(json.get("friend").getAsString());
+				if (find(friend) != null || WINDOWS.size() >= 16) {
+					continue;
+				}
+				Window window = new Window(friend, json.get("name").getAsString());
+				window.x = json.get("x").getAsInt();
+				window.y = json.get("y").getAsInt();
+				window.w = Math.max(MIN_W, json.get("w").getAsInt());
+				window.h = Math.max(MIN_H, json.get("h").getAsInt());
+				window.autoHide = !json.has("autoHide") || json.get("autoHide").getAsBoolean();
+				window.accent = json.has("accent") ? json.get("accent").getAsInt() & 0xFFFFFF : DEFAULT_ACCENT;
+				window.lastId = json.has("last") ? json.get("last").getAsString() : null;
+				window.active = 0;
+				WINDOWS.add(window);
+			} catch (RuntimeException e) {
+				OrbitClient.LOGGER.warn("Skipped a saved chat window: {}", e.toString());
+			}
+		}
+	}
+
+	/** Draws every window as it is placed (hidden ones too), for the HUD components editor. */
+	public static void drawPlaced(GuiGraphicsExtractor graphics) {
+		Social social = OrbitClient.get().social();
+		Minecraft minecraft = Minecraft.getInstance();
+		int screenW = minecraft.getWindow().getGuiScaledWidth();
+		int screenH = minecraft.getWindow().getGuiScaledHeight();
+		for (Window window : WINDOWS) {
+			clampTo(window, screenW, screenH);
+			graphics.nextStratum();
+			drawWindow(graphics, window, social.chat(window.friend), -1, -1, true);
+		}
+	}
+
+	private static void clampTo(Window window, int screenW, int screenH) {
+		window.w = Math.min(window.w, screenW);
+		window.h = Math.min(window.h, screenH);
+		window.x = Math.clamp(window.x, 0, Math.max(0, screenW - window.w));
+		window.y = Math.clamp(window.y, 0, Math.max(0, screenH - window.h));
 	}
 
 	/** True when this conversation has a floating window (it shows new messages, so no popup is needed). */
@@ -124,8 +223,7 @@ public final class FloatingChats {
 
 	/** The screens the windows can be used over: the chat, the pause menu and the message box. */
 	static boolean interactive(@Nullable Screen screen) {
-		return available() && (screen instanceof ChatScreen || screen instanceof PauseScreen || screen instanceof FloatingChatInput
-			|| screen instanceof dev.orbit.cosmetic.client.hud.HudEditorScreen);
+		return available() && (screen instanceof ChatScreen || screen instanceof PauseScreen || screen instanceof FloatingChatInput);
 	}
 
 	public static void register() {
@@ -154,6 +252,9 @@ public final class FloatingChats {
 			ScreenMouseEvents.allowMouseRelease(screen).register((current, event) -> {
 				boolean was = dragging != null;
 				dragging = null;
+				if (was) {
+					HudLayout.save();
+				}
 				return !was;
 			});
 			ScreenMouseEvents.allowMouseScroll(screen).register((current, mouseX, mouseY, scrollX, scrollY) -> !scroll(mouseX, mouseY, scrollY));
@@ -161,12 +262,12 @@ public final class FloatingChats {
 	}
 
 	private static boolean shown(Window window, boolean interactive, long now) {
-		return !window.hidden && (interactive || now - window.active < AUTO_HIDE_MS);
+		return !window.hidden && (interactive || !window.autoHide || now - window.active < AUTO_HIDE_MS);
 	}
 
 	/** Hidden windows show see-through over the pause menu, where a click brings them back. */
 	private static boolean ghosts() {
-		return Compat.screen() instanceof PauseScreen || Compat.screen() instanceof dev.orbit.cosmetic.client.hud.HudEditorScreen;
+		return Compat.screen() instanceof PauseScreen;
 	}
 
 	/** Draws the windows; with {@code interactive}, hovers, drags and resizes follow the mouse. */
@@ -193,10 +294,7 @@ public final class FloatingChats {
 				window.active = now;
 				window.scroll = 0;
 			}
-			window.w = Math.min(window.w, screenW);
-			window.h = Math.min(window.h, screenH);
-			window.x = Math.clamp(window.x, 0, screenW - window.w);
-			window.y = Math.clamp(window.y, 0, screenH - window.h);
+			clampTo(window, screenW, screenH);
 			if (shown(window, interactive, now)) {
 				graphics.nextStratum();
 				drawWindow(graphics, window, chat, interactive ? mouseX : -1, interactive ? mouseY : -1, interactive);
@@ -214,6 +312,7 @@ public final class FloatingChats {
 		int w = window.w;
 		int h = window.h;
 		Theme.panel(graphics, x, y, w, h, interactive ? Theme.PANEL : 0xE81C1C20);
+		graphics.fill(x, y, x + 2, y + h, 0xFF000000 | window.accent);
 		// Title bar, like the update window's: face and name, then minimize and close.
 		graphics.fill(x + 1, y + TITLE - 1, x + w - 1, y + TITLE, Theme.BORDER);
 		SocialPopups.face(graphics, window.friend, window.name, x + 4, y + 3, 10);
@@ -264,7 +363,7 @@ public final class FloatingChats {
 					// End-to-end encrypted: the dashed outline of the Social screen.
 					Theme.dashed(graphics, bx - 2, cy - 2, bw + 4, bh + 4, 0xFFB0B0BA);
 				}
-				Theme.bubble(graphics, bx, cy, bw, bh, grey ? THEIRS : mine ? MINE : THEIRS, 1, mine);
+				Theme.bubble(graphics, bx, cy, bw, bh, grey ? THEIRS : mine ? 0xFF000000 | window.accent : THEIRS, 1, mine);
 				int ly = cy + 3;
 				for (FormattedCharSequence line : lines) {
 					graphics.text(font, line, bx + 4, ly, grey ? Theme.MUTED : Theme.TEXT, false);
@@ -409,7 +508,7 @@ public final class FloatingChats {
 		int x = window.x;
 		int y = window.y;
 		if (Theme.inside(mouseX, mouseY, x + window.w - 17, y + 1, 16, TITLE - 2)) {
-			WINDOWS.remove(window);
+			close(window);
 			closeInput(screen, window);
 		} else if (Theme.inside(mouseX, mouseY, x + window.w - 34, y + 1, 16, TITLE - 2)) {
 			window.hidden = true;

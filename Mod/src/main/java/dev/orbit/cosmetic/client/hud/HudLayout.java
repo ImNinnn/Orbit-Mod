@@ -6,6 +6,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import dev.orbit.cosmetic.client.OrbitClient;
+import dev.orbit.cosmetic.client.social.FloatingChats;
 import net.fabricmc.loader.api.FabricLoader;
 
 import java.io.IOException;
@@ -17,7 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-/** The HUD components the player placed, kept in {@code config/orbit_hud.json}. */
+/** The HUD components the player placed and the open chat windows, kept in {@code config/orbit_hud.json}. */
 public final class HudLayout {
 	private static final List<HudComponent> COMPONENTS = new ArrayList<>();
 	private static boolean loaded;
@@ -53,10 +54,15 @@ public final class HudLayout {
 	}
 
 	public static void save() {
+		if (!loaded) {
+			// Read first, so saving early never drops what was there.
+			components();
+		}
 		JsonArray array = new JsonArray();
 		components().forEach(component -> array.add(component.toJson()));
 		JsonObject root = new JsonObject();
 		root.add("components", array);
+		root.add("chats", FloatingChats.toJson());
 		try {
 			Path temp = file().resolveSibling("orbit_hud.json.tmp");
 			Files.writeString(temp, new GsonBuilder().setPrettyPrinting().create().toJson(root), StandardCharsets.UTF_8);
@@ -72,6 +78,9 @@ public final class HudLayout {
 		}
 		try {
 			JsonElement root = JsonParser.parseString(Files.readString(file(), StandardCharsets.UTF_8));
+			if (root instanceof JsonObject object && object.get("chats") instanceof JsonArray chats) {
+				FloatingChats.restore(chats);
+			}
 			if (root instanceof JsonObject object && object.get("components") instanceof JsonArray array) {
 				for (JsonElement element : array) {
 					if (element instanceof JsonObject json && COMPONENTS.size() < 64) {

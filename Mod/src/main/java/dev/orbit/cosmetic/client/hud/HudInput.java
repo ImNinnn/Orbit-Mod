@@ -3,11 +3,21 @@ package dev.orbit.cosmetic.client.hud;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 
+import com.mojang.blaze3d.platform.InputConstants;
+import dev.orbit.cosmetic.client.compat.Compat;
+
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
- * What the CPS and mouse component shows: clicks in the last second on each mouse button, and a dot that follows how
+ * What the all keys style of Keystrokes shows: every key and mouse button held in game (never while a screen is
+ * open, so nothing typed in the chat or a text field shows), fading away for a moment when let go. And what the CPS
+ * and mouse component shows: clicks in the last second on each mouse button, and a dot that follows how
  * the player turns (the mouse moves the camera) and settles back in the middle. Updated every frame.
  */
 final class HudInput {
@@ -20,6 +30,25 @@ final class HudInput {
 	private static float lastYaw = Float.NaN;
 	private static float lastPitch;
 	private static long lastFrame;
+	private static final long FADE_MS = 250;
+	/** GLFW's key codes (only real ones: asking about a gap between them is an error). */
+	private static final int[] KEYS = java.util.stream.Stream.of(
+		new int[] {32, 39},
+		java.util.stream.IntStream.rangeClosed(44, 57).toArray(),
+		new int[] {59, 61},
+		java.util.stream.IntStream.rangeClosed(65, 93).toArray(),
+		new int[] {96, 161, 162},
+		java.util.stream.IntStream.rangeClosed(256, 269).toArray(),
+		java.util.stream.IntStream.rangeClosed(280, 284).toArray(),
+		java.util.stream.IntStream.rangeClosed(290, 314).toArray(),
+		java.util.stream.IntStream.rangeClosed(320, 336).toArray(),
+		java.util.stream.IntStream.rangeClosed(340, 348).toArray()).flatMapToInt(java.util.stream.IntStream::of).toArray();
+	/** Keys held (0) or let go (when), in the order they were pressed: key codes, and -1 - button for mouse buttons. */
+	private static final Map<Integer, Long> HELD = new LinkedHashMap<>();
+
+	/** A key the all keys style shows: its name, and how visible (1 while held, less while fading). */
+	record Held(String name, float alpha) {
+	}
 
 	private HudInput() {
 	}
@@ -43,6 +72,7 @@ final class HudInput {
 		while (!RIGHT.isEmpty() && now - RIGHT.peekFirst() > 1000) {
 			RIGHT.removeFirst();
 		}
+		pollKeys(minecraft, now);
 		float dt = lastFrame == 0 ? 0 : Math.min(0.1F, (now - lastFrame) / 1000F);
 		lastFrame = now;
 		LocalPlayer player = minecraft.player;
@@ -60,6 +90,47 @@ final class HudInput {
 		float settle = (float) Math.exp(-dt * 8);
 		dotX = Math.clamp(dotX * settle, -1, 1);
 		dotY = Math.clamp(dotY * settle, -1, 1);
+	}
+
+	private static void pollKeys(Minecraft minecraft, long now) {
+		boolean playing = Compat.screen() == null;
+		for (int key : KEYS) {
+			update(key, playing && Compat.keyDown(key), now);
+		}
+		var mouse = minecraft.mouseHandler;
+		update(-1 - InputConstants.MOUSE_BUTTON_LEFT, playing && mouse.isLeftPressed(), now);
+		update(-1 - InputConstants.MOUSE_BUTTON_RIGHT, playing && mouse.isRightPressed(), now);
+		update(-1 - InputConstants.MOUSE_BUTTON_MIDDLE, playing && mouse.isMiddlePressed(), now);
+		for (Iterator<Long> it = HELD.values().iterator(); it.hasNext();) {
+			long released = it.next();
+			if (released != 0 && now - released > FADE_MS) {
+				it.remove();
+			}
+		}
+	}
+
+	private static void update(int code, boolean down, long now) {
+		Long state = HELD.get(code);
+		if (down) {
+			if (state == null || state != 0) {
+				// Pressed (again): to the end of the line.
+				HELD.remove(code);
+				HELD.put(code, 0L);
+			}
+		} else if (state != null && state == 0) {
+			HELD.put(code, now);
+		}
+	}
+
+	static List<Held> heldKeys() {
+		long now = System.currentTimeMillis();
+		List<Held> keys = new ArrayList<>();
+		HELD.forEach((code, released) -> {
+			String name = code >= 0 ? Compat.keyName(code) : InputConstants.Type.MOUSE.getOrCreate(-1 - code).getDisplayName().getString();
+			float alpha = released == 0 ? 1 : 1 - (now - released) / (float) FADE_MS;
+			keys.add(new Held(name, Math.max(0, alpha)));
+		});
+		return keys;
 	}
 
 	static int leftCps() {

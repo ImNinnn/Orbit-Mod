@@ -110,6 +110,8 @@ public final class MenuPlayer {
 
 	private static final String[] STACK_LABELS = {"orbit_cosmetic.menu.host", "orbit_cosmetic.menu.social", "orbit_cosmetic.menu.hud", "orbit_cosmetic.menu.screenshots", "orbit_cosmetic.menu.settings",
 		"orbit_cosmetic.menu.stats"};
+	/** The last two of the stack, side by side when both names fit (one under the other otherwise). */
+	private static final String[] HALF_LABELS = {"orbit_cosmetic.menu.settings", "orbit_cosmetic.menu.stats"};
 
 	/**
 	 * How wide the stack's buttons are with their names, or 0 when a name would not fit whole: on small windows they
@@ -122,8 +124,23 @@ public final class MenuPlayer {
 		for (String key : STACK_LABELS) {
 			needed = Math.max(needed, font.width(Component.translatable(key)) + 6 + 12 + 6);
 		}
-		int width = Math.min(Math.max(needed, 90), space - 16);
+		// Room for Settings and Statistics side by side if the window has it.
+		int width = Math.min(Math.max(Math.max(needed, 90), halfNeeded() * 2 + 4), space - 16);
 		return width >= needed && screen.height >= 200 ? width : 0;
+	}
+
+	private static int halfNeeded() {
+		var font = net.minecraft.client.Minecraft.getInstance().font;
+		int needed = 0;
+		for (String key : HALF_LABELS) {
+			needed = Math.max(needed, font.width(Component.translatable(key)) + 6 + 12 + 6);
+		}
+		return needed;
+	}
+
+	/** Whether Settings and Statistics share a row: in the stack, with room for both names. */
+	private static boolean halves(int buttonWidth) {
+		return buttonWidth > 20 && (buttonWidth - 4) / 2 >= halfNeeded();
 	}
 
 	private static void addButtons(Screen screen) {
@@ -189,23 +206,38 @@ public final class MenuPlayer {
 			return;
 		}
 		int buttonWidth = buttons.getFirst().getWidth();
-		int stackHeight = buttons.size() * 24 - 4;
+		boolean halves = halves(buttonWidth);
+		int stackHeight = (buttons.size() - (halves ? 1 : 0)) * 24 - 4;
 		AbstractWidget options = OPTIONS.get(screen);
 		int row = options != null && options.visible ? options.getY() : screen.height / 2 + 66;
 		int bottom = row + 20;
 		int space = screen.width / 2 - 110;
 		if (bottom - stackHeight < 4 || !ESSENTIAL && space < buttonWidth + 8) {
-			int x = screen.width - 4 - buttons.size() * 24 + 4;
+			int total = -4;
+			for (FlatButton button : buttons) {
+				total += button.getWidth() + 4;
+			}
+			int x = screen.width - 4 - total;
 			for (FlatButton button : buttons) {
 				button.setPosition(x, 4);
-				x += 24;
+				x += button.getWidth() + 4;
 			}
 			placeUpdateArrow(screen, buttons);
 			return;
 		}
 		int x = ESSENTIAL ? screen.width - buttonWidth - 6 : screen.width - space / 2 - 4 - buttonWidth / 2;
 		int y = bottom - stackHeight;
-		for (FlatButton button : buttons) {
+		int half = (buttonWidth - 4) / 2;
+		for (int i = 0; i < buttons.size(); i++) {
+			FlatButton button = buttons.get(i);
+			if (halves && i >= buttons.size() - 2) {
+				// Settings and Statistics, side by side on the last row.
+				boolean right = i == buttons.size() - 1;
+				button.setWidth(right ? buttonWidth - half - 4 : half);
+				button.setPosition(right ? x + half + 4 : x, y);
+				continue;
+			}
+			button.setWidth(buttonWidth);
 			button.setPosition(x, y);
 			y += 24;
 		}
