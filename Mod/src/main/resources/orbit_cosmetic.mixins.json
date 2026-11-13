@@ -16,6 +16,7 @@
 		"JoinMultiplayerScreenAccessor",
 		"LivingEntityRendererMixin",
 		"MouseHandlerMixin",
+		"MultiPlayerGameModeAccessor",
 		"ModelPartAccessor",
 		"PlayerInfoMixin",
 		"PlayerModelMixin",

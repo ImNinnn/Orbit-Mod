@@ -30,19 +30,12 @@ final class HudInput {
 	private static float lastYaw = Float.NaN;
 	private static float lastPitch;
 	private static long lastFrame;
+	/** How the body turns lately (degrees, smoothed): the paperdoll swings a little with it. */
+	private static float sway;
+	private static float lastBody = Float.NaN;
 	private static final long FADE_MS = 250;
-	/** GLFW's key codes (only real ones: asking about a gap between them is an error). */
-	private static final int[] KEYS = java.util.stream.Stream.of(
-		new int[] {32, 39},
-		java.util.stream.IntStream.rangeClosed(44, 57).toArray(),
-		new int[] {59, 61},
-		java.util.stream.IntStream.rangeClosed(65, 93).toArray(),
-		new int[] {96, 161, 162},
-		java.util.stream.IntStream.rangeClosed(256, 269).toArray(),
-		java.util.stream.IntStream.rangeClosed(280, 284).toArray(),
-		java.util.stream.IntStream.rangeClosed(290, 314).toArray(),
-		java.util.stream.IntStream.rangeClosed(320, 336).toArray(),
-		java.util.stream.IntStream.rangeClosed(340, 348).toArray()).flatMapToInt(java.util.stream.IntStream::of).toArray();
+	/** The keys there are (their codes differ between Minecraft versions). */
+	private static final int[] KEYS = Compat.keyCodes();
 	/** Keys held (0) or let go (when), in the order they were pressed: key codes, and -1 - button for mouse buttons. */
 	private static final Map<Integer, Long> HELD = new LinkedHashMap<>();
 
@@ -85,6 +78,13 @@ final class HudInput {
 			}
 			lastYaw = yaw;
 			lastPitch = pitch;
+			float body = player.yBodyRot;
+			if (!Float.isNaN(lastBody) && dt > 0) {
+				float turn = net.minecraft.util.Mth.wrapDegrees(body - lastBody);
+				// Degrees a second, as a swing of up to 25 degrees.
+				sway = sway + (Math.clamp(turn / dt * 0.08F, -25, 25) - sway) * Math.min(1, dt * 6);
+			}
+			lastBody = body;
 		}
 		// Back to the middle, and never out of its circle.
 		float settle = (float) Math.exp(-dt * 8);
@@ -131,6 +131,10 @@ final class HudInput {
 			keys.add(new Held(name, Math.max(0, alpha)));
 		});
 		return keys;
+	}
+
+	static float sway() {
+		return sway;
 	}
 
 	static int leftCps() {

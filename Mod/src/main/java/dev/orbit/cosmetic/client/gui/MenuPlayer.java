@@ -95,8 +95,7 @@ public final class MenuPlayer {
 		if (space < 70) {
 			return null;
 		}
-		AbstractWidget options = OPTIONS.get(screen);
-		int row = options != null && options.visible ? options.getY() : height / 2 + 66;
+		int row = row(screen);
 		int feetY = row - 6;
 		int size = Math.min(56, Math.min(ESSENTIAL ? space / 4 : space / 2, height / 6));
 		// The head (and raised arms) must stay on screen.
@@ -108,10 +107,10 @@ public final class MenuPlayer {
 		return new int[] {centerX, feetY, size, row};
 	}
 
-	private static final String[] STACK_LABELS = {"orbit_cosmetic.menu.host", "orbit_cosmetic.menu.social", "orbit_cosmetic.menu.hud", "orbit_cosmetic.menu.screenshots", "orbit_cosmetic.menu.settings",
-		"orbit_cosmetic.menu.stats"};
-	/** The last two of the stack, side by side when both names fit (one under the other otherwise). */
-	private static final String[] HALF_LABELS = {"orbit_cosmetic.menu.settings", "orbit_cosmetic.menu.stats"};
+	/** The names that take a whole row of the stack (Statistics shares its row with the square Settings button). */
+	private static final String[] STACK_LABELS = {"orbit_cosmetic.menu.host", "orbit_cosmetic.menu.social", "orbit_cosmetic.menu.hud", "orbit_cosmetic.menu.screenshots"};
+	private static final int SETTINGS_INDEX = 4;
+	private static final int STATS_INDEX = 5;
 
 	/**
 	 * How wide the stack's buttons are with their names, or 0 when a name would not fit whole: on small windows they
@@ -120,27 +119,24 @@ public final class MenuPlayer {
 	private static int stackWidth(Screen screen) {
 		int space = ESSENTIAL ? 120 : screen.width / 2 - 110;
 		var font = net.minecraft.client.Minecraft.getInstance().font;
-		int needed = 0;
+		int needed = font.width(Component.translatable("orbit_cosmetic.menu.stats")) + 6 + 12 + 6 + 24;
 		for (String key : STACK_LABELS) {
 			needed = Math.max(needed, font.width(Component.translatable(key)) + 6 + 12 + 6);
 		}
-		// Room for Settings and Statistics side by side if the window has it.
-		int width = Math.min(Math.max(Math.max(needed, 90), halfNeeded() * 2 + 4), space - 16);
+		int width = Math.min(Math.max(needed, 80), space - 16);
 		return width >= needed && screen.height >= 200 ? width : 0;
 	}
 
-	private static int halfNeeded() {
-		var font = net.minecraft.client.Minecraft.getInstance().font;
-		int needed = 0;
-		for (String key : HALF_LABELS) {
-			needed = Math.max(needed, font.width(Component.translatable(key)) + 6 + 12 + 6);
+	/**
+	 * The row Orbit lines up with: the Options button's on the title screen, the one under it (Save and Quit) on the
+	 * pause menu.
+	 */
+	private static int row(Screen screen) {
+		AbstractWidget options = OPTIONS.get(screen);
+		if (options == null || !options.visible) {
+			return screen.height / 2 + 66;
 		}
-		return needed;
-	}
-
-	/** Whether Settings and Statistics share a row: in the stack, with room for both names. */
-	private static boolean halves(int buttonWidth) {
-		return buttonWidth > 20 && (buttonWidth - 4) / 2 >= halfNeeded();
+		return options.getY() + (screen instanceof PauseScreen ? 24 : 0);
 	}
 
 	private static void addButtons(Screen screen) {
@@ -150,7 +146,9 @@ public final class MenuPlayer {
 		buttons.add(stackButton(width, "social", "orbit_cosmetic.menu.social", b -> Compat.setScreen(new SocialScreen(screen))));
 		buttons.add(stackButton(width, "hud", "orbit_cosmetic.menu.hud", b -> dev.orbit.cosmetic.client.hud.HudEditorScreen.open(screen)));
 		buttons.add(stackButton(width, "image", "orbit_cosmetic.menu.screenshots", b -> Compat.setScreen(new ScreenshotsScreen(screen))));
-		buttons.add(stackButton(width, "settings", "orbit_cosmetic.menu.settings", b -> Compat.setScreen(new OrbitSettingsScreen(screen))));
+		// A square button, beside Statistics.
+		buttons.add(FlatButton.icon(0, 0, 20, "settings", Component.translatable("orbit_cosmetic.menu.settings"), FlatButton.Style.SECONDARY,
+			b -> Compat.setScreen(new OrbitSettingsScreen(screen))));
 		String update = dev.orbit.cosmetic.client.Updates.available();
 		if (update != null) {
 			FlatButton arrow = FlatButton.icon(0, 0, 20, "download", Component.translatable("orbit_cosmetic.update.button", update), FlatButton.Style.PRIMARY,
@@ -206,11 +204,10 @@ public final class MenuPlayer {
 			return;
 		}
 		int buttonWidth = buttons.getFirst().getWidth();
-		boolean halves = halves(buttonWidth);
-		int stackHeight = (buttons.size() - (halves ? 1 : 0)) * 24 - 4;
-		AbstractWidget options = OPTIONS.get(screen);
-		int row = options != null && options.visible ? options.getY() : screen.height / 2 + 66;
-		int bottom = row + 20;
+		// Statistics and the square Settings share the last row (one under the other when the buttons are square).
+		boolean shared = buttonWidth > 20;
+		int stackHeight = (buttons.size() - (shared ? 1 : 0)) * 24 - 4;
+		int bottom = row(screen) + 20;
 		int space = screen.width / 2 - 110;
 		if (bottom - stackHeight < 4 || !ESSENTIAL && space < buttonWidth + 8) {
 			int total = -4;
@@ -227,30 +224,41 @@ public final class MenuPlayer {
 		}
 		int x = ESSENTIAL ? screen.width - buttonWidth - 6 : screen.width - space / 2 - 4 - buttonWidth / 2;
 		int y = bottom - stackHeight;
-		int half = (buttonWidth - 4) / 2;
 		for (int i = 0; i < buttons.size(); i++) {
 			FlatButton button = buttons.get(i);
-			if (halves && i >= buttons.size() - 2) {
-				// Settings and Statistics, side by side on the last row.
-				boolean right = i == buttons.size() - 1;
-				button.setWidth(right ? buttonWidth - half - 4 : half);
-				button.setPosition(right ? x + half + 4 : x, y);
+			if (shared && i == SETTINGS_INDEX) {
 				continue;
 			}
-			button.setWidth(buttonWidth);
+			if (shared && i == STATS_INDEX) {
+				button.setWidth(buttonWidth - 24);
+				button.setPosition(x, y);
+				buttons.get(SETTINGS_INDEX).setPosition(x + buttonWidth - 20, y);
+				y += 24;
+				continue;
+			}
+			if (i != SETTINGS_INDEX) {
+				button.setWidth(buttonWidth);
+			}
 			button.setPosition(x, y);
 			y += 24;
 		}
 		placeUpdateArrow(screen, buttons);
 	}
 
-	/** The update arrow, just left of the Settings button (the fifth of the stack). */
+	/** The update arrow, just left of the row of Statistics and Settings (or of the row along the top). */
 	private static void placeUpdateArrow(Screen screen, List<FlatButton> buttons) {
 		FlatButton arrow = UPDATE.get(screen);
-		if (arrow != null && buttons.size() > 4) {
-			FlatButton settings = buttons.get(4);
-			arrow.setPosition(settings.getX() - 24, settings.getY());
+		if (arrow == null || buttons.size() <= STATS_INDEX) {
+			return;
 		}
+		FlatButton stats = buttons.get(STATS_INDEX);
+		FlatButton settings = buttons.get(SETTINGS_INDEX);
+		int left = Math.min(stats.getX(), settings.getX());
+		if (buttons.getFirst().getY() == stats.getY()) {
+			// Along the top: left of the whole row.
+			left = buttons.getFirst().getX();
+		}
+		arrow.setPosition(left - 24, stats.getY());
 	}
 
 	/** Unread messages and friend requests, on the Social button. */

@@ -18,6 +18,7 @@ public final class HudRenderer {
 
 	public static void register() {
 		HudLayout.components();
+		HudTargets.register();
 		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(OrbitClient.MOD_ID, "hud_components"), (graphics, tick) -> {
 			if (Compat.hudHidden() || Compat.screen() instanceof HudEditorScreen) {
 				return;
@@ -40,7 +41,7 @@ public final class HudRenderer {
 	}
 
 	private static void draw(GuiGraphicsExtractor graphics, Filter filter, float partialTick) {
-		if (HudLayout.components().isEmpty()) {
+		if (HudLayout.components().isEmpty() || HudLayout.allHidden()) {
 			return;
 		}
 		HudInput.frame();
@@ -53,7 +54,7 @@ public final class HudRenderer {
 				case IN_MENUS -> component.inMenus;
 				case NOT_IN_MENUS -> !component.inMenus;
 			};
-			if (pass && component.available()) {
+			if (pass && component.available() && !component.hidden) {
 				component.draw(graphics, w, h, false, partialTick);
 			}
 		}

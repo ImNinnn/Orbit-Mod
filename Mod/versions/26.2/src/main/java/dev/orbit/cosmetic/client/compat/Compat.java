@@ -81,4 +81,19 @@ public final class Compat {
 	public static String keyName(int key) {
 		return com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM.getOrCreate(key).getDisplayName().getString();
 	}
+
+	/** Every keyboard key code {@link #keyDown} can be asked about. */
+	public static int[] keyCodes() {
+		// GLFW key codes, only real ones (asking about a gap between them is an error).
+		return java.util.stream.Stream.of(new int[] {32, 39}, java.util.stream.IntStream.rangeClosed(44, 57).toArray(), new int[] {59, 61},
+			java.util.stream.IntStream.rangeClosed(65, 93).toArray(), new int[] {96, 161, 162}, java.util.stream.IntStream.rangeClosed(256, 269).toArray(),
+			java.util.stream.IntStream.rangeClosed(280, 284).toArray(), java.util.stream.IntStream.rangeClosed(290, 314).toArray(),
+			java.util.stream.IntStream.rangeClosed(320, 336).toArray(), java.util.stream.IntStream.rangeClosed(340, 348).toArray())
+			.flatMapToInt(java.util.stream.IntStream::of).toArray();
+	}
+
+	/** Hides or shows the HUD, like F1. */
+	public static void toggleHud() {
+		Minecraft.getInstance().gui.hud.toggle();
+	}
 }

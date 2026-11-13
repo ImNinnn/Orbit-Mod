@@ -13,6 +13,8 @@ abstract class CameraMixin {
 	@Inject(method = "calculateFov", at = @At("RETURN"), cancellable = true)
 	private void orbit$zoom(float partialTicks, CallbackInfoReturnable<Float> cir) {
 		Zoom.update();
-		cir.setReturnValue(Zoom.apply(cir.getReturnValueF()));
+		float fov = Zoom.apply(cir.getReturnValueF());
+		Zoom.lastFov = fov;
+		cir.setReturnValue(fov);
 	}
 }

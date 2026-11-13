@@ -321,8 +321,8 @@ is always *Mobile*. Click **+** in the Emotes section for a new emote from a tem
 
 The title and pause screens show your player on one side of Minecraft's buttons, with **Wardrobe** (the Orbit
 menu) and **Players** (pause screen) under its feet, and Orbit's buttons on the other side: **Host**, **Social**,
-**HUD components**, **Screenshots**, **Settings** and **Statistics** (Settings and Statistics side by side when
-the window is wide enough for both names). Social shows how many unread messages and friend requests you have.
+**HUD components**, **Screenshots**, **Statistics** and a square **Settings** button beside it. On the pause menu, the player, the
+buttons under it and the stack line up with Save and Quit (one row lower than on the title screen). Social shows how many unread messages and friend requests you have.
 News from the Orbit team ("Summer Cosmetics!") shows in a box under **Wardrobe** while it lasts (in the top left
 corner on small windows); a new one shows at once. In the Featured
 Catalog, the item you pick shows on the player without a selection tint.
@@ -352,18 +352,20 @@ sends their profile as it is to Orbit's moderators.
 
 All of Orbit's keys are in Controls, under Orbit: **B** the wardrobe, **R** the emote wheel (hold), **C** zoom
 (hold), **H** Host, **J** Social, **I** Screenshots, **Z** chat peek (hold to see the whole chat without typing).
-Not bound until you bind them: the quick menu (hold, point at Host, Social, Wardrobe, Settings, Players or HUD
-components, and let go), the HUD components editor, showing or hiding every cosmetic, and one key per emote wheel slot (plays that slot's emote).
+Not bound until you bind them: the quick menu (hold, point at a square and let go; see Quick menu), the HUD components editor, showing or hiding every cosmetic, and one key per emote wheel slot (plays that slot's emote).
 
 ### HUD components
 
 **HUD components** (under Social, in the settings, in the quick menu, or with its key) shows every component and
 chat window on the screen: drag one to move it (it snaps to the screen's edges and middle and lines up with the
 others), drag its bottom right corner to resize it, and click it for its settings: **Style** (for the components
-that have several), **In menus** (also show it over every menu, not only in game), **Background**, the text colour
+that have several), **In menus** (also show it over every menu, not only in game), **Background**, **Shown** (a
+hidden component stays in the layout, dimmed in the editor), the text colour
 and the **accent colour** (the bar on the left, labels, pressed keys and the compass marker: Orbit red, any colour
 or a hex code), **Reset size** and **Remove** (or Delete). The arrow keys move the one picked by a pixel (ten with
-Shift). **Add component** shows a card with a live preview of each, to add as many times as you like:
+Shift). A component whose text gets longer grows away from the nearest side of the screen (to the left on the
+right side, both ways in the middle). **Add component** shows a card with a live preview of each, to add as many
+times as you like:
 
 * **FPS**.
 * **Coordinates** (X, Y, Z) and **Rotation** (yaw, pitch and the direction you face): stacked, or on one line.
@@ -372,13 +374,21 @@ Shift). **Add component** shows a card with a live preview of each, to add as ma
   when you let go (only while playing: nothing you type in the chat or a text field shows).
 * **CPS & mouse**: clicks a second on each mouse button and a dot that follows the mouse and settles back in the
   middle, or only one of them. It is as wide as Keystrokes, to go under it.
-* **Paperdoll** (your player) and **Inventory** (the 27 slots above the hotbar).
-* **Compass**: a ribbon of directions with the way you look in the middle, or *Long*, as wide as the screen and
-  fading out at its ends.
+* **Paperdoll**: your player, turned to the angle you set (**Turn**), following your body: it swings a little as
+  you turn, and its head looks where you look.
+* **Inventory** (the 27 slots above the hotbar).
+* **Compass**: a ribbon of directions with the way you look in the middle, or *Long*: as wide as the screen, only
+  the directions (the main ones in the accent colour) fading out at its ends, over a thin line as wide as what you
+  see (zooming in shortens it).
 * **Armour**: *Full* lists your four pieces with their durability, how much is left in percent, or their names
   (**Shows**; a piece with a quarter or less left is in the accent colour); *Hotbar* shows them in a small
-  hotbar like Minecraft's, with durability bars.
+  hotbar like Minecraft's, with durability bars (it snaps beside the hotbar, opposite the off hand slot).
 * **Held item**: the item in your main hand or off hand, like full Armour (its count when it has no durability).
+* **Time**: the world's day and time of day, or the real time.
+* **Looking at**: the block or entity under your crosshair, like the Jade mod: its icon, name, the mod it is from,
+  what breaks it (green when your tool can, red when it can't) and a bar of how far you are in breaking it, or an
+  entity's health.
+* **Last hit**: the last entity you hit, with its model, name and health, for 15 seconds after the hit.
 * **Chat window**: pops a conversation out as a floating chat window (see Friends and messages). Windows are
   placed, resized and lined up here like the components, with their own settings: **Auto-hide** (hide 30 seconds
   after the last message while playing, or stay), the accent colour (your messages and the bar on the left) and
@@ -386,6 +396,14 @@ Shift). **Add component** shows a card with a live preview of each, to add as ma
 
 Components that need a world show only in one. F1 hides them with the rest of the HUD. They are kept in
 `config/orbit_hud.json`.
+
+### Quick menu
+
+The quick menu (hold its key, point at a square and let go) has nine squares you choose: **Customise** under it, or
+**Quick menu** in the settings. Pick a square, then what it does: open a menu (Wardrobe, Social, Host, Settings,
+Screenshots, HUD components, Players, Statistics), show or hide cosmetics, show or hide every HUD component or one
+of them, change the camera, hide the HUD, wear one of your outfits or skins, or play an emote. **Reset** puts back
+Orbit's usual layout. It is kept in `config/orbit_quick_menu.json`.
 
 ### Multiplayer tabs
 

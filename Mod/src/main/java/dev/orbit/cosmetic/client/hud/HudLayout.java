@@ -22,6 +22,8 @@ import java.util.UUID;
 public final class HudLayout {
 	private static final List<HudComponent> COMPONENTS = new ArrayList<>();
 	private static boolean loaded;
+	/** Every component hidden at once (from the quick menu), until shown again. */
+	private static boolean allHidden;
 
 	private HudLayout() {
 	}
@@ -48,6 +50,26 @@ public final class HudLayout {
 		return component;
 	}
 
+	public static boolean allHidden() {
+		components();
+		return allHidden;
+	}
+
+	public static void setAllHidden(boolean hidden) {
+		components();
+		allHidden = hidden;
+		save();
+	}
+
+	public static @org.jspecify.annotations.Nullable HudComponent find(UUID id) {
+		for (HudComponent component : components()) {
+			if (component.id.equals(id)) {
+				return component;
+			}
+		}
+		return null;
+	}
+
 	public static void remove(HudComponent component) {
 		COMPONENTS.remove(component);
 		save();
@@ -62,6 +84,7 @@ public final class HudLayout {
 		components().forEach(component -> array.add(component.toJson()));
 		JsonObject root = new JsonObject();
 		root.add("components", array);
+		root.addProperty("hidden", allHidden);
 		root.add("chats", FloatingChats.toJson());
 		try {
 			Path temp = file().resolveSibling("orbit_hud.json.tmp");
@@ -78,6 +101,9 @@ public final class HudLayout {
 		}
 		try {
 			JsonElement root = JsonParser.parseString(Files.readString(file(), StandardCharsets.UTF_8));
+			if (root instanceof JsonObject object && object.has("hidden")) {
+				allHidden = object.get("hidden").getAsBoolean();
+			}
 			if (root instanceof JsonObject object && object.get("chats") instanceof JsonArray chats) {
 				FloatingChats.restore(chats);
 			}

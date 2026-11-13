@@ -337,6 +337,7 @@ public final class OrbitSettingsScreen extends OrbitScreen {
 				}
 				rows.add(new Action("hud", () -> Component.translatable("orbit_cosmetic.settings.hud.open"),
 					() -> dev.orbit.cosmetic.client.hud.HudEditorScreen.open(this)));
+				rows.add(new Action("quick_menu", () -> Component.translatable("orbit_cosmetic.settings.quick_menu.open"), () -> Compat.setScreen(new QuickMenuEditScreen(this))));
 				rows.add(new Toggle("render", () -> config.renderCosmetics, v -> config.renderCosmetics = v));
 				rows.add(new Toggle("others", () -> config.showOtherPlayers, v -> config.showOtherPlayers = v));
 				rows.add(new Toggle("first_person", () -> config.showInFirstPerson, v -> config.showInFirstPerson = v));

@@ -36,7 +36,7 @@ public final class HudEditorScreen extends OrbitScreen {
 	private static final int SNAP = 4;
 	private static final int GRIP = 6;
 	private static final int SETTINGS_W = ColorRow.WIDTH + 16;
-	private static final int CARD_W = 78;
+	private static final int[] CARD_WIDTHS = {78, 70, 62};
 	private static final int CARD_MAX_H = 58;
 	private static final int CHAT_W = 260;
 	private static final int ROW = 16;
@@ -193,8 +193,29 @@ public final class HudEditorScreen extends OrbitScreen {
 		rebuildWidgets();
 	}
 
+	/** How the cards are laid out: their width and height, and how many a row (the biggest that fit the window). */
+	private int[] cardLayout() {
+		int count = HudComponent.Type.values().length + 1;
+		int room = height - 8 - 28 - 24 - 32;
+		int[] layout = null;
+		for (int cardW : CARD_WIDTHS) {
+			int columns = Math.clamp((width - 24 + 4) / (cardW + 4), 3, 7);
+			int rows = (count + columns - 1) / columns;
+			int cardH = Math.min(CARD_MAX_H, (room - (rows - 1) * 4) / rows);
+			layout = new int[] {cardW, Math.max(34, cardH), columns};
+			if (cardH >= 40) {
+				break;
+			}
+		}
+		return layout;
+	}
+
 	private int columns() {
-		return Math.clamp((width - 40) / (CARD_W + 4), 3, 6);
+		return cardLayout()[2];
+	}
+
+	private int cardW() {
+		return cardLayout()[0];
 	}
 
 	private int cardRows() {
@@ -202,10 +223,8 @@ public final class HudEditorScreen extends OrbitScreen {
 		return (count + columns() - 1) / columns();
 	}
 
-	/** The cards shrink on short windows, so the menu stays clear of the buttons. */
 	private int cardH() {
-		int room = height - 8 - 28 - 24 - 32;
-		return Math.clamp((room - (cardRows() - 1) * 4) / cardRows(), 40, CARD_MAX_H);
+		return cardLayout()[1];
 	}
 
 	/** The add menu's panel: the cards, or the conversations. */
@@ -215,7 +234,7 @@ public final class HudEditorScreen extends OrbitScreen {
 			int h = 30 + rows * ROW + 28;
 			return new int[] {(width - CHAT_W) / 2, Math.max(30, (height - h) / 2), CHAT_W, h};
 		}
-		int w = columns() * (CARD_W + 4) - 4 + 16;
+		int w = columns() * (cardW() + 4) - 4 + 16;
 		int h = 24 + cardRows() * (cardH() + 4) - 4 + 32;
 		// Clear of the toolbar, at the top or the bottom.
 		int top = toolbarY() == 6 ? 28 : 4;
@@ -230,7 +249,7 @@ public final class HudEditorScreen extends OrbitScreen {
 		types.add(null);
 		for (int i = 0; i < types.size(); i++) {
 			HudComponent.Type type = types.get(i);
-			int x = panel[0] + 8 + i % columns * (CARD_W + 4);
+			int x = panel[0] + 8 + i % columns * (cardW() + 4);
 			int y = panel[1] + 22 + i / columns * (cardH() + 4);
 			Component label = type != null ? type.label() : Component.translatable("orbit_cosmetic.hud.type.chat");
 			Hotspot spot = addRenderableWidget(new Hotspot(label, h -> {
@@ -243,7 +262,7 @@ public final class HudEditorScreen extends OrbitScreen {
 					setMode(Mode.ADD_CHAT);
 				}
 			}));
-			spot.place(x, y, CARD_W, cardH());
+			spot.place(x, y, cardW(), cardH());
 			if (type == null && !FloatingChats.available()) {
 				spot.setTooltip(Tooltip.create(Component.translatable("orbit_cosmetic.hud.chat.world")));
 			}
@@ -278,7 +297,7 @@ public final class HudEditorScreen extends OrbitScreen {
 		int cells;
 		int colors;
 		if (item instanceof HudComponent component) {
-			cells = 2 + (component.type.hasVariants() ? 1 : 0) + (component.hasDetail() ? 1 : 0);
+			cells = 3 + (component.type.hasVariants() ? 1 : 0) + (component.hasDetail() ? 1 : 0) + (component.type == HudComponent.Type.PAPERDOLL ? 1 : 0);
 			colors = 2;
 		} else {
 			cells = 1;
@@ -304,14 +323,24 @@ public final class HudEditorScreen extends OrbitScreen {
 		} else {
 			y = b[1];
 		}
-		return new int[] {x, Math.clamp(y, 4, Math.max(4, height - h - 4)), SETTINGS_W, h};
+		// Clear of the toolbar (at the top or the bottom).
+		int top = toolbarY() == 6 ? 28 : 4;
+		int bottom = toolbarY() == 6 ? height - 4 : height - 28;
+		return new int[] {x, Math.clamp(y, top, Math.max(top, bottom - h)), SETTINGS_W, h};
 	}
 
 	private void initSettings(Object item) {
 		int[] panel = settingsPanel(item);
 		int x = panel[0] + 8;
 		int half = (SETTINGS_W - 16 - 4) / 2;
-		List<FlatButton> cells = new ArrayList<>();
+		List<List<FlatButton>> groups = new ArrayList<>();
+		List<FlatButton> cells = new ArrayList<>() {
+			@Override
+			public boolean add(FlatButton button) {
+				groups.add(List.of(button));
+				return true;
+			}
+		};
 		if (item instanceof HudComponent component) {
 			if (component.type.hasVariants()) {
 				cells.add(new FlatButton(0, 0, half, 18, setting("orbit_cosmetic.hud.style", component.type.variantLabel(component.variant)), null,
@@ -335,6 +364,32 @@ public final class HudEditorScreen extends OrbitScreen {
 				HudLayout.save();
 				b.setMessage(toggle("orbit_cosmetic.hud.background", component.background));
 			}));
+			cells.add(new FlatButton(0, 0, half, 18, toggle("orbit_cosmetic.hud.shown", !component.hidden), null, FlatButton.Style.SECONDARY, b -> {
+				component.hidden = !component.hidden;
+				HudLayout.save();
+				b.setMessage(toggle("orbit_cosmetic.hud.shown", !component.hidden));
+			}));
+			if (component.type == HudComponent.Type.PAPERDOLL) {
+				// Its turn: arrows of 15 degrees each way, the middle puts it back.
+				FlatButton turn = new FlatButton(0, 0, half - 44, 18, Component.translatable("orbit_cosmetic.hud.turn", component.rotation), null, FlatButton.Style.SECONDARY,
+					b -> {
+						component.rotation = 20;
+						HudLayout.save();
+						b.setMessage(Component.translatable("orbit_cosmetic.hud.turn", component.rotation));
+					});
+				turn.setTooltip(Tooltip.create(Component.translatable("orbit_cosmetic.hud.turn.tooltip")));
+				FlatButton left = FlatButton.icon(0, 0, 18, "chevron_left", Component.translatable("orbit_cosmetic.hud.turn.left"), FlatButton.Style.SECONDARY, b -> {
+					component.rotation = Math.floorMod(component.rotation - 15 + 180, 360) - 180;
+					HudLayout.save();
+					turn.setMessage(Component.translatable("orbit_cosmetic.hud.turn", component.rotation));
+				});
+				FlatButton right = FlatButton.icon(0, 0, 18, "chevron_right", Component.translatable("orbit_cosmetic.hud.turn.right"), FlatButton.Style.SECONDARY, b -> {
+					component.rotation = Math.floorMod(component.rotation + 15 + 180, 360) - 180;
+					HudLayout.save();
+					turn.setMessage(Component.translatable("orbit_cosmetic.hud.turn", component.rotation));
+				});
+				groups.add(List.of(left, turn, right));
+			}
 			if (component.hasDetail()) {
 				cells.add(new FlatButton(0, 0, half, 18, setting("orbit_cosmetic.hud.detail", component.detail.label()), null, FlatButton.Style.SECONDARY, b -> {
 					HudComponent.Detail[] details = HudComponent.Detail.values();
@@ -354,12 +409,15 @@ public final class HudEditorScreen extends OrbitScreen {
 			cells.add(hide);
 		}
 		int y = panel[1] + 22;
-		for (int i = 0; i < cells.size(); i++) {
-			FlatButton cell = cells.get(i);
-			cell.setPosition(x + i % 2 * (half + 4), y + i / 2 * 22);
-			addRenderableWidget(cell);
+		for (int i = 0; i < groups.size(); i++) {
+			int cx = x + i % 2 * (half + 4);
+			for (FlatButton cell : groups.get(i)) {
+				cell.setPosition(cx, y + i / 2 * 22);
+				addRenderableWidget(cell);
+				cx += cell.getWidth() + 4;
+			}
 		}
-		y += (cells.size() + 1) / 2 * 22;
+		y += (groups.size() + 1) / 2 * 22;
 		if (item instanceof HudComponent component) {
 			y = colorRow(x, y, "orbit_cosmetic.hud.color", component.color, TEXT_COLORS, color -> component.color = color);
 			colorRow(x, y, "orbit_cosmetic.hud.accent", component.accent, ACCENT_COLORS, color -> component.accent = color);
@@ -524,6 +582,12 @@ public final class HudEditorScreen extends OrbitScreen {
 		if (!edge) {
 			targets.add(new int[] {screen / 2 - size / 2, screen / 2});
 		}
+		if (horizontal && moving instanceof HudComponent component && component.isArmorHotbar() && minecraft != null) {
+			// Beside the hotbar, where the off hand slot would be on the other side.
+			boolean offhandLeft = minecraft.options.mainHand().get() == net.minecraft.world.entity.HumanoidArm.RIGHT;
+			int beside = offhandLeft ? screen / 2 + 91 + 7 : screen / 2 - 91 - 7 - size;
+			targets.add(new int[] {beside, offhandLeft ? screen / 2 + 91 + 6 : screen / 2 - 91 - 7});
+		}
 		for (Object other : items()) {
 			if (other == moving || !visible(other)) {
 				continue;
@@ -638,6 +702,11 @@ public final class HudEditorScreen extends OrbitScreen {
 				continue;
 			}
 			int[] b = bounds(item);
+			if (item instanceof HudComponent component && (component.hidden || HudLayout.allHidden())) {
+				// Hidden: dimmed, still there to move and set up.
+				graphics.fill(b[0], b[1], b[0] + b[2], b[1] + b[3], 0xA0101012);
+				graphics.centeredText(font, Component.translatable("orbit_cosmetic.hud.hidden"), b[0] + b[2] / 2, b[1] + (b[3] - 8) / 2, Theme.MUTED);
+			}
 			if (item == selected) {
 				graphics.outline(b[0] - 1, b[1] - 1, b[2] + 2, b[3] + 2, Theme.RED);
 				graphics.fill(b[0] + b[2] - GRIP + 1, b[1] + b[3] - GRIP + 1, b[0] + b[2] + 1, b[1] + b[3] + 1, Theme.RED);
@@ -730,23 +799,24 @@ public final class HudEditorScreen extends OrbitScreen {
 		int y = spot.getY();
 		boolean on = card.type() != null || FloatingChats.available();
 		int cardH = spot.getHeight();
+		int cardW = spot.getWidth();
 		boolean hot = on && spot.isHoveredOrFocused();
-		graphics.fill(x, y, x + CARD_W, y + cardH, hot ? Theme.PANEL_HOVER : Theme.PANEL_2);
-		graphics.outline(x, y, CARD_W, cardH, hot ? Theme.BORDER_LIGHT : Theme.BORDER);
-		int areaW = CARD_W - 8;
+		graphics.fill(x, y, x + cardW, y + cardH, hot ? Theme.PANEL_HOVER : Theme.PANEL_2);
+		graphics.outline(x, y, cardW, cardH, hot ? Theme.BORDER_LIGHT : Theme.BORDER);
+		int areaW = cardW - 8;
 		int areaH = cardH - 18;
-		graphics.enableScissor(x + 1, y + 1, x + CARD_W - 1, y + cardH - 13);
+		graphics.enableScissor(x + 1, y + 1, x + cardW - 1, y + cardH - 13);
 		if (card.type() != null) {
 			HudComponent sample = SAMPLES.computeIfAbsent(card.type(), HudComponent::sample);
 			float scale = Math.min(1.25F, Math.min(areaW / (float) sample.width(), areaH / (float) sample.height()));
 			int sw = Math.round(sample.width() * scale);
 			int sh = Math.round(sample.height() * scale);
-			sample.drawAt(graphics, x + (CARD_W - sw) / 2, y + 4 + (areaH - sh) / 2, scale, true);
+			sample.drawAt(graphics, x + (cardW - sw) / 2, y + 4 + (areaH - sh) / 2, scale, true);
 		} else {
-			drawChatSample(graphics, x + (CARD_W - 50) / 2, y + 5, on);
+			drawChatSample(graphics, x + (cardW - 50) / 2, y + 5, on);
 		}
 		graphics.disableScissor();
-		graphics.centeredText(font, Theme.clip(font, spot.getMessage(), CARD_W - 6), x + CARD_W / 2, y + cardH - 11, on ? Theme.TEXT : Theme.FAINT);
+		graphics.centeredText(font, Theme.clip(font, spot.getMessage(), cardW - 6), x + cardW / 2, y + cardH - 11, on ? Theme.TEXT : Theme.FAINT);
 		spot.drawFocus(graphics);
 	}
 

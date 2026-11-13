@@ -63,6 +63,9 @@ public final class Zoom {
 	}
 
 	/** The field of view with the zoom applied. */
+	/** The field of view the camera last used (vertical, in degrees, zoom included): the long compass shows it. */
+	public static volatile float lastFov = 70;
+
 	public static float apply(float fov) {
 		return current == 1 ? fov : (float) (fov / current);
 	}

@@ -2,28 +2,44 @@ package dev.orbit.cosmetic.client.hud;
 
 import com.google.gson.JsonObject;
 import dev.orbit.cosmetic.client.gui.ui.Theme;
+import dev.orbit.cosmetic.client.mixin.MultiPlayerGameModeAccessor;
+import dev.orbit.cosmetic.client.zoom.Zoom;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.HitResult;
 import org.jspecify.annotations.Nullable;
 
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
 /**
- * One HUD component placed by the player: what it shows (its type and style), where (a fraction of the room left on
- * the screen, so it stays on screen when the window changes), how big, and how it looks. Drawn in its own unscaled
- * size, then scaled.
+ * One HUD component placed by the player: what it shows (its type and style), where, how big, and how it looks.
+ * Drawn in its own unscaled size, then scaled.
+ * <p>
+ * Where: across, the point it holds on to is its left edge, its middle or its right edge (whichever third of the
+ * screen it is in), as a fraction of the screen's width, so a component whose text gets longer grows away from the
+ * nearest side; down, a fraction of the room left above and under it.
  */
 public final class HudComponent {
 	/** What a component shows, and its styles (the first is the default). */
@@ -37,7 +53,10 @@ public final class HudComponent {
 		INVENTORY(true),
 		COMPASS(true, "ribbon", "long"),
 		ARMOR(true, "full", "hotbar"),
-		ITEM(true, "main_hand", "off_hand");
+		ITEM(true, "main_hand", "off_hand"),
+		TIME(false, "game_time", "real_time"),
+		LOOKING_AT(true),
+		LAST_HIT(true);
 
 		/** Needs a world (shown only in one). */
 		final boolean world;
@@ -73,22 +92,36 @@ public final class HudComponent {
 	public static final float MIN_SCALE = 0.5F;
 	public static final float MAX_SCALE = 4;
 	public static final int DEFAULT_ACCENT = 0xFF2626;
+	/** Which point across a component holds on to. */
+	public static final int LEFT = 0;
+	public static final int CENTER = 1;
+	public static final int RIGHT = 2;
 	private static final Identifier HOTBAR = Identifier.withDefaultNamespace("hud/hotbar");
 	private static final EquipmentSlot[] ARMOR_SLOTS = {EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET};
+	/** The full armour component's text where there are no items to show (no world yet). */
+	private static final String[] SAMPLE_ARMOR = {"327/363", "290/528", "180/225", "39/195"};
 
 	public final UUID id;
 	public final Type type;
-	/** Where its top left corner is: a fraction of the screen's width and height left over beside it. */
-	public float fx;
+	/** Across: {@link #LEFT}, {@link #CENTER} or {@link #RIGHT}, and where that point is (a fraction of the width). */
+	public int anchor = LEFT;
+	public float ax;
+	/** Down: a fraction of the room left above and under it. */
 	public float fy;
+	/** A position saved by Orbit 1.0.5 and older (a fraction of the room across), turned into an anchor when first used. */
+	private float legacyX = -1;
 	public float scale = 1;
 	public int variant;
 	public Detail detail = Detail.DURABILITY;
 	public boolean inMenus;
 	public boolean background = true;
+	/** Hidden (from the quick menu or its settings): kept in the layout, not drawn. */
+	public boolean hidden;
 	public int color = 0xFFFFFF;
 	/** Replaces Orbit's red: the bar on the left, labels, pressed keys, the compass's marker. */
 	public int accent = DEFAULT_ACCENT;
+	/** The paperdoll's turn from facing the viewer, in degrees. */
+	public int rotation = 20;
 	/** Whether it is a sample (the add menu's cards): sample values even in a world. */
 	private boolean sample;
 
@@ -112,6 +145,14 @@ public final class HudComponent {
 		return variantId().equals(variantId);
 	}
 
+	public boolean isLongCompass() {
+		return type == Type.COMPASS && is("long");
+	}
+
+	public boolean isArmorHotbar() {
+		return type == Type.ARMOR && is("hotbar");
+	}
+
 	/** Whether the full armour or item component's text setting applies. */
 	public boolean hasDetail() {
 		return type == Type.ITEM || type == Type.ARMOR && is("full");
@@ -121,11 +162,16 @@ public final class HudComponent {
 		return sample ? null : Minecraft.getInstance().player;
 	}
 
+	/** Items can only be made in a world (before one, their data is not ready). */
+	private static boolean itemsReady() {
+		return Minecraft.getInstance().level != null;
+	}
+
 	private static Font font() {
 		return Minecraft.getInstance().font;
 	}
 
-	/** Rounded up, so text that changes a little does not move the component every frame. */
+	/** Rounded up, so text that changes a little does not resize the component every frame. */
 	private static int steady(int width) {
 		return (width + 7) / 8 * 8;
 	}
@@ -134,38 +180,55 @@ public final class HudComponent {
 		Font font = font();
 		return switch (type) {
 			case FPS -> Math.max(48, font.width(fpsText()) + 12);
-			case COORDINATES -> is("line") ? steady(lineWidth(coordinateParts())) : 76;
-			case ROTATION -> is("line") ? steady(lineWidth(rotationParts())) : 84;
+			case COORDINATES -> is("line") ? steady(lineWidth(coordinateParts())) : Math.max(60, steady(stackedWidth(coordinateParts())));
+			case ROTATION -> is("line") ? steady(lineWidth(rotationParts())) : Math.max(70, steady(stackedWidth(rotationParts())));
 			case KEYSTROKES -> is("all_keys") ? 150 : 58;
 			case CPS_MOUSE -> is("mouse") ? 24 : 58;
 			case PAPERDOLL -> 44;
 			case INVENTORY -> 166;
-			case COMPASS -> is("long") && !sample ? (int) Math.ceil(Minecraft.getInstance().getWindow().getGuiScaledWidth() / scale) : 150;
+			case COMPASS -> isLongCompass() && !sample ? (int) Math.ceil(Minecraft.getInstance().getWindow().getGuiScaledWidth() / scale) : 150;
 			case ARMOR -> {
 				if (is("hotbar")) {
 					yield 82;
 				}
 				int widest = 0;
-				for (ItemStack stack : armor()) {
-					widest = Math.max(widest, font.width(detailText(stack)));
+				for (String text : armorTexts()) {
+					widest = Math.max(widest, font.width(text));
 				}
 				yield Math.max(60, steady(widest + 28));
 			}
-			case ITEM -> Math.max(60, steady(font.width(detailText(heldItem())) + 28));
+			case ITEM -> Math.max(60, steady(font.width(itemText()) + 28));
+			case TIME -> steady(lineWidth(timeParts()));
+			case LOOKING_AT -> {
+				Look look = look();
+				if (look == null) {
+					yield 90;
+				}
+				int widest = Math.max(font.width(look.name()), Math.max(font.width(look.info()), font.width(look.mod())));
+				yield Math.max(90, steady(widest + 34));
+			}
+			case LAST_HIT -> {
+				LivingEntity target = lastHit();
+				int name = font.width(target != null ? target.getDisplayName() : Component.translatable("orbit_cosmetic.hud.sample.zombie"));
+				yield Math.max(110, steady(name + 44));
+			}
 		};
 	}
 
 	public int height() {
 		return switch (type) {
-			case FPS -> 14;
-			case COORDINATES, ROTATION -> is("line") ? 14 : 34;
+			case FPS, TIME -> 14;
+			case COORDINATES -> is("line") ? 14 : 34;
+			case ROTATION -> is("line") ? 14 : 34;
 			case KEYSTROKES -> is("all_keys") ? 16 : 64;
 			case CPS_MOUSE -> is("mouse") ? 24 : 16;
 			case PAPERDOLL -> 72;
 			case INVENTORY -> 58;
-			case COMPASS -> 20;
+			case COMPASS -> is("long") ? 16 : 20;
 			case ARMOR -> is("hotbar") ? 22 : 76;
 			case ITEM -> 20;
+			case LOOKING_AT -> 36;
+			case LAST_HIT -> 42;
 		};
 	}
 
@@ -178,7 +241,22 @@ public final class HudComponent {
 	}
 
 	public int x(int screenWidth) {
-		return Math.round(fx * Math.max(0, screenWidth - scaledWidth()));
+		int w = scaledWidth();
+		if (legacyX >= 0) {
+			// A position from before anchors: as it was, then held the new way.
+			int x = Math.round(legacyX * Math.max(0, screenWidth - w));
+			legacyX = -1;
+			anchor = LEFT;
+			ax = 0;
+			placeX(x, screenWidth);
+		}
+		float point = ax * screenWidth;
+		int x = Math.round(switch (anchor) {
+			case RIGHT -> point - w;
+			case CENTER -> point - w / 2F;
+			default -> point;
+		});
+		return Math.clamp(x, 0, Math.max(0, screenWidth - w));
 	}
 
 	public int y(int screenHeight) {
@@ -187,10 +265,29 @@ public final class HudComponent {
 
 	/** Puts its top left corner at this place on a screen of this size. */
 	public void place(int x, int y, int screenWidth, int screenHeight) {
-		int roomX = screenWidth - scaledWidth();
+		legacyX = -1;
+		placeX(x, screenWidth);
 		int roomY = screenHeight - scaledHeight();
-		fx = roomX <= 0 ? 0 : Mth.clamp(x / (float) roomX, 0, 1);
 		fy = roomY <= 0 ? 0 : Mth.clamp(y / (float) roomY, 0, 1);
+	}
+
+	/** Holds on to its left edge, middle or right edge, whichever third of the screen it is in (or the edge it touches). */
+	private void placeX(int x, int screenWidth) {
+		int w = scaledWidth();
+		float middle = x + w / 2F;
+		if (screenWidth <= 0) {
+			return;
+		}
+		if (x <= 0 || middle < screenWidth / 3F && x + w < screenWidth) {
+			anchor = LEFT;
+			ax = Math.max(0, x) / (float) screenWidth;
+		} else if (x + w >= screenWidth || middle > screenWidth * 2 / 3F) {
+			anchor = RIGHT;
+			ax = Math.min(screenWidth, x + w) / (float) screenWidth;
+		} else {
+			anchor = CENTER;
+			ax = middle / screenWidth;
+		}
 	}
 
 	/** Whether it can show now: world components need a world. */
@@ -202,7 +299,19 @@ public final class HudComponent {
 
 	/** Draws it at its place; {@code preview} shows sample values where there is nothing to show (the editor). */
 	public void draw(GuiGraphicsExtractor graphics, int screenWidth, int screenHeight, boolean preview, float partialTick) {
+		if (!preview && !hasContent()) {
+			return;
+		}
 		drawAt(graphics, x(screenWidth), y(screenHeight), scale, preview);
+	}
+
+	/** Whether there is something to show in game (the "looking at" and last hit components show only then). */
+	private boolean hasContent() {
+		return switch (type) {
+			case LOOKING_AT -> look() != null;
+			case LAST_HIT -> lastHit() != null;
+			default -> true;
+		};
 	}
 
 	/** Draws it with its top left corner here, at this scale. */
@@ -214,8 +323,9 @@ public final class HudComponent {
 			drawFrame(graphics, x, y, w, h, Math.max(1, Math.round(scale)));
 			LocalPlayer player = player();
 			if (player != null) {
-				net.minecraft.client.gui.screens.inventory.InventoryScreen.extractEntityInInventoryFollowsMouse(graphics, x + 2, y + 2, x + w - 2, y + h - 2,
-					Math.round(30 * scale), 0.0625F, x + w / 2F, y + h * 0.35F, player);
+				// Held to the body: turned to its angle, swinging a little as the player turns, the head as the player's.
+				float head = Math.clamp(Mth.wrapDegrees(player.yHeadRot - player.yBodyRot), -75, 75);
+				HudDoll.draw(graphics, player, x + 2, y + 2, x + w - 2, y + h - 2, rotation + HudInput.sway(), head, player.getXRot());
 			} else if (preview) {
 				drawDollPlaceholder(graphics, x, y, w, h);
 			}
@@ -224,18 +334,17 @@ public final class HudComponent {
 		graphics.pose().pushMatrix();
 		graphics.pose().translate(x, y);
 		graphics.pose().scale(scale, scale);
-		drawScaled(graphics, preview);
+		drawScaled(graphics, preview, x, y, scale);
 		graphics.pose().popMatrix();
 	}
 
-	/** A plain figure where there is no player to show (the title screen, the add menu). */
-	private void drawDollPlaceholder(GuiGraphicsExtractor graphics, int x, int y, int w, int h) {
-		int unit = Math.max(1, h / 36);
+	/** A plain figure where there is no entity to show (the title screen, the add menu). */
+	private static void drawDollPlaceholder(GuiGraphicsExtractor graphics, int x, int y, int w, int h) {
+		int unit = Math.max(1, Math.min(h / 36, w / 18));
 		int cx = x + w / 2;
 		int top = y + (h - 32 * unit) / 2;
-		int body = 0x80A3A3AD;
 		graphics.fill(cx - 4 * unit, top, cx + 4 * unit, top + 8 * unit, 0xC0A3A3AD);
-		graphics.fill(cx - 4 * unit, top + 8 * unit, cx + 4 * unit, top + 20 * unit, body);
+		graphics.fill(cx - 4 * unit, top + 8 * unit, cx + 4 * unit, top + 20 * unit, 0x80A3A3AD);
 		graphics.fill(cx - 8 * unit, top + 8 * unit, cx - 4 * unit, top + 20 * unit, 0x60A3A3AD);
 		graphics.fill(cx + 4 * unit, top + 8 * unit, cx + 8 * unit, top + 20 * unit, 0x60A3A3AD);
 		graphics.fill(cx - 4 * unit, top + 20 * unit, cx, top + 32 * unit, 0x70A3A3AD);
@@ -260,7 +369,11 @@ public final class HudComponent {
 		graphics.fill(x, y, x + 2 * unit, y + h, accentColor());
 	}
 
-	private void drawScaled(GuiGraphicsExtractor graphics, boolean preview) {
+	/**
+	 * Draws it in its own pixels (the pose is moved and scaled). {@code screenX}, {@code screenY} and {@code scale}
+	 * are for the entity pictures, drawn in screen pixels.
+	 */
+	private void drawScaled(GuiGraphicsExtractor graphics, boolean preview, int screenX, int screenY, float scale) {
 		Font font = font();
 		LocalPlayer player = player();
 		int w = width();
@@ -270,19 +383,16 @@ public final class HudComponent {
 				drawFrame(graphics, 0, 0, w, h, 1);
 				graphics.text(font, fpsText(), 6, 3, text(), false);
 			}
-			case COORDINATES, ROTATION -> {
+			case COORDINATES, ROTATION, TIME -> {
 				drawFrame(graphics, 0, 0, w, h, 1);
-				List<String[]> parts = type == Type.COORDINATES ? coordinateParts() : rotationParts();
-				if (is("line")) {
+				List<String[]> parts = type == Type.COORDINATES ? coordinateParts() : type == Type.ROTATION ? rotationParts() : timeParts();
+				if (type == Type.TIME || is("line")) {
 					int x = 6;
 					for (String[] part : parts) {
 						x = drawPart(graphics, font, part, x, 3) + 7;
 					}
 				} else {
-					int labelWidth = 0;
-					for (String[] part : parts) {
-						labelWidth = Math.max(labelWidth, font.width(part[0]));
-					}
+					int labelWidth = labelWidth(parts);
 					for (int i = 0; i < parts.size(); i++) {
 						String[] part = parts.get(i);
 						if (part[1].isEmpty()) {
@@ -329,15 +439,20 @@ public final class HudComponent {
 				} else {
 					drawFrame(graphics, 0, 0, w, h, 1);
 					ItemStack[] armor = armor();
+					String[] texts = armorTexts();
 					for (int i = 0; i < armor.length; i++) {
-						drawItemRow(graphics, font, armor[i], 5, 2 + i * 18);
+						boolean low = armor[i] == null ? i == 3 : isLow(armor[i]);
+						drawItemRow(graphics, font, armor[i], texts[i], low, 5, 2 + i * 18);
 					}
 				}
 			}
 			case ITEM -> {
 				drawFrame(graphics, 0, 0, w, h, 1);
-				drawItemRow(graphics, font, heldItem(), 5, 2);
+				ItemStack stack = heldItem();
+				drawItemRow(graphics, font, stack, itemText(), stack != null && isLow(stack), 5, 2);
 			}
+			case LOOKING_AT -> drawLookingAt(graphics, font, preview, screenX, screenY, scale);
+			case LAST_HIT -> drawLastHit(graphics, font, screenX, screenY, scale);
 			default -> {
 			}
 		}
@@ -364,6 +479,27 @@ public final class HudComponent {
 		return width;
 	}
 
+	private static int labelWidth(List<String[]> parts) {
+		int width = 0;
+		for (String[] part : parts) {
+			if (!part[1].isEmpty()) {
+				width = Math.max(width, font().width(part[0]));
+			}
+		}
+		return width;
+	}
+
+	/** One part a line, the values lined up after the widest label (a part without a value takes the line alone). */
+	private static int stackedWidth(List<String[]> parts) {
+		Font font = font();
+		int labels = labelWidth(parts);
+		int width = 0;
+		for (String[] part : parts) {
+			width = Math.max(width, part[1].isEmpty() ? font.width(part[0]) : labels + 4 + font.width(part[1]));
+		}
+		return width + 12;
+	}
+
 	/** X, Y and Z, as labels and values. */
 	private List<String[]> coordinateParts() {
 		LocalPlayer player = player();
@@ -385,6 +521,24 @@ public final class HudComponent {
 		return List.of(new String[] {Component.translatable("orbit_cosmetic.hud.yaw").getString(), String.format(Locale.ROOT, "%.1f°", yaw)},
 			new String[] {Component.translatable("orbit_cosmetic.hud.pitch").getString(), String.format(Locale.ROOT, "%.1f°", pitch)},
 			new String[] {facing, ""});
+	}
+
+	/** The world's day and time of day, or the time on the computer's clock. */
+	private List<String[]> timeParts() {
+		if (is("real_time")) {
+			LocalTime now = sample ? LocalTime.of(21, 4) : LocalTime.now();
+			return List.<String[]>of(new String[] {Component.translatable("orbit_cosmetic.hud.time.real").getString(), String.format(Locale.ROOT, "%02d:%02d", now.getHour(),
+				now.getMinute())});
+		}
+		var level = Minecraft.getInstance().level;
+		// The sample: day 12, 13:45.
+		long ticks = sample || level == null ? 11 * 24000 + 7750 : level.getDefaultClockTime();
+		long day = ticks / 24000 + 1;
+		// Tick 0 is six in the morning.
+		long ofDay = Math.floorMod(ticks, 24000L);
+		int hours = (int) ((ofDay / 1000 + 6) % 24);
+		int minutes = (int) (ofDay % 1000 * 60 / 1000);
+		return List.<String[]>of(new String[] {Component.translatable("orbit_cosmetic.hud.time.day", day).getString(), String.format(Locale.ROOT, "%02d:%02d", hours, minutes)});
 	}
 
 	/** W, A S D, the space bar, Sneak and Sprint: keys light up in the accent colour while pressed. */
@@ -432,7 +586,7 @@ public final class HudComponent {
 		if (held.isEmpty() && (preview || sample)) {
 			held = List.of(new HudInput.Held("W", 1), new HudInput.Held("Left Shift", 1), new HudInput.Held("Space", 0.5F));
 		}
-		boolean fromRight = fx > 0.5F && !sample;
+		boolean fromRight = anchor == RIGHT && !sample;
 		int w = width();
 		int x = fromRight ? w : 0;
 		for (HudInput.Held key : held) {
@@ -521,51 +675,54 @@ public final class HudComponent {
 		graphics.fill(w / 2 - 1, 0, w / 2 + 2, 1, accentColor());
 	}
 
-	/** The long compass: as wide as the screen, fading out towards its ends. */
+	/**
+	 * The long compass: as wide as the screen, only the directions (the main ones in the accent colour) fading out
+	 * towards its ends, and a thin line under them as wide as what the camera sees (zooming in shortens it).
+	 */
 	private void drawLongCompass(GuiGraphicsExtractor graphics, Font font, float yRot) {
 		int w = width();
 		int h = height();
+		float half = w / 2F;
 		if (background) {
-			int solid = 0xB01C1C20;
-			int clear = 0x001C1C20;
-			int fade = w / 4;
-			Theme.hGradient(graphics, 0, 0, fade, h, clear, solid);
-			graphics.fill(fade, 0, w - fade, h, solid);
-			Theme.hGradient(graphics, w - fade, 0, w, h, solid, clear);
+			// Only a faint shade, so the directions read over a bright sky.
+			int shade = 0x30000000;
+			Theme.hGradient(graphics, 0, 0, w / 3, h, 0, shade);
+			graphics.fill(w / 3, 0, w - w / 3, h, shade);
+			Theme.hGradient(graphics, w - w / 3, 0, w, h, shade, 0);
 		}
 		float heading = Mth.positiveModulo(yRot + 180, 360);
-		float perDegree = 2.4F;
-		float half = w / 2F;
-		for (int degree = 0; degree < 360; degree += 5) {
+		float perDegree = w / 360F * 1.6F;
+		for (int degree = 0; degree < 360; degree += 45) {
 			float delta = Mth.wrapDegrees(degree - heading);
 			float px = half + delta * perDegree;
-			if (px < 2 || px > w - 2) {
+			if (px < 6 || px > w - 6) {
 				continue;
 			}
 			float edge = 1 - Math.abs(px - half) / half;
-			int alpha = Math.round(Mth.clamp(edge * 1.6F, 0, 1) * 255);
+			int alpha = Math.round(Mth.clamp(edge * 1.5F, 0, 1) * 255);
 			if (alpha < 8) {
 				continue;
 			}
-			int x = Math.round(px);
-			String letter = degree % 15 == 0 ? compassLetter(degree) : null;
-			if (letter != null) {
-				int base = degree % 90 == 0 ? text() : Theme.MUTED;
-				graphics.centeredText(font, letter, x, 3, base & 0xFFFFFF | alpha << 24);
-			} else if (degree % 15 == 0) {
-				graphics.fill(x, h - 7, x + 1, h - 3, 0xFFFFFF | alpha / 2 << 24);
-			} else {
-				graphics.fill(x, h - 5, x + 1, h - 3, 0xFFFFFF | alpha / 4 << 24);
-			}
+			boolean main = degree % 90 == 0;
+			int base = main ? accentColor() : text();
+			int shown = main ? alpha : alpha * 3 / 5;
+			graphics.centeredText(font, compassLetter(degree), Math.round(px), 2, base & 0xFFFFFF | shown << 24);
 		}
-		int mid = Math.round(half);
-		graphics.fill(mid, h - 5, mid + 1, h, accentColor());
-		graphics.fill(mid - 1, 0, mid + 2, 1, accentColor());
+		// What the camera sees, across: from the vertical field of view and the window's shape.
+		var window = Minecraft.getInstance().getWindow();
+		double aspect = window.getWidth() / (double) Math.max(1, window.getHeight());
+		double vertical = Math.toRadians(Mth.clamp(sample ? 70 : Zoom.lastFov, 1, 170));
+		float across = (float) Math.toDegrees(2 * Math.atan(Math.tan(vertical / 2) * aspect));
+		int line = Math.min(w - 8, Math.round(across * perDegree));
+		int left = Math.round(half - line / 2F);
+		Theme.hGradient(graphics, left, h - 3, left + line / 2, h - 2, text() & 0xFFFFFF | 0x20 << 24, text() & 0xFFFFFF | 0xB0 << 24);
+		Theme.hGradient(graphics, left + line / 2, h - 3, left + line, h - 2, text() & 0xFFFFFF | 0xB0 << 24, text() & 0xFFFFFF | 0x20 << 24);
 	}
 
 	// ---------------------------------------------------------------- items
 
-	private ItemStack[] armor() {
+	/** The four armour pieces (head first); null for each where there are no items to show (no world yet). */
+	private @Nullable ItemStack[] armor() {
 		LocalPlayer player = player();
 		ItemStack[] stacks = new ItemStack[ARMOR_SLOTS.length];
 		for (int i = 0; i < ARMOR_SLOTS.length; i++) {
@@ -574,13 +731,31 @@ public final class HudComponent {
 		return stacks;
 	}
 
-	private ItemStack heldItem() {
+	private String[] armorTexts() {
+		ItemStack[] armor = armor();
+		String[] texts = new String[armor.length];
+		for (int i = 0; i < armor.length; i++) {
+			texts[i] = armor[i] == null ? SAMPLE_ARMOR[i] : detailText(armor[i]);
+		}
+		return texts;
+	}
+
+	/** The item in the hand; null where there are no items to show (no world yet). */
+	private @Nullable ItemStack heldItem() {
 		LocalPlayer player = player();
 		boolean off = is("off_hand");
 		if (player == null) {
+			if (!itemsReady()) {
+				return null;
+			}
 			return off ? new ItemStack(Items.SHIELD) : damaged(new ItemStack(Items.DIAMOND_PICKAXE), 0.3F);
 		}
 		return off ? player.getOffhandItem() : player.getMainHandItem();
+	}
+
+	private String itemText() {
+		ItemStack stack = heldItem();
+		return stack == null ? "1093/1561" : detailText(stack);
 	}
 
 	private static ItemStack damaged(ItemStack stack, float used) {
@@ -588,7 +763,10 @@ public final class HudComponent {
 		return stack;
 	}
 
-	private static ItemStack sampleArmor(int slot) {
+	private static @Nullable ItemStack sampleArmor(int slot) {
+		if (!itemsReady()) {
+			return null;
+		}
 		return switch (slot) {
 			case 0 -> damaged(new ItemStack(Items.DIAMOND_HELMET), 0.1F);
 			case 1 -> damaged(new ItemStack(Items.DIAMOND_CHESTPLATE), 0.45F);
@@ -598,6 +776,9 @@ public final class HudComponent {
 	}
 
 	private static ItemStack sampleInventory(int slot) {
+		if (!itemsReady()) {
+			return ItemStack.EMPTY;
+		}
 		return switch (slot) {
 			case 0 -> new ItemStack(Items.DIAMOND, 12);
 			case 4 -> new ItemStack(Items.DIAMOND_SWORD);
@@ -605,6 +786,11 @@ public final class HudComponent {
 			case 26 -> new ItemStack(Items.APPLE, 5);
 			default -> ItemStack.EMPTY;
 		};
+	}
+
+	/** A quarter or less of its durability left (and the text shows durability). */
+	private boolean isLow(ItemStack stack) {
+		return stack.isDamageableItem() && detail != Detail.NAME && stack.getDamageValue() * 4 >= stack.getMaxDamage() * 3;
 	}
 
 	/** What the full armour and item components write next to an item: durability, percent or name (the count for items without durability). */
@@ -625,21 +811,19 @@ public final class HudComponent {
 		return left + "/" + stack.getMaxDamage();
 	}
 
-	/** An item and its text, one row of the full armour or item component. */
-	private void drawItemRow(GuiGraphicsExtractor graphics, Font font, ItemStack stack, int x, int y) {
-		if (stack.isEmpty()) {
+	/** An item and its text, one row of the full armour or item component (a grey square for the item when there is none to show). */
+	private void drawItemRow(GuiGraphicsExtractor graphics, Font font, @Nullable ItemStack stack, String text, boolean low, int x, int y) {
+		if (stack == null || stack.isEmpty()) {
 			graphics.fill(x, y, x + 16, y + 16, 0x30000000);
-			graphics.text(font, "-", x + 21, y + 4, Theme.FAINT, false);
-			return;
+			if (stack != null) {
+				graphics.text(font, "-", x + 21, y + 4, Theme.FAINT, false);
+				return;
+			}
+		} else {
+			graphics.item(stack, x, y);
 		}
-		graphics.item(stack, x, y);
-		String text = detailText(stack);
-		int color = text();
-		if (stack.isDamageableItem() && detail != Detail.NAME && stack.getDamageValue() * 4 >= stack.getMaxDamage() * 3) {
-			// A quarter or less left: in the accent colour, to catch the eye.
-			color = accentColor();
-		}
-		graphics.text(font, text, x + 21, y + 4, color, false);
+		// A quarter or less left: in the accent colour, to catch the eye.
+		graphics.text(font, text, x + 21, y + 4, low ? accentColor() : text(), false);
 	}
 
 	/** Armour in a small hotbar, like Minecraft's own (with durability bars). */
@@ -650,11 +834,170 @@ public final class HudComponent {
 		}
 		ItemStack[] armor = armor();
 		for (int i = 0; i < armor.length; i++) {
-			if (!armor[i].isEmpty()) {
+			if (armor[i] != null && !armor[i].isEmpty()) {
 				graphics.item(armor[i], 3 + i * 20, 3);
 				graphics.itemDecorations(font, armor[i], 3 + i * 20, 3);
 			}
 		}
+	}
+
+	// ---------------------------------------------------------------- looking at, last hit
+
+	/**
+	 * What the player looks at: a block or an entity, its name, what breaks it (or its health), the mod it is from,
+	 * and how far its breaking (or its health) is along.
+	 */
+	private record Look(@Nullable ItemStack icon, @Nullable LivingEntity living, Component name, Component info, int infoColor, String mod, float bar,
+		boolean health) {
+	}
+
+	private @Nullable Look look() {
+		if (sample || Minecraft.getInstance().player == null) {
+			return null;
+		}
+		Minecraft minecraft = Minecraft.getInstance();
+		HitResult hit = minecraft.hitResult;
+		var level = minecraft.level;
+		if (hit instanceof EntityHitResult entityHit) {
+			Entity entity = entityHit.getEntity();
+			String mod = modName(BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()));
+			if (entity instanceof LivingEntity living) {
+				Component health = Component.literal("❤ " + healthText(living));
+				return new Look(null, living, entity.getDisplayName(), health, 0xFFFF5555, mod, living.getHealth() / Math.max(1, living.getMaxHealth()), true);
+			}
+			ItemStack pick = entity.getPickResult();
+			return new Look(pick, null, entity.getDisplayName(), Component.empty(), Theme.MUTED, mod, 0, false);
+		}
+		if (hit instanceof BlockHitResult blockHit && hit.getType() == HitResult.Type.BLOCK && level != null) {
+			BlockPos pos = blockHit.getBlockPos();
+			BlockState state = level.getBlockState(pos);
+			if (state.isAir()) {
+				return null;
+			}
+			ItemStack icon = new ItemStack(state.getBlock());
+			float progress = 0;
+			if (minecraft.gameMode != null && minecraft.gameMode.isDestroying()) {
+				MultiPlayerGameModeAccessor mode = (MultiPlayerGameModeAccessor) minecraft.gameMode;
+				if (pos.equals(mode.orbit$destroyBlockPos())) {
+					progress = Mth.clamp(mode.orbit$destroyProgress(), 0, 1);
+				}
+			}
+			Component tool = toolText(state, level, pos);
+			boolean canDrop = !state.requiresCorrectToolForDrops() || minecraft.player.getMainHandItem().isCorrectToolForDrops(state);
+			int toolColor = state.getDestroySpeed(level, pos) < 0 ? Theme.MUTED : canDrop ? 0xFF7CE38B : 0xFFFF6B6B;
+			return new Look(icon.isEmpty() ? null : icon, null, state.getBlock().getName(), tool, toolColor,
+				modName(BuiltInRegistries.BLOCK.getKey(state.getBlock())), progress, false);
+		}
+		return null;
+	}
+
+	/** What breaks a block: "Iron pickaxe", "Axe", "Any tool", or "Unbreakable". */
+	private static Component toolText(BlockState state, net.minecraft.world.level.BlockGetter level, BlockPos pos) {
+		if (state.getDestroySpeed(level, pos) < 0) {
+			return Component.translatable("orbit_cosmetic.hud.tool.unbreakable");
+		}
+		String tool = state.is(BlockTags.MINEABLE_WITH_PICKAXE) ? "pickaxe" : state.is(BlockTags.MINEABLE_WITH_AXE) ? "axe"
+			: state.is(BlockTags.MINEABLE_WITH_SHOVEL) ? "shovel" : state.is(BlockTags.MINEABLE_WITH_HOE) ? "hoe" : null;
+		if (tool == null) {
+			return Component.translatable("orbit_cosmetic.hud.tool.any");
+		}
+		String tier = state.is(BlockTags.NEEDS_DIAMOND_TOOL) ? "diamond" : state.is(BlockTags.NEEDS_IRON_TOOL) ? "iron"
+			: state.is(BlockTags.NEEDS_STONE_TOOL) ? "stone" : null;
+		Component name = Component.translatable("orbit_cosmetic.hud.tool." + tool);
+		return tier == null ? Component.translatable("orbit_cosmetic.hud.tool." + tool + ".alone")
+			: Component.translatable("orbit_cosmetic.hud.tool.tiered", Component.translatable("orbit_cosmetic.hud.tier." + tier), name);
+	}
+
+	/** The mod something is from, by the namespace of its ID ("Minecraft" for Minecraft's own). */
+	private static String modName(Identifier id) {
+		String namespace = id.getNamespace();
+		if (namespace.equals("minecraft")) {
+			return "Minecraft";
+		}
+		return FabricLoader.getInstance().getModContainer(namespace).map(container -> container.getMetadata().getName()).orElse(namespace);
+	}
+
+	private static String healthText(LivingEntity living) {
+		return formatHealth(living.getHealth()) + "/" + formatHealth(living.getMaxHealth());
+	}
+
+	private static String formatHealth(float health) {
+		return health == Math.floor(health) ? String.valueOf((int) health) : String.format(Locale.ROOT, "%.1f", health);
+	}
+
+	private void drawLookingAt(GuiGraphicsExtractor graphics, Font font, boolean preview, int screenX, int screenY, float scale) {
+		Look look = look();
+		int w = width();
+		int h = height();
+		drawFrame(graphics, 0, 0, w, h, 1);
+		Component name = look != null ? look.name() : Component.translatable("orbit_cosmetic.hud.sample.stone");
+		Component info = look != null ? look.info() : Component.translatable("orbit_cosmetic.hud.tool.pickaxe.alone");
+		int infoColor = look != null ? look.infoColor() : 0xFF7CE38B;
+		String mod = look != null ? look.mod() : "Minecraft";
+		float bar = look != null ? look.bar() : 0.4F;
+		boolean health = look != null && look.health();
+		// The icon (or the entity, in screen pixels), then the lines.
+		if (look != null && look.living() != null) {
+			graphics.pose().popMatrix();
+			int x0 = screenX + Math.round(4 * scale);
+			int y0 = screenY + Math.round(3 * scale);
+			HudDoll.draw(graphics, look.living(), x0, y0, x0 + Math.round(18 * scale), y0 + Math.round(28 * scale), 20, 0, 0);
+			graphics.pose().pushMatrix();
+			graphics.pose().translate(screenX, screenY);
+			graphics.pose().scale(scale, scale);
+		} else if (look != null && look.icon() != null && !look.icon().isEmpty()) {
+			graphics.item(look.icon(), 5, 8);
+		} else if (look == null) {
+			// The sample: a stone-coloured block.
+			graphics.fill(5, 8, 21, 24, 0xFF7D7D7D);
+			graphics.fill(7, 10, 11, 13, 0xFF6A6A6A);
+			graphics.fill(14, 16, 19, 19, 0xFF8E8E8E);
+		}
+		graphics.text(font, name, 28, 3, text(), false);
+		graphics.text(font, info, 28, 13, infoColor, false);
+		graphics.text(font, mod, 28, 23, Theme.shade(accentColor(), 1) & 0xFFFFFF | 0xC0 << 24, false);
+		if (bar > 0 || health) {
+			int barW = w - 4;
+			graphics.fill(2, h - 2, w - 1, h - 1, 0x60000000);
+			graphics.fill(2, h - 2, 2 + Math.round(barW * bar), h - 1, health ? 0xFFFF5555 : accentColor());
+		}
+	}
+
+	private @Nullable LivingEntity lastHit() {
+		return sample ? null : HudTargets.lastHit();
+	}
+
+	private void drawLastHit(GuiGraphicsExtractor graphics, Font font, int screenX, int screenY, float scale) {
+		LivingEntity target = lastHit();
+		int w = width();
+		int h = height();
+		drawFrame(graphics, 0, 0, w, h, 1);
+		if (target != null) {
+			graphics.pose().popMatrix();
+			int x0 = screenX + Math.round(5 * scale);
+			int y0 = screenY + Math.round(3 * scale);
+			HudDoll.draw(graphics, target, x0, y0, x0 + Math.round(28 * scale), y0 + Math.round(36 * scale), 25, 0, 0);
+			graphics.pose().pushMatrix();
+			graphics.pose().translate(screenX, screenY);
+			graphics.pose().scale(scale, scale);
+		} else {
+			graphics.pose().popMatrix();
+			drawDollPlaceholder(graphics, screenX + Math.round(5 * scale), screenY + Math.round(3 * scale), Math.round(28 * scale), Math.round(36 * scale));
+			graphics.pose().pushMatrix();
+			graphics.pose().translate(screenX, screenY);
+			graphics.pose().scale(scale, scale);
+		}
+		Component name = target != null ? target.getDisplayName() : Component.translatable("orbit_cosmetic.hud.sample.zombie");
+		float health = target != null ? target.getHealth() : 14;
+		float max = target != null ? Math.max(1, target.getMaxHealth()) : 20;
+		graphics.text(font, name, 38, 5, text(), false);
+		int barX = 38;
+		int barW = w - barX - 6;
+		graphics.fill(barX, 17, barX + barW, 22, 0x80000000);
+		graphics.fill(barX, 17, barX + Math.round(barW * Mth.clamp(health / max, 0, 1)), 22, accentColor());
+		graphics.outline(barX - 1, 16, barW + 2, 7, 0x60000000);
+		String hearts = "❤ " + formatHealth(Math.max(0, health)) + "/" + formatHealth(max);
+		graphics.text(font, hearts, barX, 27, Theme.MUTED, false);
 	}
 
 	private static String facing(float yaw) {
@@ -672,22 +1015,34 @@ public final class HudComponent {
 		JsonObject json = new JsonObject();
 		json.addProperty("id", id.toString());
 		json.addProperty("type", type.name());
-		json.addProperty("x", fx);
+		if (legacyX >= 0) {
+			json.addProperty("x", legacyX);
+		} else {
+			json.addProperty("anchor", anchor);
+			json.addProperty("ax", ax);
+		}
 		json.addProperty("y", fy);
 		json.addProperty("scale", scale);
 		json.addProperty("variant", variantId());
 		json.addProperty("detail", detail.name());
 		json.addProperty("menus", inMenus);
 		json.addProperty("background", background);
+		json.addProperty("hidden", hidden);
 		json.addProperty("color", color);
 		json.addProperty("accent", accent);
+		json.addProperty("rotation", rotation);
 		return json;
 	}
 
 	static @Nullable HudComponent fromJson(JsonObject json) {
 		try {
 			HudComponent component = new HudComponent(UUID.fromString(json.get("id").getAsString()), Type.valueOf(json.get("type").getAsString()));
-			component.fx = Mth.clamp(json.get("x").getAsFloat(), 0, 1);
+			if (json.has("anchor")) {
+				component.anchor = Mth.clamp(json.get("anchor").getAsInt(), LEFT, RIGHT);
+				component.ax = Mth.clamp(json.get("ax").getAsFloat(), 0, 1);
+			} else {
+				component.legacyX = Mth.clamp(json.get("x").getAsFloat(), 0, 1);
+			}
 			component.fy = Mth.clamp(json.get("y").getAsFloat(), 0, 1);
 			component.scale = Mth.clamp(json.get("scale").getAsFloat(), MIN_SCALE, MAX_SCALE);
 			if (json.has("variant")) {
@@ -698,8 +1053,10 @@ public final class HudComponent {
 			}
 			component.inMenus = json.has("menus") && json.get("menus").getAsBoolean();
 			component.background = !json.has("background") || json.get("background").getAsBoolean();
+			component.hidden = json.has("hidden") && json.get("hidden").getAsBoolean();
 			component.color = json.has("color") ? json.get("color").getAsInt() & 0xFFFFFF : 0xFFFFFF;
 			component.accent = json.has("accent") ? json.get("accent").getAsInt() & 0xFFFFFF : DEFAULT_ACCENT;
+			component.rotation = json.has("rotation") ? Math.floorMod(json.get("rotation").getAsInt() + 180, 360) - 180 : 20;
 			return component;
 		} catch (RuntimeException e) {
 			return null;

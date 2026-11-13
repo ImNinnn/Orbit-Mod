@@ -82,4 +82,15 @@ public final class Compat {
 	public static String keyName(int key) {
 		return com.mojang.blaze3d.platform.InputConstants.Type.KEYBOARD.getOrCreate(key).getDisplayName().getString();
 	}
+
+	/** Every keyboard key code {@link #keyDown} can be asked about. */
+	public static int[] keyCodes() {
+		// SDL scancodes (26.3 reads the keyboard through SDL): A (4) to right GUI (231).
+		return java.util.stream.IntStream.rangeClosed(4, 231).toArray();
+	}
+
+	/** Hides or shows the HUD, like F1. */
+	public static void toggleHud() {
+		Minecraft.getInstance().gui.hud.toggle();
+	}
 }
