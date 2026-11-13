@@ -239,7 +239,8 @@ public final class FloatingChats {
 	}
 
 	public static void register() {
-		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(OrbitClient.MOD_ID, "floating_chats"), (graphics, tick) -> {
+		// With the HUD components, under the chat (screens and notifications go over them).
+		HudElementRegistry.attachElementAfter(dev.orbit.cosmetic.client.hud.HudRenderer.ID, Identifier.fromNamespaceAndPath(OrbitClient.MOD_ID, "floating_chats"), (graphics, tick) -> {
 			if (Compat.screen() == null && !Compat.hudHidden() && available()) {
 				draw(graphics, -1, -1, false);
 			}

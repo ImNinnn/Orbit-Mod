@@ -365,7 +365,8 @@ together, and its shared settings change for all of it at once. Between two comp
 edge when one gets longer; a click picks the whole group, a second click one member's own settings, and the link
 button again unlinks them. A component's settings are **Style** (for the components
 that have several), **In menus** (also show it over every menu, not only in game), **Background**, **Shown** (a
-hidden component stays in the layout, dimmed in the editor), **Pinned** (see profiles below), the text colour
+hidden component stays in the layout, dimmed in the editor), **Pinned** (see profiles below), **Make room**
+(it moves down out of the way of the status effect icons and/or the boss bars while they show), the text colour
 and the **accent colour** (the bar on the left, labels, pressed keys and the compass marker: Orbit red, any colour
 or a hex code), **Reset size** and **Remove** (or Delete). The arrow keys move the one picked by a pixel (ten with
 Shift). A component whose text gets longer grows away from the nearest side of the screen (to the left on the
@@ -393,10 +394,9 @@ times as you like:
 * **Held item**: the item in your main hand or off hand, like full Armour (its count when it has no durability);
   **Hide if empty** hides it while that hand is empty.
 * **Time**: the world's day and time of day, or the real time.
-* **Looking at**: the block or entity under your crosshair, like the Jade mod: its icon, name and the mod it is
-  from; for a block, the weakest tool that makes it drop (a diamond pickaxe for ancient debris) with a tick when
-  the item in your hand is enough and a cross when it is not, and a bar of how far you are in breaking it; for an
-  entity, its health.
+* **Looking at**: the block or entity under your crosshair, like the Jade mod, on two lines: its icon, name (an
+  entity's health beside it) and the mod it is from; for a block, the weakest tool that makes it drop (a diamond pickaxe for ancient debris) with a tick when
+  the item in your hand is enough and a cross when it is not, and a bar of how far you are in breaking it.
 * **Last hit**: the last entity you hit, with its model, name and health, for 15 seconds after the hit.
 * **Chat window**: pops a conversation out as a floating chat window (see Friends and messages). Windows are
   placed, resized and lined up here like the components, with their own settings: **Auto-hide** (hide 30 seconds
@@ -407,7 +407,12 @@ times as you like:
 **Copy** (of the one in use), **Rename** and **Delete**. Pinned components and chat windows are in every profile.
 A quick menu square or a key (Next HUD profile, not bound until you bind it) switches profiles too.
 
-Components that need a world show only in one. F1 hides them with the rest of the HUD. They are kept in
+**Layers** (the grid button in the toolbar) lists the components, the one drawn on top first: click one to pick
+it, the arrows move it up or down a layer.
+
+Components are drawn with the HUD, under the chat: menus (the inventory too), toasts and Orbit's notifications go
+over them; only those set to show **In menus** are drawn over menus. Components that need a world show only in
+one. F1 hides them with the rest of the HUD. They are kept in
 `config/orbit_hud.json`.
 
 ### Quick menu

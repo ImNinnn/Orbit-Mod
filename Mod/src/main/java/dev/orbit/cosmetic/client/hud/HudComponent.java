@@ -101,6 +101,8 @@ public final class HudComponent {
 	public static final int SIDE_LEFT = 1;
 	public static final int SIDE_BELOW = 2;
 	public static final int SIDE_ABOVE = 3;
+	public static final int AVOID_EFFECTS = 1;
+	public static final int AVOID_BOSS_BARS = 2;
 	public static final int DOCK_NONE = 0;
 	public static final int DOCK_OPPOSITE = 1;
 	public static final int DOCK_BESIDE = 2;
@@ -136,6 +138,8 @@ public final class HudComponent {
 	public boolean hideEmpty;
 	/** Armour: only the slots with something in them. */
 	public boolean hideEmptySlots;
+	/** Moves down out of the way of the status effect icons ({@link #AVOID_EFFECTS}) and/or the boss bars ({@link #AVOID_BOSS_BARS}). */
+	public int avoid;
 	/** Linked: the member it is attached to, on which side, how far from it and how far along (in that member's pixels). */
 	public @Nullable UUID parent;
 	public int side = SIDE_RIGHT;
@@ -225,10 +229,12 @@ public final class HudComponent {
 				Look look = look();
 				if (look == null) {
 					// The sample: Stone, Minecraft and a pickaxe.
-					yield Math.max(90, steady(font.width("Minecraft") + 34 + 22));
+					yield Math.max(80, steady(font.width("Minecraft") + 34 + 20));
 				}
-				int widest = Math.max(font.width(look.name()), Math.max(font.width(look.info()), font.width(look.mod())));
-				yield Math.max(90, steady(widest + 34 + (look.tool() != null ? 22 : 0)));
+				// The name and the health (or "Unbreakable") on one line, the mod under them.
+				int first = font.width(look.name()) + (look.info().getString().isEmpty() ? 0 : 5 + font.width(look.info()));
+				int widest = Math.max(first, font.width(look.mod()));
+				yield Math.max(80, steady(widest + 34 + (look.tool() != null ? 20 : 0)));
 			}
 			case LAST_HIT -> {
 				LivingEntity target = lastHit();
@@ -250,7 +256,7 @@ public final class HudComponent {
 			case COMPASS -> is("long") ? 16 : 20;
 			case ARMOR -> is("hotbar") ? 22 : Math.max(1, armorSlots().size()) * 18 + 4;
 			case ITEM -> 20;
-			case LOOKING_AT -> 32;
+			case LOOKING_AT -> 24;
 			case LAST_HIT -> 42;
 		};
 	}
@@ -1020,32 +1026,30 @@ public final class HudComponent {
 		if (look != null && look.living() != null) {
 			graphics.pose().popMatrix();
 			int x0 = screenX + Math.round(4 * scale);
-			int y0 = screenY + Math.round(3 * scale);
-			HudDoll.draw(graphics, look.living(), x0, y0, x0 + Math.round(18 * scale), y0 + Math.round(28 * scale), 20, 0, 0);
+			int y0 = screenY + Math.round(2 * scale);
+			HudDoll.draw(graphics, look.living(), x0, y0, x0 + Math.round(18 * scale), y0 + Math.round(20 * scale), 20, 0, 0);
 			graphics.pose().pushMatrix();
 			graphics.pose().translate(screenX, screenY);
 			graphics.pose().scale(scale, scale);
 		} else if (look != null && look.icon() != null && !look.icon().isEmpty()) {
-			graphics.item(look.icon(), 5, 8);
+			graphics.item(look.icon(), 6, 3);
 		} else if (look == null) {
 			// The sample: a stone-coloured block.
-			graphics.fill(5, 8, 21, 24, 0xFF7D7D7D);
-			graphics.fill(7, 10, 11, 13, 0xFF6A6A6A);
-			graphics.fill(14, 16, 19, 19, 0xFF8E8E8E);
+			graphics.fill(6, 3, 22, 19, 0xFF7D7D7D);
+			graphics.fill(8, 5, 12, 8, 0xFF6A6A6A);
+			graphics.fill(15, 11, 20, 14, 0xFF8E8E8E);
 		}
+		// The name, its health (or "Unbreakable") beside it, and the mod under them.
 		int modColor = accentColor() & 0xFFFFFF | 0xC0 << 24;
-		if (info.getString().isEmpty()) {
-			graphics.text(font, name, 28, 6, text(), false);
-			graphics.text(font, mod, 28, 17, modColor, false);
-		} else {
-			graphics.text(font, name, 28, 2, text(), false);
-			graphics.text(font, info, 28, 12, infoColor, false);
-			graphics.text(font, mod, 28, 22, modColor, false);
+		graphics.text(font, name, 28, 3, text(), false);
+		if (!info.getString().isEmpty()) {
+			graphics.text(font, info, 28 + font.width(name) + 5, 3, infoColor, false);
 		}
+		graphics.text(font, mod, 28, 13, modColor, false);
 		// The tool it needs, on the right, with a tick when the item in hand is enough (a cross when it is not).
 		ItemStack tool = look != null ? look.tool() : itemsReady() ? new ItemStack(Items.WOODEN_PICKAXE) : null;
 		if (tool != null || look == null) {
-			int tx = w - 21;
+			int tx = w - 20;
 			int ty = (h - 16) / 2 - 1;
 			if (tool != null) {
 				graphics.item(tool, tx, ty);
@@ -1148,6 +1152,7 @@ public final class HudComponent {
 		json.addProperty("hideEmpty", hideEmpty);
 		json.addProperty("hideEmptySlots", hideEmptySlots);
 		json.addProperty("dock", dock);
+		json.addProperty("avoid", avoid);
 		if (parent != null) {
 			json.addProperty("parent", parent.toString());
 			json.addProperty("side", side);
@@ -1183,6 +1188,7 @@ public final class HudComponent {
 			component.pinned = json.has("pinned") && json.get("pinned").getAsBoolean();
 			component.hideEmpty = json.has("hideEmpty") && json.get("hideEmpty").getAsBoolean();
 			component.hideEmptySlots = json.has("hideEmptySlots") && json.get("hideEmptySlots").getAsBoolean();
+			component.avoid = json.has("avoid") ? json.get("avoid").getAsInt() & 3 : 0;
 			component.dock = json.has("dock") ? Mth.clamp(json.get("dock").getAsInt(), DOCK_NONE, DOCK_BESIDE) : DOCK_NONE;
 			if (json.has("parent")) {
 				component.parent = UUID.fromString(json.get("parent").getAsString());

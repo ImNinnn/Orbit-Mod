@@ -64,7 +64,7 @@ public final class HudEditorScreen extends OrbitScreen {
 	private static final Map<HudComponent.Type, HudComponent> SAMPLES = new EnumMap<>(HudComponent.Type.class);
 
 	private enum Mode {
-		EDIT, ADD, ADD_CHAT, PROFILES
+		EDIT, ADD, ADD_CHAT, PROFILES, LAYERS
 	}
 
 	private enum Drag {
@@ -235,13 +235,10 @@ public final class HudEditorScreen extends OrbitScreen {
 		}
 	}
 
+	/** A chat window clicked comes to the front (components keep their layer: see the layers list). */
 	private void raise(Object item) {
-		if (item instanceof HudComponent component) {
-			List<HudComponent> group = HudLayout.group(component);
-			HudLayout.components().removeAll(group);
-			HudLayout.components().addAll(group);
-		} else {
-			FloatingChats.raise((FloatingChats.Window) item);
+		if (item instanceof FloatingChats.Window window) {
+			FloatingChats.raise(window);
 		}
 	}
 
@@ -359,19 +356,22 @@ public final class HudEditorScreen extends OrbitScreen {
 		angleBox = null;
 		int ty = toolbarY();
 		int bw = 104;
-		int x = width / 2 - (bw * 2 + 80 + 8) / 2;
+		int x = width / 2 - (bw * 2 + 80 + 8 + 22) / 2;
 		addRenderableWidget(new FlatButton(x, ty, bw, 18, Component.translatable("orbit_cosmetic.hud.add"), "plus", FlatButton.Style.PRIMARY,
 			b -> setMode(mode == Mode.ADD ? Mode.EDIT : Mode.ADD)));
 		Component profile = Component.literal(HudLayout.activeProfile().name);
 		FlatButton profiles = addRenderableWidget(new FlatButton(x + bw + 4, ty, bw, 18, profile, "folder", FlatButton.Style.SECONDARY,
 			b -> setMode(mode == Mode.PROFILES ? Mode.EDIT : Mode.PROFILES)));
 		profiles.setTooltip(Tooltip.create(Component.translatable("orbit_cosmetic.hud.profiles.tooltip")));
-		addRenderableWidget(new FlatButton(x + bw * 2 + 8, ty, 80, 18, CommonComponents.GUI_DONE, null, FlatButton.Style.SECONDARY, b -> onClose()));
+		addRenderableWidget(FlatButton.icon(x + bw * 2 + 8, ty, 18, "grid", Component.translatable("orbit_cosmetic.hud.layers"), FlatButton.Style.SECONDARY,
+			b -> setMode(mode == Mode.LAYERS ? Mode.EDIT : Mode.LAYERS)));
+		addRenderableWidget(new FlatButton(x + bw * 2 + 30, ty, 80, 18, CommonComponents.GUI_DONE, null, FlatButton.Style.SECONDARY, b -> onClose()));
 		selection.removeIf(item -> !items().contains(item));
 		switch (mode) {
 			case ADD -> initAdd();
 			case ADD_CHAT -> initChats();
 			case PROFILES -> initProfiles();
+			case LAYERS -> initLayers();
 			case EDIT -> {
 				if (!selection.isEmpty() && drag == Drag.NONE) {
 					initSettings();
@@ -420,9 +420,9 @@ public final class HudEditorScreen extends OrbitScreen {
 			int h = 24 + rows * (layout[1] + 4) - 4 + 32;
 			return new int[] {(width - w) / 2, Math.max(area[0], Math.min((height - h) / 2, area[1] - h)), w, h};
 		}
-		int count = mode == Mode.ADD_CHAT ? conversations.size() : HudLayout.profiles().size();
+		int count = mode == Mode.ADD_CHAT ? conversations.size() : mode == Mode.LAYERS ? HudLayout.components().size() : HudLayout.profiles().size();
 		int rows = Math.max(1, Math.min(LIST_ROWS, count));
-		int h = 30 + rows * ROW + (mode == Mode.PROFILES ? 56 : 28);
+		int h = 30 + rows * ROW + (mode == Mode.PROFILES ? 56 : mode == Mode.LAYERS ? 6 : 28);
 		return new int[] {(width - LIST_W) / 2, Math.max(area[0], Math.min((height - h) / 2, area[1] - h)), LIST_W, h};
 	}
 
@@ -523,6 +523,53 @@ public final class HudEditorScreen extends OrbitScreen {
 		delete.active = HudLayout.profiles().size() > 1;
 	}
 
+	// ---------------------------------------------------------------- layers
+
+	/** The components, the one drawn on top first. */
+	private static List<HudComponent> layers() {
+		List<HudComponent> layers = new ArrayList<>(HudLayout.components());
+		java.util.Collections.reverse(layers);
+		return layers;
+	}
+
+	/** The list of components, top first: click one to pick it, the arrows move it up or down a layer. */
+	private void initLayers() {
+		int[] panel = menuPanel();
+		List<HudComponent> layers = layers();
+		listScroll = Math.clamp(listScroll, 0, Math.max(0, layers.size() - LIST_ROWS));
+		for (int i = 0; i < LIST_ROWS && listScroll + i < layers.size(); i++) {
+			HudComponent component = layers.get(listScroll + i);
+			int y = panel[1] + 24 + i * ROW;
+			Hotspot row = addRenderableWidget(new Hotspot(component.type.label(), h -> {
+				mode = Mode.EDIT;
+				select(withGroup(component));
+				rebuildWidgets();
+			}));
+			row.place(panel[0] + 8, y, LIST_W - 16 - 34, ROW - 1);
+			listRows.add(row);
+			FlatButton up = addRenderableWidget(FlatButton.icon(panel[0] + LIST_W - 8 - 32, y, 15, "chevron_up", Component.translatable("orbit_cosmetic.hud.layers.up"),
+				FlatButton.Style.GHOST, b -> moveLayer(component, 1)));
+			up.active = listScroll + i > 0;
+			FlatButton down = addRenderableWidget(FlatButton.icon(panel[0] + LIST_W - 8 - 15, y, 15, "chevron_down", Component.translatable("orbit_cosmetic.hud.layers.down"),
+				FlatButton.Style.GHOST, b -> moveLayer(component, -1)));
+			down.active = listScroll + i < layers.size() - 1;
+		}
+	}
+
+	/** Moves a component a layer up (over the one above it) or down. */
+	private void moveLayer(HudComponent component, int by) {
+		List<HudComponent> components = HudLayout.components();
+		int index = components.indexOf(component);
+		int to = index + by;
+		if (index < 0 || to < 0 || to >= components.size()) {
+			return;
+		}
+		components.remove(index);
+		components.add(to, component);
+		HudLayout.save();
+		rebuildWidgets();
+	}
+
 	// ---------------------------------------------------------------- settings
 
 	/** A row of the settings: one button, or several side by side (they share a half). */
@@ -579,6 +626,7 @@ public final class HudEditorScreen extends OrbitScreen {
 				cells.add(cell(groupToggle(half, components, "orbit_cosmetic.hud.background", c -> c.background, (c, on) -> c.background = on)));
 				cells.add(cell(groupToggle(half, components, "orbit_cosmetic.hud.shown", c -> !c.hidden, (c, on) -> c.hidden = !on)));
 				cells.add(cell(groupToggle(half, components, "orbit_cosmetic.hud.pinned", c -> c.pinned, (c, on) -> c.pinned = on)));
+				cells.add(cell(makeRoomButton(half, components)));
 				HudComponent first = components.getFirst();
 				colors.add(new Object[] {"orbit_cosmetic.hud.color", first.color, TEXT_COLORS, (Consumer<Integer>) color -> components.forEach(c -> c.color = color)});
 				colors.add(new Object[] {"orbit_cosmetic.hud.accent", first.accent, ACCENT_COLORS, (Consumer<Integer>) color -> components.forEach(c -> c.accent = color)});
@@ -649,6 +697,7 @@ public final class HudEditorScreen extends OrbitScreen {
 		// Pinning a linked member pins its whole group.
 		List<HudComponent> group = HudLayout.group(component);
 		cells.add(cell(groupToggle(half, group, "orbit_cosmetic.hud.pinned", c -> c.pinned, (c, on) -> c.pinned = on)));
+		cells.add(cell(makeRoomButton(half, List.of(component))));
 		if (component.hasDetail()) {
 			cells.add(cell(new FlatButton(0, 0, half, 18, setting("orbit_cosmetic.hud.detail", component.detail.label()), null, FlatButton.Style.SECONDARY, b -> {
 				HudComponent.Detail[] details = HudComponent.Detail.values();
@@ -694,6 +743,20 @@ public final class HudEditorScreen extends OrbitScreen {
 		}
 		colors.add(new Object[] {"orbit_cosmetic.hud.color", component.color, TEXT_COLORS, (Consumer<Integer>) color -> component.color = color});
 		colors.add(new Object[] {"orbit_cosmetic.hud.accent", component.accent, ACCENT_COLORS, (Consumer<Integer>) color -> component.accent = color});
+	}
+
+	/** Off, the status effects, the boss bars, both: what the components move down out of the way of. */
+	private FlatButton makeRoomButton(int width, List<HudComponent> components) {
+		java.util.function.Supplier<Component> label = () -> setting("orbit_cosmetic.hud.make_room",
+			Component.translatable("orbit_cosmetic.hud.make_room." + components.getFirst().avoid));
+		FlatButton button = new FlatButton(0, 0, width, 18, label.get(), null, FlatButton.Style.SECONDARY, b -> {
+			int next = (components.getFirst().avoid + 1) % 4;
+			components.forEach(component -> component.avoid = next);
+			HudLayout.save();
+			b.setMessage(label.get());
+		});
+		button.setTooltip(Tooltip.create(Component.translatable("orbit_cosmetic.hud.make_room.tooltip")));
+		return button;
 	}
 
 	private static Cell cell(AbstractWidget widget) {
@@ -1027,7 +1090,7 @@ public final class HudEditorScreen extends OrbitScreen {
 
 	@Override
 	public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-		if (mode == Mode.ADD_CHAT || mode == Mode.PROFILES) {
+		if (mode == Mode.ADD_CHAT || mode == Mode.PROFILES || mode == Mode.LAYERS) {
 			listScroll -= (int) Math.signum(scrollY);
 			rebuildWidgets();
 			return true;
@@ -1222,12 +1285,44 @@ public final class HudEditorScreen extends OrbitScreen {
 		String key = switch (mode) {
 			case ADD -> "orbit_cosmetic.hud.add";
 			case ADD_CHAT -> "orbit_cosmetic.hud.chat.pick";
+			case LAYERS -> "orbit_cosmetic.hud.layers";
 			default -> "orbit_cosmetic.hud.profiles";
 		};
 		graphics.text(font, Component.translatable(key), panel[0] + 8, panel[1] + 8, Theme.TEXT, false);
 		if (mode == Mode.ADD) {
 			for (Card card : cards) {
 				drawCard(graphics, card);
+			}
+			return;
+		}
+		if (mode == Mode.LAYERS) {
+			List<HudComponent> layers = layers();
+			if (layers.isEmpty()) {
+				graphics.centeredText(font, Component.translatable("orbit_cosmetic.hud.empty.short").withStyle(ChatFormatting.GRAY), panel[0] + panel[2] / 2, panel[1] + 28,
+					Theme.TEXT);
+			}
+			for (int i = 0; i < listRows.size(); i++) {
+				Hotspot row = listRows.get(i);
+				HudComponent component = layers.get(listScroll + i);
+				if (row.isHoveredOrFocused()) {
+					graphics.fill(row.getX(), row.getY(), row.getRight(), row.getBottom(), Theme.PANEL_2);
+				}
+				// Its accent, its name and style, and what it is linked to or pinned in.
+				graphics.fill(row.getX() + 3, row.getY() + 3, row.getX() + 5, row.getBottom() - 3, 0xFF000000 | component.accent);
+				Component label = component.type.hasVariants() ? component.type.label().copy().append(" · ").append(component.type.variantLabel(component.variant))
+					: component.type.label();
+				boolean dim = component.hidden || !component.available() && inWorld();
+				graphics.text(font, Theme.clip(font, label, row.getWidth() - 40), row.getX() + 10, row.getY() + 4, dim ? Theme.FAINT : Theme.TEXT, false);
+				int mark = row.getRight() - 4;
+				if (component.pinned) {
+					graphics.fill(mark - 4, row.getY() + 5, mark, row.getY() + 9, Theme.GOLD);
+					mark -= 7;
+				}
+				if (HudLayout.linked(component)) {
+					graphics.outline(mark - 6, row.getY() + 4, 4, 3, Theme.MUTED);
+					graphics.outline(mark - 3, row.getY() + 6, 4, 3, Theme.MUTED);
+				}
+				row.drawFocus(graphics);
 			}
 			return;
 		}

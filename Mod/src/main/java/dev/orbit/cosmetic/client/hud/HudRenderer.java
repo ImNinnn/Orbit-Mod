@@ -3,6 +3,7 @@ package dev.orbit.cosmetic.client.hud;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.compat.Compat;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -13,13 +14,17 @@ import net.minecraft.resources.Identifier;
  * screen too. The editor draws them itself.
  */
 public final class HudRenderer {
+	/** The components' HUD layer (the chat windows go just above it). */
+	public static final Identifier ID = Identifier.fromNamespaceAndPath(OrbitClient.MOD_ID, "hud_components");
+
 	private HudRenderer() {
 	}
 
 	public static void register() {
 		HudLayout.components();
 		HudTargets.register();
-		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(OrbitClient.MOD_ID, "hud_components"), (graphics, tick) -> {
+		// Under the chat: screens (the inventory too), toasts and Orbit's popups go over the components.
+		HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, ID, (graphics, tick) -> {
 			if (Compat.hudHidden() || Compat.screen() instanceof HudEditorScreen) {
 				return;
 			}

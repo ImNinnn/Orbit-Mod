@@ -96,4 +96,9 @@ public final class Compat {
 	public static void toggleHud() {
 		Minecraft.getInstance().gui.hud.toggle();
 	}
+
+	/** The boss bars at the top of the screen. */
+	public static net.minecraft.client.gui.components.BossHealthOverlay bossOverlay() {
+		return net.minecraft.client.Minecraft.getInstance().gui.hud.getBossOverlay();
+	}
 }

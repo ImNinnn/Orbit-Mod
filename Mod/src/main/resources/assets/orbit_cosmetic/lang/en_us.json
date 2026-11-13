@@ -919,5 +919,15 @@
 	"orbit_cosmetic.hud.several": "%s selected",
 	"orbit_cosmetic.hud.variant.top_row": "Top row",
 	"orbit_cosmetic.hud.variant.middle_row": "Middle row",
-	"orbit_cosmetic.hud.variant.bottom_row": "Bottom row"
+	"orbit_cosmetic.hud.variant.bottom_row": "Bottom row",
+	"orbit_cosmetic.hud.layers": "Layers",
+	"orbit_cosmetic.hud.layers.up": "Up a layer",
+	"orbit_cosmetic.hud.layers.down": "Down a layer",
+	"orbit_cosmetic.hud.empty.short": "No components yet.",
+	"orbit_cosmetic.hud.make_room": "Make room",
+	"orbit_cosmetic.hud.make_room.0": "Off",
+	"orbit_cosmetic.hud.make_room.1": "Effects",
+	"orbit_cosmetic.hud.make_room.2": "Boss bars",
+	"orbit_cosmetic.hud.make_room.3": "Both",
+	"orbit_cosmetic.hud.make_room.tooltip": "Move down out of the way of the status effect icons and/or the boss bars while they show (linked components move together)."
 }

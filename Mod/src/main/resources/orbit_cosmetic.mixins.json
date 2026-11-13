@@ -6,6 +6,7 @@
 		"SplashManagerMixin",
 		"AbstractSelectionListMixin",
 		"AvatarRendererMixin",
+		"BossHealthOverlayAccessor",
 		"CameraMixin",
 		"CapeLayerMixin",
 		"ChatComponentMixin",

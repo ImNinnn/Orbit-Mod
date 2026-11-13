@@ -269,10 +269,75 @@ public final class HudLayout {
 			return dockPosition(component, component.dock, screenWidth, screenHeight);
 		}
 		if (component.parent == null && children(component).isEmpty()) {
-			return new int[] {component.ownX(screenWidth), component.ownY(screenHeight)};
+			int[] at = {component.ownX(screenWidth), component.ownY(screenHeight)};
+			at[1] += makeRoom(Map.of(component, at), screenWidth, screenHeight);
+			return at;
 		}
-		int[] position = groupPositions(root(component), screenWidth, screenHeight).get(component);
-		return position != null ? position : new int[] {component.ownX(screenWidth), component.ownY(screenHeight)};
+		Map<HudComponent, int[]> positions = groupPositions(root(component), screenWidth, screenHeight);
+		int down = makeRoom(positions, screenWidth, screenHeight);
+		int[] position = positions.get(component);
+		return position != null ? new int[] {position[0], position[1] + down} : new int[] {component.ownX(screenWidth), component.ownY(screenHeight)};
+	}
+
+	/**
+	 * How far down a component (or a linked group, all of it) goes to make room for the status effect icons and the
+	 * boss bars it is set to avoid: below what it would cover. Not in the editor, where things show where they are put.
+	 */
+	private static int makeRoom(Map<HudComponent, int[]> positions, int screenWidth, int screenHeight) {
+		Minecraft minecraft = Minecraft.getInstance();
+		if (minecraft.player == null || dev.orbit.cosmetic.client.compat.Compat.screen() instanceof HudEditorScreen) {
+			return 0;
+		}
+		int wanted = 0;
+		for (HudComponent member : positions.keySet()) {
+			wanted |= member.avoid;
+		}
+		if (wanted == 0) {
+			return 0;
+		}
+		// What is in the way: {left, top, right, bottom}.
+		List<int[]> taken = new ArrayList<>();
+		if ((wanted & HudComponent.AVOID_EFFECTS) != 0) {
+			// Minecraft's effect icons: good ones in a row along the top right, bad ones in a row under it.
+			int good = 0;
+			int bad = 0;
+			for (var effect : minecraft.player.getActiveEffects()) {
+				if (effect.showIcon()) {
+					if (effect.getEffect().value().isBeneficial()) {
+						good++;
+					} else {
+						bad++;
+					}
+				}
+			}
+			if (good > 0) {
+				taken.add(new int[] {screenWidth - 25 * good, 1, screenWidth, 25, HudComponent.AVOID_EFFECTS});
+			}
+			if (bad > 0) {
+				taken.add(new int[] {screenWidth - 25 * bad, 27, screenWidth, 51, HudComponent.AVOID_EFFECTS});
+			}
+		}
+		if ((wanted & HudComponent.AVOID_BOSS_BARS) != 0) {
+			// Boss bars: 182 wide in the middle of the top, one every 19 pixels from 12 down (a third of the screen at most).
+			int bars = ((dev.orbit.cosmetic.client.mixin.BossHealthOverlayAccessor) dev.orbit.cosmetic.client.compat.Compat.bossOverlay()).orbit$events().size();
+			if (bars > 0) {
+				int bottom = Math.min(12 + (bars - 1) * 19 + 5, screenHeight / 3 + 5);
+				taken.add(new int[] {screenWidth / 2 - 91, 0, screenWidth / 2 + 91, bottom, HudComponent.AVOID_BOSS_BARS});
+			}
+		}
+		int down = 0;
+		for (Map.Entry<HudComponent, int[]> entry : positions.entrySet()) {
+			HudComponent member = entry.getKey();
+			int[] at = entry.getValue();
+			for (int[] area : taken) {
+				boolean across = at[0] < area[2] && at[0] + member.scaledWidth() > area[0];
+				boolean over = at[1] < area[3] && at[1] + member.scaledHeight() > area[1];
+				if ((member.avoid & area[4]) != 0 && across && over) {
+					down = Math.max(down, area[3] + 2 - at[1]);
+				}
+			}
+		}
+		return down;
 	}
 
 	/** Each member's place: the root where it was put, the others along the sides they are attached to, all kept on screen. */
