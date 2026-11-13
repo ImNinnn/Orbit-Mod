@@ -55,7 +55,8 @@ public final class QuickMenuLayout {
 		OUTFIT("outfit"),
 		SKIN("skin"),
 		EMOTE("emote"),
-		TOGGLE_COMPONENT("hud");
+		TOGGLE_COMPONENT("hud"),
+		HUD_PROFILE("folder");
 
 		public final String icon;
 
@@ -96,6 +97,7 @@ public final class QuickMenuLayout {
 						: Component.translatable("orbit_cosmetic.quick.missing");
 				}
 				case SOCIAL -> Component.translatable("orbit_cosmetic.quick.message");
+				case HUD_PROFILE -> profile() != null ? Component.literal(arg) : Component.translatable("orbit_cosmetic.quick.missing");
 				default -> Component.translatable("orbit_cosmetic.quick.action." + kind.name().toLowerCase(Locale.ROOT));
 			};
 		}
@@ -124,9 +126,19 @@ public final class QuickMenuLayout {
 				case SKIN -> orbit.skins().library().find(arg) != null;
 				case EMOTE -> minecraft.player != null && orbit.emotes().find(arg) != null;
 				case TOGGLE_COMPONENT -> component() != null;
+				case HUD_PROFILE -> profile() != null;
 				case PERSPECTIVE, HIDE_GUI -> minecraft.level != null;
 				default -> true;
 			};
+		}
+
+		private HudLayout.@Nullable Profile profile() {
+			for (HudLayout.Profile profile : HudLayout.profiles()) {
+				if (profile.name.equals(arg)) {
+					return profile;
+				}
+			}
+			return null;
 		}
 
 		private OrbitState.@Nullable Outfit outfit() {
@@ -180,6 +192,13 @@ public final class QuickMenuLayout {
 				case PERSPECTIVE -> minecraft.options.setCameraType(minecraft.options.getCameraType().cycle());
 				case HIDE_GUI -> Compat.toggleHud();
 				case OUTFIT -> wear(outfit());
+				case HUD_PROFILE -> {
+					HudLayout.Profile profile = profile();
+					if (profile != null) {
+						HudLayout.switchTo(profile);
+						Notifications.info(Component.translatable("orbit_cosmetic.notify.hud_profile", profile.name), Component.empty());
+					}
+				}
 				case SKIN -> {
 					SkinLibrary.LocalSkin skin = orbit.skins().library().find(arg);
 					if (skin != null) {
@@ -236,6 +255,21 @@ public final class QuickMenuLayout {
 		load();
 		ACTIONS[cell] = action;
 		save();
+	}
+
+	/** A HUD profile got a new name: the squares that switch to it follow. */
+	public static void profileRenamed(String old, String name) {
+		load();
+		boolean changed = false;
+		for (int i = 0; i < CELLS; i++) {
+			if (ACTIONS[i].kind() == Kind.HUD_PROFILE && ACTIONS[i].arg().equals(old)) {
+				ACTIONS[i] = new Action(Kind.HUD_PROFILE, name);
+				changed = true;
+			}
+		}
+		if (changed) {
+			save();
+		}
 	}
 
 	/** Orbit's usual layout. */

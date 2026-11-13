@@ -53,6 +53,8 @@ public final class FloatingChats {
 		/** Hides 30 seconds after the last news while playing (else it stays). */
 		public boolean autoHide = true;
 		public int accent = DEFAULT_ACCENT;
+		/** In every HUD profile (else only in the profile it was opened in). */
+		public boolean pinned;
 		/** Hidden with "–" until a new message. */
 		boolean hidden;
 		long active = System.currentTimeMillis();
@@ -142,10 +144,13 @@ public final class FloatingChats {
 		}
 	}
 
-	/** The open windows, for the HUD components file. */
-	public static JsonArray toJson() {
+	/** The open windows, pinned or not, for the HUD components file. */
+	public static JsonArray toJson(boolean pinned) {
 		JsonArray array = new JsonArray();
 		for (Window window : WINDOWS) {
+			if (window.pinned != pinned) {
+				continue;
+			}
 			JsonObject json = new JsonObject();
 			json.addProperty("friend", window.friend.toString());
 			json.addProperty("name", window.name);
@@ -163,8 +168,14 @@ public final class FloatingChats {
 		return array;
 	}
 
+	/** Another HUD profile's windows in place of the ones not pinned. */
+	public static void replaceUnpinned(JsonArray array) {
+		WINDOWS.removeIf(window -> !window.pinned);
+		restore(array, false);
+	}
+
 	/** The windows open when the game was last closed: back where they were, hidden until news (if they auto-hide). */
-	public static void restore(JsonArray array) {
+	public static void restore(JsonArray array, boolean pinned) {
 		for (var element : array) {
 			try {
 				JsonObject json = element.getAsJsonObject();
@@ -181,6 +192,7 @@ public final class FloatingChats {
 				window.accent = json.has("accent") ? json.get("accent").getAsInt() & 0xFFFFFF : DEFAULT_ACCENT;
 				window.lastId = json.has("last") ? json.get("last").getAsString() : null;
 				window.active = 0;
+				window.pinned = pinned;
 				WINDOWS.add(window);
 			} catch (RuntimeException e) {
 				OrbitClient.LOGGER.warn("Skipped a saved chat window: {}", e.toString());

@@ -90,6 +90,8 @@ public final class QuickMenuEditScreen extends OrbitScreen {
 			heading("orbit_cosmetic.quick.group.emotes");
 			emotes.forEach(emote -> choices.add(new Choice(null, new QuickMenuLayout.Action(QuickMenuLayout.Kind.EMOTE, emote.key()))));
 		}
+		heading("orbit_cosmetic.quick.group.profiles");
+		HudLayout.profiles().forEach(profile -> choices.add(new Choice(null, new QuickMenuLayout.Action(QuickMenuLayout.Kind.HUD_PROFILE, profile.name))));
 		List<HudComponent> components = HudLayout.components();
 		if (!components.isEmpty()) {
 			heading("orbit_cosmetic.quick.group.components");

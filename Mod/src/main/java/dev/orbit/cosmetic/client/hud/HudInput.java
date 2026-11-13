@@ -20,7 +20,7 @@ import java.util.Map;
  * and mouse component shows: clicks in the last second on each mouse button, and a dot that follows how
  * the player turns (the mouse moves the camera) and settles back in the middle. Updated every frame.
  */
-final class HudInput {
+public final class HudInput {
 	private static final Deque<Long> LEFT = new ArrayDeque<>();
 	private static final Deque<Long> RIGHT = new ArrayDeque<>();
 	private static boolean leftWas;
@@ -38,6 +38,7 @@ final class HudInput {
 	private static final int[] KEYS = Compat.keyCodes();
 	/** Keys held (0) or let go (when), in the order they were pressed: key codes, and -1 - button for mouse buttons. */
 	private static final Map<Integer, Long> HELD = new LinkedHashMap<>();
+	private static final boolean[] BUTTONS = new boolean[8];
 
 	/** A key the all keys style shows: its name, and how visible (1 while held, less while fading). */
 	record Held(String name, float alpha) {
@@ -97,10 +98,10 @@ final class HudInput {
 		for (int key : KEYS) {
 			update(key, playing && Compat.keyDown(key), now);
 		}
-		var mouse = minecraft.mouseHandler;
-		update(-1 - InputConstants.MOUSE_BUTTON_LEFT, playing && mouse.isLeftPressed(), now);
-		update(-1 - InputConstants.MOUSE_BUTTON_RIGHT, playing && mouse.isRightPressed(), now);
-		update(-1 - InputConstants.MOUSE_BUTTON_MIDDLE, playing && mouse.isMiddlePressed(), now);
+		// Every mouse button: left, right, middle and the side buttons.
+		for (int button = 0; button < BUTTONS.length; button++) {
+			update(-1 - button, playing && BUTTONS[button], now);
+		}
 		for (Iterator<Long> it = HELD.values().iterator(); it.hasNext();) {
 			long released = it.next();
 			if (released != 0 && now - released > FADE_MS) {
@@ -131,6 +132,13 @@ final class HudInput {
 			keys.add(new Held(name, Math.max(0, alpha)));
 		});
 		return keys;
+	}
+
+	/** Called for each mouse button pressed or let go (by a mixin). */
+	public static void mouseButton(int button, boolean down) {
+		if (button >= 0 && button < BUTTONS.length) {
+			BUTTONS[button] = down;
+		}
 	}
 
 	static float sway() {

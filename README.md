@@ -352,15 +352,20 @@ sends their profile as it is to Orbit's moderators.
 
 All of Orbit's keys are in Controls, under Orbit: **B** the wardrobe, **R** the emote wheel (hold), **C** zoom
 (hold), **H** Host, **J** Social, **I** Screenshots, **Z** chat peek (hold to see the whole chat without typing).
-Not bound until you bind them: the quick menu (hold, point at a square and let go; see Quick menu), the HUD components editor, showing or hiding every cosmetic, and one key per emote wheel slot (plays that slot's emote).
+Not bound until you bind them: the quick menu (hold, point at a square and let go; see Quick menu), the HUD components editor, the next HUD profile, showing or hiding every cosmetic, and one key per emote wheel slot (plays that slot's emote).
 
 ### HUD components
 
 **HUD components** (under Social, in the settings, in the quick menu, or with its key) shows every component and
 chat window on the screen: drag one to move it (it snaps to the screen's edges and middle and lines up with the
-others), drag its bottom right corner to resize it, and click it for its settings: **Style** (for the components
+others), drag its bottom right corner to resize it, and click it for its settings. Shift-click adds to what is
+picked, and dragging over empty space picks everything in a rectangle: what is picked moves, resizes and is removed
+together, and its shared settings change for all of it at once. Between two components next to each other, the
+**link** button links them: linked components act as one (moved, resized and removed together) and stay edge to
+edge when one gets longer; a click picks the whole group, a second click one member's own settings, and the link
+button again unlinks them. A component's settings are **Style** (for the components
 that have several), **In menus** (also show it over every menu, not only in game), **Background**, **Shown** (a
-hidden component stays in the layout, dimmed in the editor), the text colour
+hidden component stays in the layout, dimmed in the editor), **Pinned** (see profiles below), the text colour
 and the **accent colour** (the bar on the left, labels, pressed keys and the compass marker: Orbit red, any colour
 or a hex code), **Reset size** and **Remove** (or Delete). The arrow keys move the one picked by a pixel (ten with
 Shift). A component whose text gets longer grows away from the nearest side of the screen (to the left on the
@@ -370,29 +375,37 @@ times as you like:
 * **FPS**.
 * **Coordinates** (X, Y, Z) and **Rotation** (yaw, pitch and the direction you face): stacked, or on one line.
 * **Keystrokes**: *Movement* shows W, A, S, D (with your own keys' names), the space bar, Sneak and Sprint, lit
-  while pressed; *All keys* shows every key and mouse button you hold, in the order you pressed them, fading out
+  while pressed; *All keys* shows every key and mouse button you hold (side buttons too), in the order you pressed them, fading out
   when you let go (only while playing: nothing you type in the chat or a text field shows).
 * **CPS & mouse**: clicks a second on each mouse button and a dot that follows the mouse and settles back in the
   middle, or only one of them. It is as wide as Keystrokes, to go under it.
-* **Paperdoll**: your player, turned to the angle you set (**Turn**), following your body: it swings a little as
+* **Paperdoll**: your player, turned to the angle you type (or 15 degrees at a time with the arrows), following your body: it swings a little as
   you turn, and its head looks where you look.
-* **Inventory** (the 27 slots above the hotbar).
+* **Inventory**: the 27 slots above the hotbar, or one of their rows.
 * **Compass**: a ribbon of directions with the way you look in the middle, or *Long*: as wide as the screen, only
   the directions (the main ones in the accent colour) fading out at its ends, over a thin line as wide as what you
   see (zooming in shortens it).
 * **Armour**: *Full* lists your four pieces with their durability, how much is left in percent, or their names
   (**Shows**; a piece with a quarter or less left is in the accent colour); *Hotbar* shows them in a small
-  hotbar like Minecraft's, with durability bars (it snaps beside the hotbar, opposite the off hand slot).
-* **Held item**: the item in your main hand or off hand, like full Armour (its count when it has no durability).
+  hotbar like Minecraft's, with durability bars. Dragged near the hotbar, it docks opposite the off hand slot or
+  beside it (moving out of the way when the off hand holds something). **Empty slots: hide** shows only the
+  pieces you wear, and **Hide if empty** hides it when you wear none.
+* **Held item**: the item in your main hand or off hand, like full Armour (its count when it has no durability);
+  **Hide if empty** hides it while that hand is empty.
 * **Time**: the world's day and time of day, or the real time.
-* **Looking at**: the block or entity under your crosshair, like the Jade mod: its icon, name, the mod it is from,
-  what breaks it (green when your tool can, red when it can't) and a bar of how far you are in breaking it, or an
-  entity's health.
+* **Looking at**: the block or entity under your crosshair, like the Jade mod: its icon, name and the mod it is
+  from; for a block, the weakest tool that makes it drop (a diamond pickaxe for ancient debris) with a tick when
+  the item in your hand is enough and a cross when it is not, and a bar of how far you are in breaking it; for an
+  entity, its health.
 * **Last hit**: the last entity you hit, with its model, name and health, for 15 seconds after the hit.
 * **Chat window**: pops a conversation out as a floating chat window (see Friends and messages). Windows are
   placed, resized and lined up here like the components, with their own settings: **Auto-hide** (hide 30 seconds
   after the last message while playing, or stay), the accent colour (your messages and the bar on the left) and
   **Close**. They come back where they were the next time you start the game.
+
+**Profiles** (in the editor's toolbar) are sets of components and chat windows to switch between: **New**,
+**Copy** (of the one in use), **Rename** and **Delete**. Pinned components and chat windows are in every profile.
+A quick menu square or a key (Next HUD profile, not bound until you bind it) switches profiles too.
 
 Components that need a world show only in one. F1 hides them with the rest of the HUD. They are kept in
 `config/orbit_hud.json`.
@@ -402,7 +415,7 @@ Components that need a world show only in one. F1 hides them with the rest of th
 The quick menu (hold its key, point at a square and let go) has nine squares you choose: **Customise** under it, or
 **Quick menu** in the settings. Pick a square, then what it does: open a menu (Wardrobe, Social, Host, Settings,
 Screenshots, HUD components, Players, Statistics), show or hide cosmetics, show or hide every HUD component or one
-of them, change the camera, hide the HUD, wear one of your outfits or skins, or play an emote. **Reset** puts back
+of them, switch HUD profile, change the camera, hide the HUD, wear one of your outfits or skins, or play an emote. **Reset** puts back
 Orbit's usual layout. It is kept in `config/orbit_quick_menu.json`.
 
 ### Multiplayer tabs

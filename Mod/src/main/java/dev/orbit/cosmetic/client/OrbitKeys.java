@@ -27,6 +27,7 @@ public final class OrbitKeys {
 	private static KeyMapping quickMenu;
 	private static KeyMapping toggleCosmetics;
 	private static KeyMapping hud;
+	private static KeyMapping hudProfile;
 	private static final KeyMapping[] EMOTE_SLOTS = new KeyMapping[OrbitState.WHEEL_SLOTS];
 
 	private OrbitKeys() {
@@ -40,6 +41,7 @@ public final class OrbitKeys {
 		quickMenu = key("quick_menu", InputConstants.UNKNOWN.getValue(), category);
 		toggleCosmetics = key("toggle_cosmetics", InputConstants.UNKNOWN.getValue(), category);
 		hud = key("hud", InputConstants.UNKNOWN.getValue(), category);
+		hudProfile = key("hud_profile", InputConstants.UNKNOWN.getValue(), category);
 		for (int slot = 0; slot < EMOTE_SLOTS.length; slot++) {
 			EMOTE_SLOTS[slot] = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.orbit_cosmetic.emote_slot_" + (slot + 1), InputConstants.UNKNOWN.getValue(), category));
 		}
@@ -74,6 +76,14 @@ public final class OrbitKeys {
 		while (hud.consumeClick()) {
 			if (free) {
 				dev.orbit.cosmetic.client.hud.HudEditorScreen.open(null);
+			}
+		}
+		while (hudProfile.consumeClick()) {
+			if (free) {
+				var profile = dev.orbit.cosmetic.client.hud.HudLayout.next();
+				dev.orbit.cosmetic.client.hud.HudLayout.switchTo(profile);
+				Notifications.info(net.minecraft.network.chat.Component.translatable("orbit_cosmetic.notify.hud_profile", profile.name),
+					net.minecraft.network.chat.Component.empty());
 			}
 		}
 		while (screenshots.consumeClick()) {
