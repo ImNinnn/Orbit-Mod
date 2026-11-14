@@ -38,7 +38,7 @@ public final class Profile {
 
 	/** The outfit the profile shows, or null for none (or one since deleted). */
 	public static OrbitState.@Nullable Outfit outfit() {
-		String name = OrbitClient.get().config().profileOutfit;
+		String name = OrbitClient.get().account().outfit;
 		return name.isEmpty() ? null : OrbitClient.get().state().outfits().stream().filter(outfit -> outfit.name.equals(name)).findFirst().orElse(null);
 	}
 

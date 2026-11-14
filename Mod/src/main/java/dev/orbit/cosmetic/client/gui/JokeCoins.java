@@ -22,15 +22,15 @@ public final class JokeCoins {
 	}
 
 	public static boolean enabled() {
-		return OrbitClient.get().config().jokeCoins;
+		return dev.orbit.cosmetic.client.OrbitData.settings().jokeCoins;
 	}
 
 	public static long balance() {
-		return OrbitClient.get().config().jokeCoinBalance;
+		return dev.orbit.cosmetic.client.OrbitData.settings().jokeCoinBalance;
 	}
 
 	public static void addFreeCoins() {
-		ClientConfig config = OrbitClient.get().config();
+		var config = dev.orbit.cosmetic.client.OrbitData.settings();
 		config.jokeCoinBalance = Math.min(999_999_999L, config.jokeCoinBalance + FREE_COINS);
 		config.save();
 		Notifications.success(Component.translatable("orbit_cosmetic.coins.added", FREE_COINS), Component.translatable("orbit_cosmetic.coins.added.detail"));
@@ -38,14 +38,14 @@ public final class JokeCoins {
 
 	/** Gives coins back, after a purchase that could not be completed. */
 	public static void refund(int coins) {
-		ClientConfig config = OrbitClient.get().config();
+		var config = dev.orbit.cosmetic.client.OrbitData.settings();
 		config.jokeCoinBalance = Math.min(999_999_999L, config.jokeCoinBalance + coins);
 		config.save();
 	}
 
 	/** Takes the coins; false (and a hint) if there are not enough. */
 	public static boolean spend(int coins) {
-		ClientConfig config = OrbitClient.get().config();
+		var config = dev.orbit.cosmetic.client.OrbitData.settings();
 		if (config.jokeCoinBalance < coins) {
 			Notifications.warning(Component.translatable("orbit_cosmetic.coins.short"), Component.translatable("orbit_cosmetic.coins.short.detail"));
 			return false;

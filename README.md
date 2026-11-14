@@ -600,6 +600,21 @@ The gear in the Orbit menu (also the **Configure** button of Orbit in Mod Menu's
 other players' emotes), the player on the title and pause screens, nameplate icons, Orbit Cloud, render and
 animation distances, the download cache, and, at the very bottom of Advanced, something just for fun.
 
+### Orbit's data folder
+
+What is the same for every Minecraft instance of your computer user is kept outside the instances, in a
+`gg.orbit.mod` folder (like Essential's `gg.essential.mod`): `%APPDATA%\gg.orbit.mod` on Windows,
+`~/Library/Application Support/gg.orbit.mod` on macOS, `~/.local/share/gg.orbit.mod` on Linux (a Flatpak launcher
+keeps it in its own data folder, such as `~/.var/app/<launcher>/data/gg.orbit.mod`):
+
+* `settings.json`: update checks, the terms you accepted, Discord, the joke coins.
+* `accounts/<uuid>/`: your key for end-to-end encrypted messages (so every instance reads them), and a copy of what
+  Orbit Cloud keeps for the account: your page's colour, description, pronouns and outfit, and the players whose
+  cosmetics you hide. Orbit Cloud has the final say; changes made while it cannot be reached are sent when it can.
+* `logs/`: Orbit's own log, `latest.log` for the game running and the 9 before it compressed (`.log.gz`).
+
+The rest of the settings stay with each instance, in `config/orbit_cosmetic.json`.
+
 ## Security
 
 All cosmetic and emote files, local or downloaded, are treated as untrusted:

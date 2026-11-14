@@ -71,7 +71,7 @@ public final class DiscordPresence {
 		if (++ticks % 20 != 0) {
 			return;
 		}
-		String state = OrbitClient.get().config().discordPresence ? state(minecraft) : null;
+		String state = OrbitData.settings().discordPresence ? state(minecraft) : null;
 		if (Objects.equals(state, shown)) {
 			// Unchanged; try again now and then while Discord is not there.
 			if (state == null || System.currentTimeMillis() < nextAttempt) {

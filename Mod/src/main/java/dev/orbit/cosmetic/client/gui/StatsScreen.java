@@ -138,7 +138,7 @@ public final class StatsScreen extends OrbitScreen {
 
 	private int color() {
 		if (own) {
-			return orbit().config().statsColor;
+			return orbit().account().statsColor;
 		}
 		return page != null && page.get("color") instanceof JsonElement color && color.isJsonPrimitive() ? color.getAsInt() & 0xFFFFFF : 0x5A5A66;
 	}
@@ -169,7 +169,7 @@ public final class StatsScreen extends OrbitScreen {
 		int contentW = pw() - side() - 16;
 		PlayerFaceExtractor.extractRenderState(graphics, social.skin(player, name), x + 8, y + 28, 32);
 		graphics.text(font, name, x + 48, y + 30, Theme.TEXT, true);
-		String pronouns = own ? orbit().config().profilePronouns : text(stats, "pronouns");
+		String pronouns = own ? orbit().account().pronouns : text(stats, "pronouns");
 		if (!pronouns.isBlank()) {
 			graphics.text(font, Component.literal(pronouns).withStyle(ChatFormatting.GRAY), x + 52 + font.width(name), y + 30, Theme.TEXT, false);
 		}
@@ -180,7 +180,7 @@ public final class StatsScreen extends OrbitScreen {
 		graphics.text(font, since.copy().withStyle(ChatFormatting.GRAY), x + 48, y + 44, Theme.TEXT, false);
 
 		// The description, up to four lines (as many as fit above the tiles).
-		String description = own ? orbit().config().profileDescription : text(stats, "description");
+		String description = own ? orbit().account().description : text(stats, "description");
 		int dy = y + 66;
 		int lines = Math.clamp((y + ph() - 2 * (TILE_H + 4) - 22 - 4 - dy) / 10, 0, 4);
 		if (!description.isBlank()) {

@@ -39,9 +39,9 @@ public final class ProfileEditScreen extends OrbitScreen {
 
 	public ProfileEditScreen(@Nullable Screen parent) {
 		super(Component.translatable("orbit_cosmetic.profile.title"), parent);
-		ClientConfig config = orbit().config();
-		color = config.statsColor;
-		outfit = Profile.outfit() == null ? "" : config.profileOutfit;
+		var account = orbit().account();
+		color = account.statsColor;
+		outfit = Profile.outfit() == null ? "" : account.outfit;
 		// What a ban blocks, as Orbit Cloud says now.
 		var social = orbit().social();
 		if (social.me() != null) {
@@ -73,8 +73,8 @@ public final class ProfileEditScreen extends OrbitScreen {
 		int x = left() + 8;
 		int y = top() + 30;
 		// Typed text stays when the window is resized.
-		String typedPronouns = pronouns == null ? config.profilePronouns : pronouns.getValue();
-		String typedDescription = description == null ? config.profileDescription : description.getValue();
+		String typedPronouns = pronouns == null ? orbit().account().pronouns : pronouns.getValue();
+		String typedDescription = description == null ? orbit().account().description : description.getValue();
 
 		// The page's colour: a swatch, or any colour as a hex code.
 		colors = new dev.orbit.cosmetic.client.gui.ui.ColorRow(font, x + 70, y, color, chosen -> color = chosen, this::addRenderableWidget);
@@ -121,12 +121,14 @@ public final class ProfileEditScreen extends OrbitScreen {
 	}
 
 	private void save() {
-		ClientConfig config = orbit().config();
-		config.statsColor = color;
-		config.profilePronouns = pronouns.getValue().strip();
-		config.profileDescription = description.getValue().strip();
-		config.profileOutfit = outfit;
-		config.save();
+		// Orbit Cloud keeps it; the copy here is sent when it can be reached, if it cannot now.
+		var account = orbit().account();
+		account.statsColor = color;
+		account.pronouns = pronouns.getValue().strip();
+		account.description = description.getValue().strip();
+		account.outfit = outfit;
+		account.profileChanged = true;
+		account.save();
 		orbit().social().shareStats();
 		onClose();
 	}

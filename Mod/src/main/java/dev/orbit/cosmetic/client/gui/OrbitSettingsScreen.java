@@ -344,10 +344,16 @@ public final class OrbitSettingsScreen extends OrbitScreen {
 				rows.add(new Toggle("animations", () -> config.playAnimations, v -> config.playAnimations = v));
 				rows.add(new Toggle("smooth_animations", () -> config.smoothAnimations, v -> config.smoothAnimations = v));
 				rows.add(new Toggle("notifications", () -> config.showNotifications, v -> config.showNotifications = v));
-				rows.add(new Toggle("updates", () -> config.checkUpdates, v -> config.checkUpdates = v));
+				rows.add(new Toggle("updates", () -> dev.orbit.cosmetic.client.OrbitData.settings().checkUpdates, v -> {
+					dev.orbit.cosmetic.client.OrbitData.settings().checkUpdates = v;
+					dev.orbit.cosmetic.client.OrbitData.settings().save();
+				}));
 				rows.add(new Toggle("screenshot_notifications", () -> config.screenshotNotifications, v -> config.screenshotNotifications = v));
 				rows.add(new Toggle("friend_online", () -> config.friendOnlineNotifications, v -> config.friendOnlineNotifications = v));
-				rows.add(new Toggle("discord", () -> config.discordPresence, v -> config.discordPresence = v));
+				rows.add(new Toggle("discord", () -> dev.orbit.cosmetic.client.OrbitData.settings().discordPresence, v -> {
+					dev.orbit.cosmetic.client.OrbitData.settings().discordPresence = v;
+					dev.orbit.cosmetic.client.OrbitData.settings().save();
+				}));
 			}
 			case APPEARANCE -> {
 				rows.add(new Toggle("menu_player", () -> config.menuPlayer, v -> config.menuPlayer = v));
@@ -385,7 +391,10 @@ public final class OrbitSettingsScreen extends OrbitScreen {
 				rows.add(new Action("folder", () -> Component.translatable("orbit_cosmetic.settings.folder.open"), () -> Compat.openPath(OrbitClient.get().paths().root())));
 				// Hidden at the very bottom, as promised.
 				rows.add(new Heading(Component.translatable("orbit_cosmetic.settings.just_for_fun")));
-				rows.add(new Toggle("joke_coins", () -> config.jokeCoins, v -> config.jokeCoins = v));
+				rows.add(new Toggle("joke_coins", () -> dev.orbit.cosmetic.client.OrbitData.settings().jokeCoins, v -> {
+					dev.orbit.cosmetic.client.OrbitData.settings().jokeCoins = v;
+					dev.orbit.cosmetic.client.OrbitData.settings().save();
+				}));
 			}
 		}
 		contentHeight = 0;

@@ -127,10 +127,10 @@ public final class UpdateCheck implements PreLaunchEntrypoint {
 	 */
 	private static Found query(FabricLoader loader, ModContainer mod, String version, String target) throws IOException, InterruptedException {
 		JsonObject config = readConfig(loader.getConfigDir().resolve("orbit_cosmetic.json"));
-		// Nothing goes to Orbit Cloud before its terms are accepted (in game, on the first start).
-		boolean termsAccepted = config != null && config.get("termsAccepted") instanceof JsonElement accepted && accepted.isJsonPrimitive()
-			&& dev.orbit.cosmetic.client.net.OrbitCloud.TERMS_VERSION.equals(accepted.getAsString());
-		if (!termsAccepted || !bool(config, "checkUpdates", true) || !bool(config, "useBackend", true)) {
+		// Nothing goes to Orbit Cloud before its terms are accepted (in game, on the first start); the terms and update
+		// checks are kept in gg.orbit.mod, for every instance.
+		var settings = dev.orbit.cosmetic.client.OrbitData.readSettings();
+		if (!settings.hasAcceptedTerms() || !settings.checkUpdates || !bool(config, "useBackend", true)) {
 			return null;
 		}
 		String baseUrl = dev.orbit.cosmetic.client.net.OrbitCloud.url();

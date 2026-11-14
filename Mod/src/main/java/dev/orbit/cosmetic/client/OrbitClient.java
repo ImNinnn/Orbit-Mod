@@ -135,6 +135,7 @@ public final class OrbitClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
 		instance = this;
+		OrbitLog.install();
 		Minecraft minecraft = Minecraft.getInstance();
 		paths = new OrbitPaths(minecraft.gameDirectory.toPath());
 		try {
@@ -219,6 +220,11 @@ public final class OrbitClient implements ClientModInitializer {
 			skins.library().reload();
 		}).start();
 		LOGGER.info("Orbit ready; folder: {}", paths.root());
+	}
+
+	/** What Orbit Cloud keeps for the signed-in account (a copy in gg.orbit.mod, for when it cannot be reached). */
+	public OrbitData.Account account() {
+		return OrbitData.account(Minecraft.getInstance().getUser().getProfileId());
 	}
 
 	public ClientConfig config() {
@@ -451,7 +457,7 @@ public final class OrbitClient implements ClientModInitializer {
 			state.nameTag = Component.empty().append(NAMEPLATE_ICON).append(state.nameTag);
 		}
 		// Blocked players' cosmetics are hidden too.
-		if (wearer == null || !local && (!config.showOtherPlayers || config.isHidden(wearer.id) || social.isBlocked(wearer.id))) {
+		if (wearer == null || !local && (!config.showOtherPlayers || account().isHidden(wearer.id) || social.isBlocked(wearer.id))) {
 			return;
 		}
 		double distanceSq = state.distanceToCameraSq;

@@ -136,15 +136,14 @@ public final class PlayersScreen extends OrbitScreen {
 		statsButton.active = friend;
 		blockButton.active = has && social.isLoaded();
 		blockButton.setMessage(Component.translatable(blocked ? "orbit_cosmetic.social.action.unblock" : "orbit_cosmetic.social.block"));
-		boolean hidden = has && OrbitClient.get().config().isHidden(selected.id());
+		boolean hidden = has && OrbitClient.get().account().isHidden(selected.id());
 		hideButton.setMessage(Component.translatable(hidden ? "orbit_cosmetic.players.show" : "orbit_cosmetic.players.hide"));
 		hideButton.setIcon(hidden ? "check" : "close");
 	}
 
 	private void toggleHidden() {
 		if (selected != null) {
-			var config = OrbitClient.get().config();
-			config.setHidden(selected.id(), !config.isHidden(selected.id()));
+			OrbitClient.get().social().setHidden(selected.id(), !OrbitClient.get().account().isHidden(selected.id()));
 			updateButtons();
 		}
 	}
@@ -211,7 +210,7 @@ public final class PlayersScreen extends OrbitScreen {
 			graphics.outline(panelX + 8, y, panelW - 16, ROW - 2, isSelected ? Theme.RED : Theme.BORDER);
 			graphics.text(font, player.name(), panelX + 14, y + 3, Theme.TEXT, false);
 			Component status = Component.translatable("orbit_cosmetic.players.cosmetics", player.wearer().worn().size());
-			if (OrbitClient.get().config().isHidden(player.id())) {
+			if (OrbitClient.get().account().isHidden(player.id())) {
 				status = status.copy().append(" · ").append(Component.translatable("orbit_cosmetic.players.hidden"));
 			}
 			graphics.text(font, status, panelX + 14, y + 11, Theme.MUTED, false);

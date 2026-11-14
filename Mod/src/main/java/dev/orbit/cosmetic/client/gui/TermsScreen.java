@@ -77,9 +77,10 @@ public final class TermsScreen extends OrbitScreen {
 	}
 
 	private void accept() {
-		ClientConfig config = orbit().config();
-		config.termsAccepted = OrbitCloud.TERMS_VERSION;
-		config.save();
+		// For every instance: kept in gg.orbit.mod.
+		var settings = dev.orbit.cosmetic.client.OrbitData.settings();
+		settings.termsAccepted = OrbitCloud.TERMS_VERSION;
+		settings.save();
 		onClose();
 	}
 

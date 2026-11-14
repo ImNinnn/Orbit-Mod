@@ -53,12 +53,6 @@ public final class ClientConfig {
 	public boolean screenshotNotifications = true;
 	/** On-screen notifications (loading cosmetics, connections, bans, uploads). */
 	public boolean showNotifications = true;
-	/** When Minecraft starts, ask Orbit Cloud for a newer Orbit Cosmetic and offer to install it (read by UpdateCheck). */
-	public boolean checkUpdates = true;
-	/** The version of the Terms of Service and Privacy Policy accepted (see {@link OrbitCloud#TERMS_VERSION}); read by UpdateCheck. */
-	public String termsAccepted = "";
-	/** Players whose cosmetics you hid in the Players menu (UUIDs). */
-	public List<String> hiddenPlayers = new ArrayList<>();
 	/** Show the emotes other Orbit players play. */
 	public boolean showOtherEmotes = true;
 	/** The title and pause screens show your player, wearing your cosmetics and now and then playing an emote. */
@@ -67,24 +61,12 @@ public final class ClientConfig {
 	public boolean friendOnlineNotifications = true;
 	/** Friends can see your statistics page (time played, screenshots, wardrobe); off removes it from Orbit Cloud. */
 	public boolean shareStatistics = true;
-	/** The colour of your statistics page (RGB). */
-	public int statsColor = 0xC21E1E;
-	/** The profile on your statistics page: a description, pronouns, and the name of the outfit it shows ("" for none). */
-	public String profileDescription = "";
-	public String profilePronouns = "";
-	public String profileOutfit = "";
 	/** The newer version whose prompt the player turned off ("Don't show this again"); a later one asks again. */
 	public String updatePromptSkipped = "";
-	/** Show what you do in Orbit on your Discord profile (Rich Presence). */
-	public boolean discordPresence = true;
 	/** Orbit's screens on a grid; off shows Minecraft's own menu background. */
 	public boolean gridBackground = true;
 	/** Orbit's buttons drawn with Minecraft's button texture. */
 	public boolean vanillaButtons = false;
-	/** A joke: made-up coin prices on everything, and a coin balance you can top up for free. Nothing is ever sold. */
-	public boolean jokeCoins = false;
-	/** The joke coin balance. */
-	public long jokeCoinBalance = 375;
 
 	private transient Path file;
 
@@ -111,47 +93,14 @@ public final class ClientConfig {
 		animationDistance = clamp(animationDistance, 4, renderDistance);
 		maxFacesPerPlayer = clamp(maxFacesPerPlayer, 100, ModelLimits.HARD.maxQuads() * 4);
 		maxCacheMegabytes = clamp(maxCacheMegabytes, 8, 4096);
-		jokeCoinBalance = Math.max(0, Math.min(jokeCoinBalance, 999_999_999L));
-		statsColor &= 0xFFFFFF;
-		profileDescription = profileDescription == null ? "" : profileDescription.length() > 160 ? profileDescription.substring(0, 160) : profileDescription;
-		profilePronouns = profilePronouns == null ? "" : profilePronouns.length() > 24 ? profilePronouns.substring(0, 24) : profilePronouns;
-		if (profileOutfit == null) {
-			profileOutfit = "";
-		}
-		if (termsAccepted == null) {
-			termsAccepted = "";
-		}
 		if (attachMode == null) {
 			attachMode = AttachMode.ANIMATED_MODEL;
 		}
-		LinkedHashSet<String> hidden = new LinkedHashSet<>();
-		if (hiddenPlayers != null) {
-			for (String value : hiddenPlayers) {
-				try {
-					hidden.add(UUID.fromString(value).toString().toLowerCase(Locale.ROOT));
-				} catch (IllegalArgumentException | NullPointerException ignored) {
-					// dropped
-				}
-			}
-		}
-		hiddenPlayers = new ArrayList<>(hidden.stream().limit(2000).toList());
 	}
 
-	/** Orbit Cloud may be used: the current terms were accepted. */
+	/** Orbit Cloud may be used: the current terms were accepted (kept in gg.orbit.mod, for every instance). */
 	public boolean hasAcceptedTerms() {
-		return OrbitCloud.TERMS_VERSION.equals(termsAccepted);
-	}
-
-	public boolean isHidden(UUID player) {
-		return hiddenPlayers.contains(player.toString());
-	}
-
-	public void setHidden(UUID player, boolean hidden) {
-		hiddenPlayers.remove(player.toString());
-		if (hidden) {
-			hiddenPlayers.add(player.toString());
-		}
-		save();
+		return dev.orbit.cosmetic.client.OrbitData.settings().hasAcceptedTerms();
 	}
 
 	public void save() {

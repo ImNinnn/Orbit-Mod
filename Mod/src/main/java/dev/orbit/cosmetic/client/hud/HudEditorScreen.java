@@ -105,6 +105,8 @@ public final class HudEditorScreen extends OrbitScreen {
 	private List<Social.Person> conversations = List.of();
 	private int listScroll;
 	private @Nullable EditBox profileName;
+	/** The buttons along the top (or bottom): out of the way while something is dragged under them. */
+	private final List<FlatButton> toolbar = new ArrayList<>();
 	/** The paperdoll's angle field, when its settings show. */
 	private @Nullable EditBox angleBox;
 	/** The snapping lines shown while dragging: x of a vertical one, y of a horizontal one (-1 for none). */
@@ -357,15 +359,17 @@ public final class HudEditorScreen extends OrbitScreen {
 		int ty = toolbarY();
 		int bw = 104;
 		int x = width / 2 - (bw * 2 + 80 + 8 + 22) / 2;
-		addRenderableWidget(new FlatButton(x, ty, bw, 18, Component.translatable("orbit_cosmetic.hud.add"), "plus", FlatButton.Style.PRIMARY,
-			b -> setMode(mode == Mode.ADD ? Mode.EDIT : Mode.ADD)));
+		toolbar.clear();
+		toolbar.add(addRenderableWidget(new FlatButton(x, ty, bw, 18, Component.translatable("orbit_cosmetic.hud.add"), "plus", FlatButton.Style.PRIMARY,
+			b -> setMode(mode == Mode.ADD ? Mode.EDIT : Mode.ADD))));
 		Component profile = Component.literal(HudLayout.activeProfile().name);
 		FlatButton profiles = addRenderableWidget(new FlatButton(x + bw + 4, ty, bw, 18, profile, "folder", FlatButton.Style.SECONDARY,
 			b -> setMode(mode == Mode.PROFILES ? Mode.EDIT : Mode.PROFILES)));
 		profiles.setTooltip(Tooltip.create(Component.translatable("orbit_cosmetic.hud.profiles.tooltip")));
-		addRenderableWidget(FlatButton.icon(x + bw * 2 + 8, ty, 18, "grid", Component.translatable("orbit_cosmetic.hud.layers"), FlatButton.Style.SECONDARY,
-			b -> setMode(mode == Mode.LAYERS ? Mode.EDIT : Mode.LAYERS)));
-		addRenderableWidget(new FlatButton(x + bw * 2 + 30, ty, 80, 18, CommonComponents.GUI_DONE, null, FlatButton.Style.SECONDARY, b -> onClose()));
+		toolbar.add(profiles);
+		toolbar.add(addRenderableWidget(FlatButton.icon(x + bw * 2 + 8, ty, 18, "grid", Component.translatable("orbit_cosmetic.hud.layers"), FlatButton.Style.SECONDARY,
+			b -> setMode(mode == Mode.LAYERS ? Mode.EDIT : Mode.LAYERS))));
+		toolbar.add(addRenderableWidget(new FlatButton(x + bw * 2 + 30, ty, 80, 18, CommonComponents.GUI_DONE, null, FlatButton.Style.SECONDARY, b -> onClose())));
 		selection.removeIf(item -> !items().contains(item));
 		switch (mode) {
 			case ADD -> initAdd();
@@ -1219,8 +1223,20 @@ public final class HudEditorScreen extends OrbitScreen {
 		if (items().isEmpty() && mode == Mode.EDIT) {
 			graphics.centeredText(font, Component.translatable("orbit_cosmetic.hud.empty").withStyle(ChatFormatting.GRAY), width / 2, height / 2 - 4, Theme.TEXT);
 		}
-		graphics.centeredText(font, Component.translatable("orbit_cosmetic.hud.hint").withStyle(ChatFormatting.GRAY), width / 2, toolbarY() == 6 ? 28 : height - 36,
-			Theme.TEXT);
+		// What is dragged under the buttons and the hint hides them until it is let go.
+		boolean top = toolbar.isEmpty() || toolbar.getFirst().getY() < height / 2;
+		boolean underneath = false;
+		if ((drag == Drag.MOVE || drag == Drag.RESIZE) && !selection.isEmpty()) {
+			int[] b = bounds(selection);
+			underneath = top ? b[1] < 40 : b[1] + b[3] > height - 40;
+		}
+		for (FlatButton button : toolbar) {
+			button.visible = !underneath;
+		}
+		if (!underneath) {
+			graphics.centeredText(font, Component.translatable("orbit_cosmetic.hud.hint").withStyle(ChatFormatting.GRAY), width / 2, top ? 28 : height - 36,
+				Theme.TEXT);
+		}
 		graphics.nextStratum();
 		if (mode != Mode.EDIT) {
 			drawMenu(graphics);

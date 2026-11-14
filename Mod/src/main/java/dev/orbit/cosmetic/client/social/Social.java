@@ -533,7 +533,8 @@ public final class Social {
 		activitySeeded = false;
 		wardrobe.reset();
 		try {
-			device = SocialCrypto.deviceKey(folder().resolve("device.json"));
+			// In gg.orbit.mod: every instance of this computer user reads the same messages.
+			device = SocialCrypto.deviceKey(dev.orbit.cosmetic.client.OrbitData.deviceKey(me));
 			JsonObject meta = readJson(folder().resolve("meta.json"));
 			since = meta != null && meta.has("since") ? meta.get("since").getAsDouble() : 0;
 			encryptedChats.clear();
@@ -582,6 +583,7 @@ public final class Social {
 			// The connection made at launch: Orbit Cloud is there.
 			OrbitClient.get().backend().announceConnected();
 			pullProfile();
+			syncHidden();
 		}
 		Set<UUID> known = new HashSet<>();
 		incoming.forEach(person -> known.add(person.uuid()));
@@ -667,7 +669,7 @@ public final class Social {
 	 * off). Done when Orbit Cloud is first reached, every 10 minutes, and when the page's colour changes.
 	 */
 	public void shareStats() {
-		if (!loaded) {
+		if (!loaded || me == null) {
 			return;
 		}
 		if (!profilePulled) {
@@ -679,16 +681,22 @@ public final class Social {
 		JsonObject body = new JsonObject();
 		StatsCounts counts = counts();
 		body.addProperty("shared", orbit.config().shareStatistics);
-		body.addProperty("outfit_name", orbit.config().profileOutfit);
+		dev.orbit.cosmetic.client.OrbitData.Account account = dev.orbit.cosmetic.client.OrbitData.account(me);
+		body.addProperty("outfit_name", account.outfit);
 		body.addProperty("cosmetics", counts.cosmetics());
 		body.addProperty("emotes", counts.emotes());
 		body.addProperty("body_parts", counts.bodyParts());
-		body.addProperty("color", orbit.config().statsColor);
-		body.addProperty("description", orbit.config().profileDescription);
-		body.addProperty("pronouns", orbit.config().profilePronouns);
+		body.addProperty("color", account.statsColor);
+		body.addProperty("description", account.description);
+		body.addProperty("pronouns", account.pronouns);
 		body.add("outfit", Profile.outfitJson());
 		// The outfit's files first, so friends can download them.
 		Profile.uploadOutfit(() -> orbit.backend().socialCall("PUT", "/stats", body, ok -> {
+			if (account.profileChanged) {
+				// Orbit Cloud has it now.
+				account.profileChanged = false;
+				account.save();
+			}
 		}, error -> OrbitClient.LOGGER.debug("Friends: statistics not shared: {}", error)));
 	}
 
@@ -706,14 +714,17 @@ public final class Social {
 				return;
 			}
 			var config = OrbitClient.get().config();
-			if (page.get("stats") instanceof JsonObject stats && stats.has("description")) {
-				config.profileDescription = text(stats, "description");
-				config.profilePronouns = text(stats, "pronouns");
-				config.profileOutfit = text(stats, "outfit_name");
+			dev.orbit.cosmetic.client.OrbitData.Account cached = dev.orbit.cosmetic.client.OrbitData.account(account);
+			// Orbit Cloud's page, unless it was changed here while Orbit Cloud could not be reached (then this is sent).
+			if (!cached.profileChanged && page.get("stats") instanceof JsonObject stats && stats.has("description")) {
+				cached.description = text(stats, "description");
+				cached.pronouns = text(stats, "pronouns");
+				cached.outfit = text(stats, "outfit_name");
 				config.shareStatistics = !stats.has("shared") || stats.get("shared").getAsBoolean();
 				if (page.get("color") instanceof JsonElement color && color.isJsonPrimitive()) {
-					config.statsColor = color.getAsInt() & 0xFFFFFF;
+					cached.statsColor = color.getAsInt() & 0xFFFFFF;
 				}
+				cached.save();
 				config.save();
 			}
 			if (page.get("stats") instanceof JsonObject stats) {
@@ -723,6 +734,56 @@ public final class Social {
 			profilePulled = true;
 			shareStats();
 		}, error -> OrbitClient.LOGGER.debug("Friends: profile not loaded: {}", error));
+	}
+
+	// ---------------------------------------------------------------- hidden players
+
+	/** Hides (or shows again) a player's cosmetics: kept by Orbit Cloud for the account, a copy here. */
+	public void setHidden(UUID player, boolean hidden) {
+		dev.orbit.cosmetic.client.OrbitData.Account account = OrbitClient.get().account();
+		account.hiddenPlayers.remove(player.toString());
+		if (hidden) {
+			account.hiddenPlayers.add(player.toString());
+		}
+		account.hiddenChanged = true;
+		account.save();
+		pushHidden(account);
+	}
+
+	/** On connecting: Orbit Cloud's list, unless it was changed here meanwhile (then this one is sent). */
+	private void syncHidden() {
+		UUID account = me;
+		if (account == null) {
+			return;
+		}
+		dev.orbit.cosmetic.client.OrbitData.Account cached = dev.orbit.cosmetic.client.OrbitData.account(account);
+		if (cached.hiddenChanged) {
+			pushHidden(cached);
+			return;
+		}
+		OrbitClient.get().backend().socialCall("GET", "/hidden", null, result -> {
+			if (cached.hiddenChanged || !(result.get("players") instanceof JsonArray players)) {
+				return;
+			}
+			cached.hiddenPlayers = new ArrayList<>();
+			players.forEach(element -> cached.hiddenPlayers.add(element.getAsString()));
+			cached.save();
+		}, error -> OrbitClient.LOGGER.debug("Friends: hidden players not loaded: {}", error));
+	}
+
+	private void pushHidden(dev.orbit.cosmetic.client.OrbitData.Account account) {
+		if (!loaded) {
+			// Sent when Orbit Cloud is reached.
+			return;
+		}
+		JsonObject body = new JsonObject();
+		JsonArray players = new JsonArray();
+		account.hiddenPlayers.forEach(players::add);
+		body.add("players", players);
+		OrbitClient.get().backend().socialCall("PUT", "/hidden", body, ok -> {
+			account.hiddenChanged = false;
+			account.save();
+		}, error -> OrbitClient.LOGGER.debug("Friends: hidden players not saved: {}", error));
 	}
 
 	private static String text(JsonObject json, String key) {
@@ -813,18 +874,18 @@ public final class Social {
 		if (page.get("restricted") instanceof JsonArray list) {
 			list.forEach(element -> now.add(element.getAsString()));
 		}
-		var config = OrbitClient.get().config();
+		var config = me == null ? null : dev.orbit.cosmetic.client.OrbitData.account(me);
 		boolean changed = false;
-		if (now.contains("description") && !config.profileDescription.isEmpty()) {
-			config.profileDescription = "";
+		if (config != null && now.contains("description") && !config.description.isEmpty()) {
+			config.description = "";
 			changed = true;
 		}
-		if (now.contains("pronouns") && !config.profilePronouns.isEmpty()) {
-			config.profilePronouns = "";
+		if (config != null && now.contains("pronouns") && !config.pronouns.isEmpty()) {
+			config.pronouns = "";
 			changed = true;
 		}
-		if (now.contains("outfit") && !config.profileOutfit.isEmpty()) {
-			config.profileOutfit = "";
+		if (config != null && now.contains("outfit") && !config.outfit.isEmpty()) {
+			config.outfit = "";
 			changed = true;
 		}
 		if (changed) {

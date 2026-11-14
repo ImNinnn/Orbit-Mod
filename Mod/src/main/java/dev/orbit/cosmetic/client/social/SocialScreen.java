@@ -702,7 +702,7 @@ public final class SocialScreen extends OrbitScreen {
 			}
 			UUID uuid = member.uuid();
 			boolean self = uuid.equals(me);
-			Integer color = self ? Integer.valueOf(orbit().config().statsColor) : social().colorOf(uuid);
+			Integer color = self ? Integer.valueOf(orbit().account().statsColor) : social().colorOf(uuid);
 			if (color != null) {
 				Theme.hGradient(graphics, x + MEMBERS / 2, y, x + MEMBERS - 1, y + 19, color & 0xFFFFFF, 0x55000000 | color);
 			}
