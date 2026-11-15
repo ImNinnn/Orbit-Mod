@@ -125,6 +125,68 @@ public final class PartyLink implements WebSocket.Listener {
 		return json.toString();
 	}
 
+	/**
+	 * Whether a member plays where this player does: in this server's player list, on the same server or network
+	 * (alpha.hypixel.net and mc.hypixel.net alike), or in the same singleplayer world.
+	 */
+	public static boolean playsHere(UUID member, @Nullable Status status) {
+		if (status == null || !status.playing()) {
+			return false;
+		}
+		if (tabEntry(member) != null) {
+			return true;
+		}
+		Minecraft minecraft = Minecraft.getInstance();
+		ServerData server = minecraft.getCurrentServer();
+		if (server != null && !minecraft.isLocalServer()) {
+			return !status.server().isEmpty() && network(server.ip).equals(network(status.server()));
+		}
+		var integrated = minecraft.getSingleplayerServer();
+		return integrated != null && status.server().isEmpty() && integrated.getWorldData().getLevelName().equals(status.world());
+	}
+
+	/**
+	 * A server address as the network it belongs to: the host without its port, cut to its domain
+	 * (mc.hypixel.net and alpha.hypixel.net are both hypixel.net; play.example.co.uk is example.co.uk).
+	 */
+	public static String network(String address) {
+		String host = address.trim().toLowerCase(java.util.Locale.ROOT);
+		if (host.startsWith("[")) {
+			// An IPv6 address, as it is.
+			int end = host.indexOf(']');
+			return end > 0 ? host.substring(0, end + 1) : host;
+		}
+		host = host.replaceAll(":\\d+$", "").replaceAll("\\.+$", "");
+		if (host.matches("[0-9.]+")) {
+			return host;
+		}
+		String[] labels = host.split("\\.");
+		if (labels.length <= 2) {
+			return host;
+		}
+		int keep = labels[labels.length - 1].length() == 2 && java.util.Set.of("co", "com", "net", "org", "ac", "gov", "edu").contains(labels[labels.length - 2]) ? 3 : 2;
+		return String.join(".", java.util.Arrays.copyOfRange(labels, labels.length - keep, labels.length));
+	}
+
+	/** The member in this server's player list (by their UUID), or null. */
+	public static net.minecraft.client.multiplayer.@Nullable PlayerInfo tabEntry(UUID member) {
+		var connection = Minecraft.getInstance().getConnection();
+		return connection == null ? null : connection.getPlayerInfo(member);
+	}
+
+	/**
+	 * A member's name as this server shows it in its player list (its ranks and colours: "[VIP] Name"), or their
+	 * name as it is when they are not in it.
+	 */
+	public static net.minecraft.network.chat.Component displayName(UUID member, String name) {
+		var entry = tabEntry(member);
+		if (entry == null) {
+			return net.minecraft.network.chat.Component.literal(name);
+		}
+		var shown = entry.getTabListDisplayName();
+		return shown != null ? shown : net.minecraft.world.scores.PlayerTeam.formatNameForTeam(entry.getTeam(), net.minecraft.network.chat.Component.literal(name));
+	}
+
 	/** Tells the other members' games something (see ServerParty): sent at once if the link is open. */
 	void signal(String signal) {
 		WebSocket open = socket;

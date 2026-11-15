@@ -140,7 +140,7 @@ public final class ServerParty {
 				first = member;
 			}
 			PartyLink.Status status = PartyLink.get().status(member.uuid());
-			if (server != null && status != null && status.playing() && server.equalsIgnoreCase(status.server())) {
+			if (server != null && PartyLink.playsHere(member.uuid(), status)) {
 				return member;
 			}
 		}

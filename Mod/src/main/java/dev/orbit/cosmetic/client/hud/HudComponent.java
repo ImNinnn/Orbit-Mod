@@ -237,7 +237,7 @@ public final class HudComponent {
 				int widest = Math.max(first, font.width(look.mod()));
 				yield Math.max(80, steady(widest + 34 + (look.tool() != null ? 20 : 0)));
 			}
-			case PARTY -> is("compact") ? 76 : is("vanilla") ? 198 : 140;
+			case PARTY -> is("compact") ? 76 : Math.max(is("vanilla") ? 198 : 140, steady(partyTextWidth(font)));
 			case LAST_HIT -> {
 				LivingEntity target = lastHit();
 				int name = font.width(target != null ? target.getDisplayName() : Component.translatable("orbit_cosmetic.hud.sample.zombie"));
@@ -1148,19 +1148,10 @@ public final class HudComponent {
 		return members;
 	}
 
-	private static final Identifier HEART_CONTAINER = Identifier.withDefaultNamespace("hud/heart/container");
-	private static final Identifier HEART_FULL = Identifier.withDefaultNamespace("hud/heart/full");
-	private static final Identifier HEART_HALF = Identifier.withDefaultNamespace("hud/heart/half");
-	private static final Identifier FOOD_EMPTY = Identifier.withDefaultNamespace("hud/food_empty");
-	private static final Identifier FOOD_FULL = Identifier.withDefaultNamespace("hud/food_full");
-	private static final Identifier FOOD_HALF = Identifier.withDefaultNamespace("hud/food_half");
-	/** With AppleSkin, members' saturation shows on their hunger as AppleSkin shows the player's. */
-	private static boolean appleSkin = FabricLoader.getInstance().isModLoaded("appleskin");
-	private static final int SATURATION = 0xFFF5D24A;
-
 	/**
-	 * Each other member: head (marked when they are dead, away from the game, or on another server), name (the
-	 * leader's party mark in gold), health and hunger (bars, or the vanilla hearts and shanks), and where they play.
+	 * Each other member: head (marked when they are dead, away from the game, or on another server), name (as this
+	 * server shows it, the leader's party mark in gold), health and hunger (bars, or the game's hearts and shanks),
+	 * and where they play when it is not here.
 	 */
 	private void drawParty(GuiGraphicsExtractor graphics, Font font) {
 		int w = width();
@@ -1169,49 +1160,70 @@ public final class HudComponent {
 		boolean compact = is("compact");
 		boolean vanilla = is("vanilla");
 		List<Member> members = partyMembers();
-		String here = ownPlace();
 		int y = 2;
 		for (Member member : members) {
 			int size = compact ? 10 : 16;
 			var status = member.status();
 			boolean away = status == null || !status.playing();
-			boolean elsewhere = !away && !status.place().equals(here);
+			boolean sample = member.uuid().getMostSignificantBits() == 0;
+			boolean elsewhere = !away && (sample ? !status.place().equals(ownPlace()) : !dev.orbit.cosmetic.client.social.PartyLink.playsHere(member.uuid(), status));
 			drawPartyHead(graphics, member, 5, y + 1, size, away, elsewhere);
 			int barX = 5 + size + 4;
 			int barW = w - barX - 5;
 			if (!compact) {
-				graphics.text(font, Theme.clip(font, Component.literal(member.name()), barW - 12), barX, y + 1, away ? Theme.FAINT : text(), false);
-				if (member.leader()) {
-					Theme.icon(graphics, "party", barX + Math.min(font.width(member.name()), barW - 12) + 3, y, Theme.GOLD);
+				int room = barW - 12;
+				String place = elsewhere ? status.place() : "";
+				String shownPlace = place.isEmpty() ? "" : font.plainSubstrByWidth(place, Math.min(90, Math.max(0, barW / 2)));
+				if (!shownPlace.isEmpty()) {
+					room -= font.width(shownPlace) + 4;
+					graphics.text(font, shownPlace, w - 5 - font.width(shownPlace), y + 1, Theme.FAINT, false);
 				}
-				if (elsewhere && !status.place().isEmpty()) {
-					String shown = font.plainSubstrByWidth(status.place(), Math.max(0, barW / 2));
-					graphics.text(font, shown, w - 5 - font.width(shown), y + 1, Theme.FAINT, false);
+				Component name = sample ? Component.literal(member.name()) : dev.orbit.cosmetic.client.social.PartyLink.displayName(member.uuid(), member.name());
+				graphics.text(font, clipStyled(font, name, room), barX, y + 1, away ? Theme.FAINT : text(), false);
+				if (member.leader()) {
+					Theme.icon(graphics, "party", barX + Math.min(font.width(name), room) + 3, y, Theme.GOLD);
 				}
 			} else if (member.leader()) {
 				graphics.fill(5, y + 1, 7, y + 3, Theme.GOLD);
 			}
 			if (vanilla) {
-				drawVanillaBars(graphics, status, barX, y + 11, w - 5);
+				PartyBars.drawVanilla(graphics, member.uuid(), status, barX, y + 11, w - 5);
 			} else {
-				int barY = compact ? y + 2 : y + 11;
-				// Health (red) over hunger (amber, its saturation in gold with AppleSkin); grey until their game has said.
-				float health = away ? 0 : Mth.clamp(status.health() / Math.max(1, status.maxHealth()), 0, 1);
-				float hunger = away ? 0 : Mth.clamp(status.hunger() / 20F, 0, 1);
-				graphics.fill(barX, barY, barX + barW, barY + 3, 0x80000000);
-				graphics.fill(barX, barY, barX + Math.round(barW * health), barY + 3, 0xFFE03A3A);
-				graphics.fill(barX, barY + 4, barX + barW, barY + 6, 0x80000000);
-				graphics.fill(barX, barY + 4, barX + Math.round(barW * hunger), barY + 6, 0xFFD69A3A);
-				if (appleSkin && !away) {
-					float saturation = Mth.clamp(status.saturation() / 20F, 0, 1);
-					graphics.fill(barX, barY + 5, barX + Math.round(barW * saturation), barY + 6, SATURATION);
-				}
+				PartyBars.drawBars(graphics, member.uuid(), status, barX, compact ? y + 2 : y + 11, barW);
 			}
 			y += compact ? 14 : 22;
 		}
 	}
 
-	/** A member's head, darkened and marked: a red cross when dead, grey when away from the game, yellow on another server. */
+	/** The widest member line (head, name as the server shows it, leader mark, and where they play), to fit long ranks. */
+	private int partyTextWidth(Font font) {
+		int widest = 0;
+		for (Member member : partyMembers()) {
+			var status = member.status();
+			boolean sample = member.uuid().getMostSignificantBits() == 0;
+			Component name = sample ? Component.literal(member.name()) : dev.orbit.cosmetic.client.social.PartyLink.displayName(member.uuid(), member.name());
+			int line = 25 + font.width(name) + 12 + 5;
+			if (!sample && status != null && status.playing() && !dev.orbit.cosmetic.client.social.PartyLink.playsHere(member.uuid(), status)) {
+				line += Math.min(90, font.width(status.place())) + 4;
+			}
+			widest = Math.max(widest, line);
+		}
+		return Math.min(widest, 260);
+	}
+
+	/** Text cut to a width with an ellipsis, keeping its colours (a server's ranks: "[VIP] Name"). */
+	private static net.minecraft.util.FormattedCharSequence clipStyled(Font font, Component text, int width) {
+		if (font.width(text) <= width) {
+			return text.getVisualOrderText();
+		}
+		var cut = font.substrByWidth(text, Math.max(0, width - font.width("...")));
+		return net.minecraft.locale.Language.getInstance().getVisualOrder(net.minecraft.network.chat.FormattedText.composite(cut, net.minecraft.network.chat.FormattedText.of("...")));
+	}
+
+	/**
+	 * A member's head, darkened and marked (twice the icons' size on full-size heads): a red cross when dead, grey
+	 * when away from the game, yellow on another server.
+	 */
 	private static void drawPartyHead(GuiGraphicsExtractor graphics, Member member, int x, int y, int size, boolean away, boolean elsewhere) {
 		if (member.uuid().getMostSignificantBits() == 0) {
 			graphics.fill(x, y, x + size, y + size, member.leader() ? 0xFFB07A4A : 0xFF4A6FB0);
@@ -1235,45 +1247,9 @@ public final class HudComponent {
 			return;
 		}
 		graphics.fill(x, y, x + size, y + size, 0x90000000);
-		Theme.icon(graphics, icon, x + (size - 9) / 2, y + (size - 9) / 2, color);
-	}
-
-	/**
-	 * Hearts on the left and shanks on the right, as the game draws the player's own (ten of each: more health than
-	 * 20 is scaled to ten hearts), with AppleSkin's saturation outline on the shanks.
-	 */
-	private static void drawVanillaBars(GuiGraphicsExtractor graphics, dev.orbit.cosmetic.client.social.PartyLink.@Nullable Status status, int left, int y, int right) {
-		boolean known = status != null && status.playing();
-		int halves = known ? Math.round(Mth.clamp(status.health() / Math.max(1, status.maxHealth()), 0, 1) * 20) : 0;
-		if (known && status.health() > 0) {
-			halves = Math.max(1, halves);
-		}
-		for (int i = 0; i < 10; i++) {
-			int x = left + i * 8;
-			graphics.blitSprite(RenderPipelines.GUI_TEXTURED, HEART_CONTAINER, x, y, 9, 9);
-			if (halves > i * 2 + 1) {
-				graphics.blitSprite(RenderPipelines.GUI_TEXTURED, HEART_FULL, x, y, 9, 9);
-			} else if (halves == i * 2 + 1) {
-				graphics.blitSprite(RenderPipelines.GUI_TEXTURED, HEART_HALF, x, y, 9, 9);
-			}
-		}
-		int hunger = known ? Mth.clamp(status.hunger(), 0, 20) : 0;
-		int saturation = known && appleSkin ? Mth.clamp(Math.round(status.saturation()), 0, 20) : 0;
-		// Shanks fill from the right, as the game's.
-		for (int i = 0; i < 10; i++) {
-			int x = right - 9 - i * 8;
-			graphics.blitSprite(RenderPipelines.GUI_TEXTURED, FOOD_EMPTY, x, y, 9, 9);
-			if (hunger > i * 2 + 1) {
-				graphics.blitSprite(RenderPipelines.GUI_TEXTURED, FOOD_FULL, x, y, 9, 9);
-			} else if (hunger == i * 2 + 1) {
-				graphics.blitSprite(RenderPipelines.GUI_TEXTURED, FOOD_HALF, x, y, 9, 9);
-			}
-			if (saturation > i * 2 + 1) {
-				Theme.icon(graphics, "saturation", x, y, SATURATION);
-			} else if (saturation == i * 2 + 1) {
-				Theme.icon(graphics, "saturation_half", x, y, SATURATION);
-			}
-		}
+		int iconSize = size >= 16 ? 18 : 9;
+		int offset = (size - iconSize) / 2;
+		graphics.blitSprite(RenderPipelines.GUI_TEXTURED, Theme.icon(icon), x + offset, y + offset, iconSize, iconSize, color);
 	}
 
 	/** Where this player plays: the server's address, or the singleplayer world's name. */

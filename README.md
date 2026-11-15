@@ -398,10 +398,12 @@ times as you like:
   entity's health beside it) and the mod it is from; for a block, the weakest tool that makes it drop (a diamond pickaxe for ancient debris) with a tick when
   the item in your hand is enough and a cross when it is not, and a bar of how far you are in breaking it.
 * **Last hit**: the last entity you hit, with its model, name and health, for 15 seconds after the hit.
-* **Party**: your party's other members, with their heads, health and hunger bars, and the server they play on
-  when it is not yours (or *Compact*: heads and bars; or *Vanilla*: the game's own hearts and shanks). A mark on a
-  head says when a member is dead (red cross), away from the game or in its menus (grey), or on another server
-  (yellow). With [AppleSkin](https://modrinth.com/mod/appleskin) installed, their saturation shows on their hunger
+* **Party**: your party's other members, with their heads, names (as the server shows them in its player list,
+  ranks and colours included), health and hunger bars, and the server they play on when it is not yours (or
+  *Compact*: heads and bars; or *Vanilla*: the game's own hearts and shanks, blinking, shaking and jittering as
+  yours do). The bars flash when a member loses health or hunger. A mark on a head says when a member is dead (red
+  cross), away from the game or in its menus (grey), or on another server (yellow); players of the same network
+  (alpha.hypixel.net and mc.hypixel.net) count as on the same server. With [AppleSkin](https://modrinth.com/mod/appleskin) installed, their saturation shows on their hunger
   as AppleSkin shows yours. It shows while you are in a party.
 * **Chat window**: pops a conversation out as a floating chat window (see Friends and messages). Windows are
   placed, resized and lined up here like the components, with their own settings: **Auto-hide** (hide 30 seconds
