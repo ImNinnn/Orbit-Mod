@@ -657,7 +657,15 @@ public final class SocialScreen extends OrbitScreen {
 			if (person.online()) {
 				graphics.fill(x + 19, y + 20, x + 24, y + 25, 0xFF3CB043);
 			}
-			graphics.text(font, Theme.clip(font, Component.literal(person.name()), LIST - 70), x + 28, y + 4, Theme.TEXT, false);
+			// A party going in the conversation: its icon after the name (green when the player is in it).
+			Social.Party party = social().party();
+			boolean inParty = party != null && party.chat().equals(uuid);
+			boolean partyHere = inParty || social().openParty(uuid) != null;
+			int nameRoom = LIST - 70 - (partyHere ? 12 : 0);
+			graphics.text(font, Theme.clip(font, Component.literal(person.name()), nameRoom), x + 28, y + 4, Theme.TEXT, false);
+			if (partyHere) {
+				Theme.icon(graphics, "party", x + 28 + Math.min(font.width(person.name()), nameRoom) + 3, y + 3, inParty ? Theme.GREEN : Theme.MUTED);
+			}
 			List<Social.Entry> chat = social().chat(uuid);
 			Component preview = chat.isEmpty() ? Component.translatable("orbit_cosmetic.social.say_hi")
 				: chat.getLast().deleted() ? Component.translatable("orbit_cosmetic.social.deleted")
@@ -715,7 +723,8 @@ public final class SocialScreen extends OrbitScreen {
 		if (party != null && party.chat().equals(friend.uuid()) || social().openParty(friend.uuid()) != null) {
 			// A party going in this conversation: stars rise behind the messages.
 			graphics.enableScissor(x, areaTop - 2, x + w, areaBottom);
-			PartyBanner.stars(graphics, x, areaTop - 2, x + w, areaBottom, Theme.GOLD);
+			// In the conversation's colour (a little lighter, to show on its gradient), else gold.
+			PartyBanner.stars(graphics, x, areaTop - 2, x + w, areaBottom, tint != null ? Theme.mix(0xFF000000 | tint, 0xFFFFFFFF, 0.3F) : Theme.GOLD);
 			graphics.disableScissor();
 		}
 		if (input != null) {

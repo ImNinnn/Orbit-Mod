@@ -517,10 +517,11 @@ message or until you click it: over the pause menu, hidden windows show see-thro
 **Parties.** In a conversation (with a friend, or a group chat), the party button starts a party, or joins the
 one someone started there (it shows green, and you get a notification when one starts). Starting one sends an
 invitation in the chat, with **Join** while the party is on. You are in one party at a time; when the leader leaves,
-the lead goes to the member there the longest (one on the leader's server first), and when the leader's game has
-been closed for two minutes, to a member whose game is open. Party members have a party icon beside their name (gold for the leader), and stars rise behind a conversation with a
-party going. While you are in a party, a green line at the top of every menu says who with ("You are the party
-leader in Builders - Alex, Steve"). In a
+the lead goes to the member there the longest (one on the leader's server first). A member whose game has been
+closed for two minutes leaves the party (they join again themselves when they come back). Party members have a party icon beside their name (gold for the leader), conversations with a party going have the party icon
+in the list (green for yours) and stars rising behind their messages, in the conversation's colour. While you are
+in a party, a line at the top of every menu says who with ("You are the party leader in Builders - Alex, Steve");
+it steps aside while the mouse is on it. In a
 friend's chat, the party's leader hands the lead over with the star beside the party button; in a group, from the
 member's menu. While in a party, your game shares your health, hunger and server with the other members only (the
 party button's tooltip lists them, and the **Party** HUD component shows them).

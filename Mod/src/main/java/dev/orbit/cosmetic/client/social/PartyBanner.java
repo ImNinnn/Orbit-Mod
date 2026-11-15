@@ -28,12 +28,16 @@ public final class PartyBanner {
 	private PartyBanner() {
 	}
 
+	/** How much the line shows (it goes when the mouse is on it, and comes back once it leaves). */
+	private static float shown = 1;
+	private static long lastFrame;
+
 	public static void register() {
 		ScreenEvents.AFTER_INIT.register((client, screen, width, height) -> ScreenEvents.afterExtract(screen).register((current, graphics, mouseX, mouseY, partialTick) -> {
 			Component line = line();
 			if (line != null) {
 				graphics.nextStratum();
-				draw(graphics, Minecraft.getInstance().font, current.width, line);
+				draw(graphics, Minecraft.getInstance().font, current.width, line, mouseX, mouseY);
 			}
 		}));
 	}
@@ -59,14 +63,31 @@ public final class PartyBanner {
 		return Component.translatable(leader ? "orbit_cosmetic.party.banner.leader_friend" : "orbit_cosmetic.party.banner.friend", name);
 	}
 
-	private static void draw(GuiGraphicsExtractor graphics, Font font, int width, Component line) {
-		double phase = System.currentTimeMillis() % (long) PULSE_MS / PULSE_MS;
-		float alpha = FAINTEST + (1 - FAINTEST) * (float) (0.5 + 0.5 * Math.cos(phase * Math.PI * 2));
-		int shown = Math.min(font.width(line), width - 16);
-		int x = (width - shown) / 2;
-		int a = Math.round(alpha * 255);
-		graphics.fill(x - 4, 1, x + shown + 4, 12, Math.round(alpha * 0x70) << 24);
-		graphics.text(font, Theme.clip(font, line, width - 16), x, 3, a << 24 | GREEN, true);
+	/** Drawn as a HUD component is: dark, with a green line on its left; gone while the mouse is on it. */
+	private static void draw(GuiGraphicsExtractor graphics, Font font, int width, Component line, int mouseX, int mouseY) {
+		int textWidth = Math.min(font.width(line), width - 24);
+		int w = textWidth + 12;
+		int h = 14;
+		int x = (width - w) / 2;
+		int y = 2;
+		long now = System.currentTimeMillis();
+		float step = lastFrame == 0 ? 1 : Math.min(1, (now - lastFrame) / 150F);
+		lastFrame = now;
+		boolean hovered = mouseX >= x && mouseX < x + w && mouseY >= y && mouseY < y + h;
+		shown = hovered ? Math.max(0, shown - step) : Math.min(1, shown + step / 2);
+		if (shown <= 0.01F) {
+			return;
+		}
+		double phase = now % (long) PULSE_MS / PULSE_MS;
+		float pulse = FAINTEST + (1 - FAINTEST) * (float) (0.5 + 0.5 * Math.cos(phase * Math.PI * 2));
+		graphics.fill(x, y, x + w, y + h, alpha(0xB01C1C20, shown));
+		graphics.outline(x, y, w, h, alpha(0xC02E2E35, shown));
+		graphics.fill(x, y, x + 2, y + h, alpha(0xFF000000 | GREEN, shown));
+		graphics.text(font, Theme.clip(font, line, textWidth), x + 7, y + 3, alpha(0xFF000000 | GREEN, shown * pulse), false);
+	}
+
+	private static int alpha(int color, float factor) {
+		return Math.round((color >>> 24) * Mth.clamp(factor, 0, 1)) << 24 | (color & 0xFFFFFF);
 	}
 
 	// ---------------------------------------------------------------- stars
