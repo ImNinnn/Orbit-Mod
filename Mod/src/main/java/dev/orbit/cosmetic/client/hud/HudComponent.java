@@ -260,7 +260,7 @@ public final class HudComponent {
 			case ITEM -> 20;
 			case LOOKING_AT -> 24;
 			case LAST_HIT -> 42;
-			case PARTY -> Math.max(1, partyMembers().size()) * (is("compact") ? 14 : 22) + 4;
+			case PARTY -> partyHeight();
 		};
 	}
 
@@ -1136,8 +1136,9 @@ public final class HudComponent {
 			if (!sample && !(dev.orbit.cosmetic.client.compat.Compat.screen() instanceof HudEditorScreen)) {
 				return List.of();
 			}
-			return List.of(new Member(new UUID(0, 1), "Alex", true, new dev.orbit.cosmetic.client.social.PartyLink.Status(16, 20, 18, 5, true, "play.example.net", "", 0)),
-				new Member(new UUID(0, 2), "Steve", false, new dev.orbit.cosmetic.client.social.PartyLink.Status(7, 20, 9, 0, true, ownPlace(), "", 0)));
+			return List.of(new Member(new UUID(0, 1), "Alex", true, new dev.orbit.cosmetic.client.social.PartyLink.Status(16, 20, 4, 18, 5, 0, 0, "survival", 0, 0, true, "play.example.net", "", 0)),
+				new Member(new UUID(0, 2), "Steve", false, new dev.orbit.cosmetic.client.social.PartyLink.Status(7, 20, 0, 9, 0, 0, dev.orbit.cosmetic.client.social.PartyLink.POISON, "survival", 0, 0, true,
+					ownPlace(), "", 0)));
 		}
 		List<Member> members = new java.util.ArrayList<>();
 		for (var person : party.members()) {
@@ -1187,12 +1188,35 @@ public final class HudComponent {
 				graphics.fill(5, y + 1, 7, y + 3, Theme.GOLD);
 			}
 			if (vanilla) {
-				PartyBars.drawVanilla(graphics, member.uuid(), status, barX, y + 11, w - 5);
+				PartyBars.drawVanilla(graphics, font, member.uuid(), status, barX, y + 11, w - 5);
+			} else if (!compact && status != null && status.playing() && !status.showsHealth()) {
+				// Creative or spectator: no health or hunger to show.
+				graphics.text(font, Component.translatable("orbit_cosmetic.hud.party.mode." + status.mode()), barX, y + 11, Theme.FAINT, false);
 			} else {
 				PartyBars.drawBars(graphics, member.uuid(), status, barX, compact ? y + 2 : y + 11, barW);
 			}
-			y += compact ? 14 : 22;
+			y += memberHeight(member);
 		}
+	}
+
+	/** One member's height: in the vanilla style, more rows of hearts make it taller (as the game's own). */
+	private int memberHeight(Member member) {
+		if (is("compact")) {
+			return 14;
+		}
+		return is("vanilla") ? 11 + PartyBars.vanillaHeight(member.uuid(), member.status()) + 2 : 22;
+	}
+
+	private int partyHeight() {
+		List<Member> members = partyMembers();
+		if (members.isEmpty()) {
+			return (is("compact") ? 14 : 22) + 4;
+		}
+		int height = 4;
+		for (Member member : members) {
+			height += memberHeight(member);
+		}
+		return height;
 	}
 
 	/** The widest member line (head, name as the server shows it, leader mark, and where they play), to fit long ranks. */

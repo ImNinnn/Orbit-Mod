@@ -400,11 +400,16 @@ times as you like:
 * **Last hit**: the last entity you hit, with its model, name and health, for 15 seconds after the hit.
 * **Party**: your party's other members, with their heads, names (as the server shows them in its player list,
   ranks and colours included), health and hunger bars, and the server they play on when it is not yours (or
-  *Compact*: heads and bars; or *Vanilla*: the game's own hearts and shanks, blinking, shaking and jittering as
-  yours do). The bars flash when a member loses health or hunger. A mark on a head says when a member is dead (red
-  cross), away from the game or in its menus (grey), or on another server (yellow); players of the same network
-  (alpha.hypixel.net and mc.hypixel.net) count as on the same server. With [AppleSkin](https://modrinth.com/mod/appleskin) installed, their saturation shows on their hunger
-  as AppleSkin shows yours. It shows while you are in a party.
+  *Compact*: heads and bars). *Vanilla* draws their hearts and shanks exactly as the game draws yours: poisoned,
+  withered, frozen and hardcore hearts, absorption hearts, more rows closer together with health boost, blinking
+  on loss and gain, shaking when low, the regeneration wave, hungry shanks with the hunger effect and jittering with
+  no saturation left, and their mount's hearts while they ride. The other styles colour the bars by the same states
+  (absorption in gold) and flash them when a member loses health or hunger; creative and spectator players show
+  their game mode. A mark on a head says when a member is dead (red cross), away from the game or in its menus
+  (grey), or on another server (yellow); players of the same network (alpha.hypixel.net and mc.hypixel.net) count
+  as on the same server. With [AppleSkin](https://modrinth.com/mod/appleskin) installed, their saturation shows on
+  their hunger as AppleSkin shows yours, and their exhaustion under it (known in singleplayer, or on servers with
+  AppleSkin when they have it too). It shows while you are in a party.
 * **Chat window**: pops a conversation out as a floating chat window (see Friends and messages). Windows are
   placed, resized and lined up here like the components, with their own settings: **Auto-hide** (hide 30 seconds
   after the last message while playing, or stay), the accent colour (your messages and the bar on the left) and
