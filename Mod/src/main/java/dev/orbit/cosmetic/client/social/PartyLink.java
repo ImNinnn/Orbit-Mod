@@ -20,9 +20,24 @@ import java.util.concurrent.ConcurrentHashMap;
  * members' as they come.
  */
 public final class PartyLink implements WebSocket.Listener {
-	/** A party member's state, as their game last sent it. */
-	public record Status(float health, float maxHealth, int hunger, String server, String world, long at) {
+	/**
+	 * A party member's state, as their game last sent it: {@code playing} is false in the game's menus (out of a
+	 * world), {@code saturation} is shown with AppleSkin.
+	 */
+	public record Status(float health, float maxHealth, int hunger, float saturation, boolean playing, String server, String world, long at) {
+		/** Dead: in a world with no health left. */
+		public boolean dead() {
+			return playing && health <= 0;
+		}
+
+		/** Where they play: the server's address, or the singleplayer world's name. */
+		public String place() {
+			return server.isEmpty() ? world : server;
+		}
 	}
+
+	/** A status not heard from for this long is from a game that went away without saying (sent every 10 s anyway). */
+	private static final long STALE_MS = 30_000;
 
 	private static final long SEND_EVERY_MS = 1000;
 	private static final long SEND_ANYWAY_MS = 10_000;
@@ -46,7 +61,8 @@ public final class PartyLink implements WebSocket.Listener {
 
 	/** The other members' states (by player). */
 	public @Nullable Status status(UUID player) {
-		return statuses.get(player);
+		Status status = statuses.get(player);
+		return status != null && System.currentTimeMillis() - status.at() > STALE_MS ? null : status;
 	}
 
 	public boolean connected() {
@@ -100,6 +116,8 @@ public final class PartyLink implements WebSocket.Listener {
 		json.addProperty("health", player == null ? 0 : player.getHealth());
 		json.addProperty("max_health", player == null ? 20 : player.getMaxHealth());
 		json.addProperty("hunger", player == null ? 20 : player.getFoodData().getFoodLevel());
+		json.addProperty("saturation", player == null ? 0 : player.getFoodData().getSaturationLevel());
+		json.addProperty("playing", player != null);
 		ServerData server = minecraft.getCurrentServer();
 		json.addProperty("server", server != null && !minecraft.isLocalServer() ? server.ip : "");
 		var integrated = minecraft.getSingleplayerServer();
@@ -145,6 +163,7 @@ public final class PartyLink implements WebSocket.Listener {
 					statuses.remove(player);
 				} else if (type.equals("status")) {
 					statuses.put(player, new Status(message.get("health").getAsFloat(), message.get("max_health").getAsFloat(), message.get("hunger").getAsInt(),
+						message.has("saturation") ? message.get("saturation").getAsFloat() : 0, !message.has("playing") || message.get("playing").getAsBoolean(),
 						message.get("server").getAsString(), message.get("world").getAsString(), System.currentTimeMillis()));
 				}
 			} catch (RuntimeException e) {

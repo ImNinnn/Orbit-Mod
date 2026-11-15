@@ -336,7 +336,7 @@ public final class SocialScreen extends OrbitScreen {
 			for (Social.Person member : party.members()) {
 				list.append("\n").append(Component.literal(member.name()).withStyle(member.uuid().equals(party.leader()) ? ChatFormatting.GOLD : ChatFormatting.WHITE));
 				PartyLink.Status status = PartyLink.get().status(member.uuid());
-				if (status != null) {
+				if (status != null && status.playing()) {
 					list.append("  ").append(Component.translatable("orbit_cosmetic.party.status", Math.round(status.health()), Math.round(status.maxHealth()), status.hunger())
 						.withStyle(ChatFormatting.GRAY));
 					if (!status.server().isEmpty() || !status.world().isEmpty()) {

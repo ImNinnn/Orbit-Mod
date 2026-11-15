@@ -399,7 +399,10 @@ times as you like:
   the item in your hand is enough and a cross when it is not, and a bar of how far you are in breaking it.
 * **Last hit**: the last entity you hit, with its model, name and health, for 15 seconds after the hit.
 * **Party**: your party's other members, with their heads, health and hunger bars, and the server they play on
-  when it is not yours (or *Compact*: heads and bars). It shows while you are in a party.
+  when it is not yours (or *Compact*: heads and bars; or *Vanilla*: the game's own hearts and shanks). A mark on a
+  head says when a member is dead (red cross), away from the game or in its menus (grey), or on another server
+  (yellow). With [AppleSkin](https://modrinth.com/mod/appleskin) installed, their saturation shows on their hunger
+  as AppleSkin shows yours. It shows while you are in a party.
 * **Chat window**: pops a conversation out as a floating chat window (see Friends and messages). Windows are
   placed, resized and lined up here like the components, with their own settings: **Auto-hide** (hide 30 seconds
   after the last message while playing, or stay), the accent colour (your messages and the bar on the left) and
@@ -512,15 +515,16 @@ message or until you click it: over the pause menu, hidden windows show see-thro
 **Parties.** In a conversation (with a friend, or a group chat), the party button starts a party, or joins the
 one someone started there (it shows green, and you get a notification when one starts). Starting one sends an
 invitation in the chat, with **Join** while the party is on. You are in one party at a time; when the leader leaves,
-the member there the longest leads. Party members have a party icon beside their name (gold for the leader). In a
+the lead goes to the member there the longest (one on the leader's server first), and when the leader's game has
+been closed for two minutes, to a member whose game is open. Party members have a party icon beside their name (gold for the leader). In a
 friend's chat, the party's leader hands the lead over with the star beside the party button; in a group, from the
 member's menu. While in a party, your game shares your health, hunger and server with the other members only (the
 party button's tooltip lists them, and the **Party** HUD component shows them).
 
 **Parties on Hypixel.** Hypixel has its own parties; Orbit drives them for you, only when you click:
 when party members are on Hypixel with you and you lead, a popup offers **Invite** (`/p invite` for each of them),
-and their games offer **Accept** (`/p accept`). Leaving the Orbit party leaves Hypixel's (`/p leave`, or
-`/p disband` for its leader), removing a member removes them there too (`/p kick`), and handing the lead over
+and their games offer **Accept** (`/p accept`). Leaving the Orbit party leaves Hypixel's (`/p leave`; its leader
+first hands Hypixel's party to the next leader with `/p promote`, or ends it with `/p disband` when alone), removing a member removes them there too (`/p kick`), and handing the lead over
 promotes them (`/p promote`). The quick menu's **Warp party** brings them to you (`/p warp`). Popups are clicked
 with a screen open (press T for the chat). Commands go one at a time, a little over a second apart.
 

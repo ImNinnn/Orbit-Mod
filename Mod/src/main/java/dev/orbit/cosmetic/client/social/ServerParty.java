@@ -125,11 +125,44 @@ public final class ServerParty {
 			Component.translatable("orbit_cosmetic.server_party.accept"), () -> send(commands.accept().formatted(name)));
 	}
 
-	/** The player left the Orbit party: they leave the server's (its leader ends it). */
-	static void left(boolean wasLeader) {
+	/**
+	 * Who leads once the leader leaves: the member there the longest who plays on the leader's server (so the
+	 * server's party keeps a leader in it), else the member there the longest. Null when nobody else is in it.
+	 */
+	static Social.@Nullable Person successor(Social.Party party, UUID me) {
+		String server = currentServer();
+		Social.Person first = null;
+		for (Social.Person member : party.members()) {
+			if (member.uuid().equals(me)) {
+				continue;
+			}
+			if (first == null) {
+				first = member;
+			}
+			PartyLink.Status status = PartyLink.get().status(member.uuid());
+			if (server != null && status != null && status.playing() && server.equalsIgnoreCase(status.server())) {
+				return member;
+			}
+		}
+		return first;
+	}
+
+	/**
+	 * The player left the Orbit party: they leave the server's too. Its leader first hands it to the next leader
+	 * (it ends only when nobody is left to lead it).
+	 */
+	static void left(boolean wasLeader, Social.@Nullable Person next) {
 		Commands commands = commands();
-		if (commands != null) {
-			send(wasLeader ? commands.disband() : commands.leave());
+		if (commands == null) {
+			return;
+		}
+		if (!wasLeader) {
+			send(commands.leave());
+		} else if (next == null) {
+			send(commands.disband());
+		} else {
+			send(commands.promote().formatted(next.name()));
+			send(commands.leave());
 		}
 	}
 

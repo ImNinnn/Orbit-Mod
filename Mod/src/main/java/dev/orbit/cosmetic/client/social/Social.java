@@ -282,12 +282,18 @@ public final class Social {
 	}
 
 	public void leaveParty() {
+		JsonObject body = new JsonObject();
 		if (party != null) {
-			ServerParty.left(party.leader().equals(me));
+			Person next = party.leader().equals(me) ? ServerParty.successor(party, me) : null;
+			if (next != null) {
+				// The leader leaves: the lead goes to the member picked here (on Orbit and the server's party alike).
+				body.addProperty("next", next.uuid().toString());
+			}
+			ServerParty.left(party.leader().equals(me), next);
 		}
 		party = null;
 		version++;
-		OrbitClient.get().backend().socialCall("POST", "/party/leave", new JsonObject(), result -> refresh(), error -> OrbitClient.LOGGER.warn("Party: {}", error));
+		OrbitClient.get().backend().socialCall("POST", "/party/leave", body, result -> refresh(), error -> OrbitClient.LOGGER.warn("Party: {}", error));
 	}
 
 	public void kickFromParty(UUID player) {
