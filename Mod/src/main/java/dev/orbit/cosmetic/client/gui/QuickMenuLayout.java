@@ -56,7 +56,8 @@ public final class QuickMenuLayout {
 		SKIN("skin"),
 		EMOTE("emote"),
 		TOGGLE_COMPONENT("hud"),
-		HUD_PROFILE("folder");
+		HUD_PROFILE("folder"),
+		PARTY_WARP("party");
 
 		public final String icon;
 
@@ -127,6 +128,10 @@ public final class QuickMenuLayout {
 				case EMOTE -> minecraft.player != null && orbit.emotes().find(arg) != null;
 				case TOGGLE_COMPONENT -> component() != null;
 				case HUD_PROFILE -> profile() != null;
+				case PARTY_WARP -> {
+					var party = orbit.social().party();
+					yield party != null && party.leader().equals(orbit.social().me()) && dev.orbit.cosmetic.client.social.ServerParty.available();
+				}
 				case PERSPECTIVE, HIDE_GUI -> minecraft.level != null;
 				default -> true;
 			};
@@ -192,6 +197,7 @@ public final class QuickMenuLayout {
 				case PERSPECTIVE -> minecraft.options.setCameraType(minecraft.options.getCameraType().cycle());
 				case HIDE_GUI -> Compat.toggleHud();
 				case OUTFIT -> wear(outfit());
+				case PARTY_WARP -> dev.orbit.cosmetic.client.social.ServerParty.warp();
 				case HUD_PROFILE -> {
 					HudLayout.Profile profile = profile();
 					if (profile != null) {

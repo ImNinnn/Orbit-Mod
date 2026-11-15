@@ -71,7 +71,7 @@ public final class QuickMenuEditScreen extends OrbitScreen {
 		}
 		heading("orbit_cosmetic.quick.group.actions");
 		for (QuickMenuLayout.Kind kind : new QuickMenuLayout.Kind[] {QuickMenuLayout.Kind.TOGGLE_COSMETICS, QuickMenuLayout.Kind.TOGGLE_HUD, QuickMenuLayout.Kind.PERSPECTIVE,
-			QuickMenuLayout.Kind.HIDE_GUI}) {
+			QuickMenuLayout.Kind.HIDE_GUI, QuickMenuLayout.Kind.PARTY_WARP}) {
 			choices.add(new Choice(null, QuickMenuLayout.Action.of(kind)));
 		}
 		OrbitClient orbit = OrbitClient.get();

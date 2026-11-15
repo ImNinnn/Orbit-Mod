@@ -107,6 +107,17 @@ public final class PartyLink implements WebSocket.Listener {
 		return json.toString();
 	}
 
+	/** Tells the other members' games something (see ServerParty): sent at once if the link is open. */
+	void signal(String signal) {
+		WebSocket open = socket;
+		if (open != null) {
+			JsonObject json = new JsonObject();
+			json.addProperty("type", "signal");
+			json.addProperty("signal", signal);
+			open.sendText(json.toString(), true);
+		}
+	}
+
 	private void close() {
 		WebSocket open = socket;
 		socket = null;
@@ -126,7 +137,11 @@ public final class PartyLink implements WebSocket.Listener {
 				JsonObject message = JsonParser.parseString(text).getAsJsonObject();
 				UUID player = UUID.fromString(message.get("player").getAsString());
 				String type = message.get("type").getAsString();
-				if (type.equals("gone")) {
+				if (type.equals("signal")) {
+					String signal = message.get("signal").getAsString();
+					String name = message.get("name").getAsString();
+					Minecraft.getInstance().execute(() -> ServerParty.signal(OrbitClient.get().social(), player, name, signal));
+				} else if (type.equals("gone")) {
 					statuses.remove(player);
 				} else if (type.equals("status")) {
 					statuses.put(player, new Status(message.get("health").getAsFloat(), message.get("max_health").getAsFloat(), message.get("hunger").getAsInt(),

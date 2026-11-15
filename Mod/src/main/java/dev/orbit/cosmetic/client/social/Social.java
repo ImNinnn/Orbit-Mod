@@ -272,22 +272,31 @@ public final class Social {
 		}, error -> Notifications.warning(Component.translatable("orbit_cosmetic.party.failed"), Component.literal(error)));
 	}
 
+	private java.util.Optional<String> partyName(UUID player) {
+		return party == null ? java.util.Optional.empty() : party.members().stream().filter(member -> member.uuid().equals(player)).map(Person::name).findFirst();
+	}
+
 	/** Whether a player is in the party the player is in. */
 	public boolean inParty(UUID player) {
 		return party != null && party.members().stream().anyMatch(member -> member.uuid().equals(player));
 	}
 
 	public void leaveParty() {
+		if (party != null) {
+			ServerParty.left(party.leader().equals(me));
+		}
 		party = null;
 		version++;
 		OrbitClient.get().backend().socialCall("POST", "/party/leave", new JsonObject(), result -> refresh(), error -> OrbitClient.LOGGER.warn("Party: {}", error));
 	}
 
 	public void kickFromParty(UUID player) {
+		partyName(player).ifPresent(ServerParty::removed);
 		OrbitClient.get().backend().socialCall("DELETE", "/party/members/" + player, null, result -> refresh(), error -> OrbitClient.LOGGER.warn("Party: {}", error));
 	}
 
 	public void makePartyLeader(UUID player) {
+		partyName(player).ifPresent(ServerParty::promoted);
 		JsonObject body = new JsonObject();
 		body.addProperty("player", player.toString());
 		OrbitClient.get().backend().socialCall("POST", "/party/leader", body, result -> refresh(), error -> OrbitClient.LOGGER.warn("Party: {}", error));
@@ -559,6 +568,7 @@ public final class Social {
 		}
 		long now = System.currentTimeMillis();
 		PartyLink.get().tick(this);
+		ServerParty.tick(this);
 		if (!waiting && device != null && now >= waitAgainAt) {
 			waitForNews(account);
 		}

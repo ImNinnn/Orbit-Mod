@@ -38,7 +38,9 @@ public final class SocialPopups {
 	private static final int MAX_SHOWN = 4;
 	private static final int PLAY_W = 34;
 
-	private enum Kind { MESSAGE, REQUEST, INVITE }
+	private enum Kind { MESSAGE, REQUEST, INVITE, ACTION }
+
+	private static final long ACTION_LIFETIME_MS = 30_000;
 
 	private static final class Popup {
 		final Kind kind;
@@ -49,6 +51,9 @@ public final class SocialPopups {
 		final @Nullable String world;
 		/** The icon an invite to a server carried (base64 PNG), until the ping answers. */
 		@Nullable String icon;
+		/** An action popup's button and what it does. */
+		@Nullable Component button;
+		@Nullable Runnable action;
 		final long shownAt = System.currentTimeMillis();
 		long hoveredFor;
 		long lastFrame = System.currentTimeMillis();
@@ -69,7 +74,7 @@ public final class SocialPopups {
 		}
 
 		long lifetime() {
-			return kind == Kind.INVITE ? INVITE_LIFETIME_MS : LIFETIME_MS;
+			return kind == Kind.INVITE ? INVITE_LIFETIME_MS : kind == Kind.ACTION ? ACTION_LIFETIME_MS : LIFETIME_MS;
 		}
 	}
 
@@ -112,6 +117,17 @@ public final class SocialPopups {
 			return;
 		}
 		add(new Popup(Kind.MESSAGE, friend, name, Component.literal(Social.preview(content)), null, null));
+	}
+
+	/**
+	 * A popup that offers to do something (the party on a server: invite, accept): the player's head, a title and
+	 * a line, and a button. Like every popup, it can be clicked while a screen is open (the chat, for one).
+	 */
+	public static void action(UUID player, String name, Component title, Component detail, Component button, Runnable action) {
+		Popup popup = new Popup(Kind.ACTION, player, name, detail, null, title.getString());
+		popup.button = button;
+		popup.action = action;
+		add(popup);
 	}
 
 	public static void request(UUID player, String name) {
@@ -164,7 +180,7 @@ public final class SocialPopups {
 			}
 			popup.lastFrame = now;
 			Theme.panel(graphics, x, y, WIDTH, HEIGHT, hovered ? Theme.PANEL_HOVER : Theme.PANEL);
-			graphics.fill(x, y, x + 2, y + HEIGHT, popup.kind == Kind.INVITE ? Theme.GREEN : Theme.RED);
+			graphics.fill(x, y, x + 2, y + HEIGHT, popup.kind == Kind.INVITE || popup.kind == Kind.ACTION ? Theme.GREEN : Theme.RED);
 			switch (popup.kind) {
 				case MESSAGE -> {
 					// The friend's head and name on top, the message across the whole popup under them.
@@ -180,6 +196,12 @@ public final class SocialPopups {
 					graphics.text(font, Theme.clip(font, Component.literal(popup.world), textW), x + 37, y + 7, Theme.TEXT, false);
 					graphics.text(font, Theme.clip(font, players(popup).copy().withStyle(ChatFormatting.GRAY), textW), x + 37, y + 19, Theme.TEXT, false);
 				}
+				case ACTION -> {
+					face(graphics, popup.player, popup.name, x + 7, y + 5, 24);
+					int textW = WIDTH - 41 - PLAY_W - 4;
+					graphics.text(font, Theme.clip(font, Component.literal(popup.world), textW), x + 37, y + 7, Theme.TEXT, false);
+					graphics.text(font, Theme.clip(font, popup.text.copy().withStyle(ChatFormatting.GRAY), textW), x + 37, y + 19, Theme.TEXT, false);
+				}
 				case REQUEST -> {
 					face(graphics, popup.player, popup.name, x + 7, y + 5, 24);
 					int textW = WIDTH - 41;
@@ -187,12 +209,13 @@ public final class SocialPopups {
 					graphics.text(font, Theme.clip(font, popup.text.copy().withStyle(ChatFormatting.GRAY), textW), x + 37, y + 19, Theme.TEXT, false);
 				}
 			}
-			if (popup.kind == Kind.INVITE) {
+			if (popup.kind == Kind.INVITE || popup.kind == Kind.ACTION) {
 				int bx = playX(popup);
 				int by = y + (HEIGHT - 18) / 2;
 				boolean hot = mouseX >= bx && mouseY >= by && mouseX < bx + PLAY_W && mouseY < by + 18;
 				Theme.buttonFace(graphics, bx, by, PLAY_W, 18, true, hot, hot ? 0xFF4CA35A : 0xFF3A7D44, 0xFF9CE3A8);
-				graphics.centeredText(font, Component.translatable("orbit_cosmetic.popup.play"), bx + PLAY_W / 2, by + 5, Theme.TEXT);
+				Component label = popup.kind == Kind.ACTION && popup.button != null ? popup.button : Component.translatable("orbit_cosmetic.popup.play");
+				graphics.centeredText(font, Theme.clip(font, label, PLAY_W - 2), bx + PLAY_W / 2, by + 5, Theme.TEXT);
 			}
 			y -= HEIGHT + MARGIN;
 		}
@@ -222,7 +245,11 @@ public final class SocialPopups {
 			}
 			POPUPS.remove(popup);
 			int by = popup.y + (HEIGHT - 18) / 2;
-			if (popup.kind == Kind.INVITE && mouseX >= playX(popup) && mouseY >= by && mouseY < by + 18) {
+			if (popup.kind == Kind.ACTION) {
+				if (mouseX >= playX(popup) && mouseY >= by && mouseY < by + 18 && popup.action != null) {
+					popup.action.run();
+				}
+			} else if (popup.kind == Kind.INVITE && mouseX >= playX(popup) && mouseY >= by && mouseY < by + 18) {
 				ServerLinks.join(screen, popup.address, popup.world);
 			} else if (popup.kind == Kind.REQUEST) {
 				Compat.setScreen(SocialScreen.friends(screen));

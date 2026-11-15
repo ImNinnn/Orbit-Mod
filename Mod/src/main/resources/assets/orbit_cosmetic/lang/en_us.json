@@ -957,5 +957,13 @@
 	"orbit_cosmetic.social.party.make_leader.title": "Make %s the party's leader?",
 	"orbit_cosmetic.social.party.make_leader.text": "They will lead the party: invite and remove members, and hand the lead on.",
 	"orbit_cosmetic.hud.type.party": "Party",
-	"orbit_cosmetic.hud.variant.compact": "Compact"
+	"orbit_cosmetic.hud.variant.compact": "Compact",
+	"orbit_cosmetic.server_party.offer": "Party members are here",
+	"orbit_cosmetic.server_party.offer.one": "Invite %s to this server's party",
+	"orbit_cosmetic.server_party.offer.many": "Invite %s members to this server's party",
+	"orbit_cosmetic.server_party.invite": "Invite",
+	"orbit_cosmetic.server_party.invited": "%s invited you",
+	"orbit_cosmetic.server_party.invited.detail": "to their party on this server",
+	"orbit_cosmetic.server_party.accept": "Accept",
+	"orbit_cosmetic.quick.action.party_warp": "Warp party"
 }

@@ -517,6 +517,13 @@ friend's chat, the party's leader hands the lead over with the star beside the p
 member's menu. While in a party, your game shares your health, hunger and server with the other members only (the
 party button's tooltip lists them, and the **Party** HUD component shows them).
 
+**Parties on Hypixel.** Hypixel has its own parties; Orbit drives them for you, only when you click:
+when party members are on Hypixel with you and you lead, a popup offers **Invite** (`/p invite` for each of them),
+and their games offer **Accept** (`/p accept`). Leaving the Orbit party leaves Hypixel's (`/p leave`, or
+`/p disband` for its leader), removing a member removes them there too (`/p kick`), and handing the lead over
+promotes them (`/p promote`). The quick menu's **Warp party** brings them to you (`/p warp`). Popups are clicked
+with a screen open (press T for the chat). Commands go one at a time, a little over a second apart.
+
 **Group members.** The **⋯** beside a member in a group's member list opens what can be done with them: see their
 page, make them party leader or remove them from the party (when you lead it), make them group leader or remove
 them from the group (when you lead it), add or remove them as a friend, block or unblock them.
