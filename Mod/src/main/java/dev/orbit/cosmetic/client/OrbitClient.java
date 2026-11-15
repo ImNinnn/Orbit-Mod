@@ -206,6 +206,7 @@ public final class OrbitClient implements ClientModInitializer {
 		dev.orbit.cosmetic.client.screenshot.ScreenshotToasts.register();
 		// The components' HUD layer first: the chat windows' goes right above it.
 		dev.orbit.cosmetic.client.hud.HudRenderer.register();
+		dev.orbit.cosmetic.client.social.PartyBanner.register();
 		dev.orbit.cosmetic.client.social.FloatingChats.register();
 		dev.orbit.cosmetic.client.social.SocialPopups.register();
 

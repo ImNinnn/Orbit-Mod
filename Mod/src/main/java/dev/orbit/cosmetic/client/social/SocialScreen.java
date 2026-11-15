@@ -711,6 +711,13 @@ public final class SocialScreen extends OrbitScreen {
 			graphics.fillGradient(x, areaTop - 2, x + w, areaBottom, 0x40000000 | tint, tint & 0xFFFFFF);
 		}
 		graphics.fill(x, areaTop - 3, x + w, areaTop - 2, Theme.BORDER);
+		Social.Party party = social().party();
+		if (party != null && party.chat().equals(friend.uuid()) || social().openParty(friend.uuid()) != null) {
+			// A party going in this conversation: stars rise behind the messages.
+			graphics.enableScissor(x, areaTop - 2, x + w, areaBottom);
+			PartyBanner.stars(graphics, x, areaTop - 2, x + w, areaBottom, Theme.GOLD);
+			graphics.disableScissor();
+		}
 		if (input != null) {
 			Theme.panel(graphics, input.getX(), input.getY(), input.getWidth(), inputH, Theme.PANEL_2);
 			if (editing != null) {
