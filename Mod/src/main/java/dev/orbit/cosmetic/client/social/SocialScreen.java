@@ -155,7 +155,13 @@ public final class SocialScreen extends OrbitScreen {
 	private String layoutKey() {
 		Social.Group group = social().group(open);
 		return tab + "/" + open + "/" + (open != null && social().friend(open) != null) + "/" + social().isLoaded() + "/" + orbit().config().hasAcceptedTerms()
-			+ "/" + showMembers + "/" + (group == null ? "" : group.owner() + ":" + group.members().size());
+			+ "/" + showMembers + "/" + (group == null ? "" : group.owner() + ":" + group.members().size()) + "/" + partyKey();
+	}
+
+	/** What the party buttons show: the party (its conversation, leader and size) and whether this conversation has one to join. */
+	private String partyKey() {
+		Social.Party party = social().party();
+		return (party == null ? "-" : party.chat() + ":" + party.leader() + ":" + party.members().size()) + "/" + (open != null && social().openParty(open) != null);
 	}
 
 	@Override
@@ -245,7 +251,14 @@ public final class SocialScreen extends OrbitScreen {
 					}));
 				popOut.setTooltip(Tooltip.create(Component.translatable("orbit_cosmetic.social.pop_out.tooltip")));
 			}
-			partyButton(friend, px() + pw() - PAD - (FloatingChats.available() ? 128 : 106), headerY);
+			int partyX = px() + pw() - PAD - (FloatingChats.available() ? 128 : 106);
+			partyButton(friend, partyX, headerY);
+			if (partyLeadButton()) {
+				// No member list in a friend's chat: the party's lead is handed over here.
+				addRenderableWidget(FlatButton.icon(partyX - 22, headerY, 18, "star", Component.translatable("orbit_cosmetic.party.make_leader", name), FlatButton.Style.SECONDARY,
+					b -> confirm("party.make_leader", name, () -> social().makePartyLeader(friend))))
+					.setTooltip(Tooltip.create(Component.translatable("orbit_cosmetic.party.make_leader", name)));
+			}
 			}
 		}
 		if (open != null) {
@@ -292,6 +305,19 @@ public final class SocialScreen extends OrbitScreen {
 			next -= 22;
 		}
 		partyButton(id, next, headerY);
+	}
+
+	/** In a friend's chat: the player leads its party and the friend is in it (the lead can be handed over). */
+	private boolean partyLeadButton() {
+		Social.Party party = social().party();
+		return open != null && !social().isGroup(open) && party != null && party.chat().equals(open) && party.leader().equals(social().me()) && social().inParty(open);
+	}
+
+	/** The party icon beside a party member's name: gold for its leader. */
+	private void partyMark(GuiGraphicsExtractor graphics, UUID player, int x, int y) {
+		Social.Party party = social().party();
+		boolean leader = party != null && party.leader().equals(player);
+		Theme.icon(graphics, "party", x, y, leader ? Theme.GOLD : Theme.MUTED);
 	}
 
 	/**
@@ -409,6 +435,10 @@ public final class SocialScreen extends OrbitScreen {
 
 	@Override
 	public boolean keyPressed(KeyEvent event) {
+		if (memberMenu != null && event.key() == InputConstants.KEY_ESCAPE) {
+			memberMenu = null;
+			return true;
+		}
 		if (editing != null && event.key() == InputConstants.KEY_ESCAPE) {
 			editing = null;
 			if (input != null) {
@@ -558,6 +588,7 @@ public final class SocialScreen extends OrbitScreen {
 			}
 		}
 		super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+		drawMemberMenu(graphics, mouseX, mouseY);
 	}
 
 	private void face(GuiGraphicsExtractor graphics, UUID uuid, String name, int x, int y, int size) {
@@ -661,8 +692,12 @@ public final class SocialScreen extends OrbitScreen {
 		Social.Group group = social().group(friend.uuid());
 		face(graphics, friend.uuid(), friend.name(), x, top + 2, 16);
 		// The name, short of the header's buttons.
-		int buttons = group == null ? 106 : 90;
-		graphics.text(font, Theme.clip(font, Component.literal(friend.name()), Math.max(40, px() + pw() - PAD - buttons - 4 - (x + 22))), x + 22, top + 2, Theme.TEXT, false);
+		int buttons = (group == null ? 106 : 90) + 22 + (partyLeadButton() ? 22 : 0);
+		int nameWidth = Math.max(40, px() + pw() - PAD - buttons - 4 - (x + 22) - 12);
+		graphics.text(font, Theme.clip(font, Component.literal(friend.name()), nameWidth), x + 22, top + 2, Theme.TEXT, false);
+		if (group == null && social().inParty(friend.uuid())) {
+			partyMark(graphics, friend.uuid(), x + 22 + Math.min(font.width(friend.name()), nameWidth) + 3, top + 1);
+		}
 		Component status = Social.isOrbit(friend.uuid()) ? Component.translatable("orbit_cosmetic.social.orbit_detail").withStyle(ChatFormatting.GRAY)
 			: group != null ? groupStatus(group, friend) : lastOnline(friend);
 		graphics.text(font, status, x + 22, top + 12, Theme.TEXT, false);
@@ -727,6 +762,81 @@ public final class SocialScreen extends OrbitScreen {
 		return lastOnline(asPerson);
 	}
 
+	/** A member's menu: what can be done with them, each a line. */
+	private record MemberMenu(UUID player, String name, int x, int y, List<Map.Entry<Component, Runnable>> actions) {
+	}
+
+	private static final int MENU_W = 140;
+	private static final int MENU_ROW = 14;
+	private @Nullable MemberMenu memberMenu;
+
+	private void openMemberMenu(Social.Group group, Social.Person member, int x, int y) {
+		UUID uuid = member.uuid();
+		String name = member.name();
+		Social social = social();
+		boolean friend = social.friends().stream().anyMatch(person -> person.uuid().equals(uuid));
+		boolean asked = social.outgoing().stream().anyMatch(person -> person.uuid().equals(uuid));
+		List<Map.Entry<Component, Runnable>> actions = new ArrayList<>();
+		if (friend) {
+			actions.add(Map.entry(Component.translatable("orbit_cosmetic.stats.see"), () -> Compat.setScreen(new StatsScreen(this, uuid, name))));
+		}
+		Social.Party party = social.party();
+		if (party != null && party.leader().equals(social.me()) && party.chat().equals(group.id()) && social.inParty(uuid)) {
+			actions.add(Map.entry(Component.translatable("orbit_cosmetic.party.make_leader", name), () -> confirm("party.make_leader", name, () -> social.makePartyLeader(uuid))));
+			actions.add(Map.entry(Component.translatable("orbit_cosmetic.party.remove", name), () -> social.kickFromParty(uuid)));
+		}
+		if (group.owner().equals(social.me())) {
+			actions.add(Map.entry(Component.translatable("orbit_cosmetic.social.group.make_leader", name),
+				() -> confirm("group.make_leader", name, () -> social.makeGroupLeader(group.id(), uuid))));
+			actions.add(Map.entry(Component.translatable("orbit_cosmetic.social.group.remove", name),
+				() -> confirm("group.remove", name, () -> social.removeGroupMember(group.id(), uuid))));
+		}
+		if (friend) {
+			actions.add(Map.entry(Component.translatable("orbit_cosmetic.social.remove"), () -> confirm("remove", name, () -> social.remove(uuid))));
+		} else if (!asked) {
+			actions.add(Map.entry(Component.translatable("orbit_cosmetic.social.add_friend"), () -> social.request(uuid.toString(), () -> {
+			})));
+		}
+		actions.add(social.isBlocked(uuid) ? Map.entry(Component.translatable("orbit_cosmetic.social.action.unblock"), () -> social.unblock(uuid))
+			: Map.entry(Component.translatable("orbit_cosmetic.social.block"), () -> confirm("block", name, () -> social.block(uuid))));
+		int menuX = Math.min(x, px() + pw() - MENU_W - 4);
+		int menuY = Math.min(y, py() + ph() - actions.size() * MENU_ROW - 8);
+		memberMenu = new MemberMenu(uuid, name, menuX, menuY, actions);
+	}
+
+	private void drawMemberMenu(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+		MemberMenu menu = memberMenu;
+		if (menu == null) {
+			return;
+		}
+		graphics.nextStratum();
+		int h = menu.actions().size() * MENU_ROW + 6;
+		Theme.panel(graphics, menu.x(), menu.y(), MENU_W, h, Theme.PANEL);
+		graphics.fill(menu.x(), menu.y(), menu.x() + 2, menu.y() + h, Theme.RED);
+		for (int i = 0; i < menu.actions().size(); i++) {
+			int ry = menu.y() + 3 + i * MENU_ROW;
+			if (Theme.inside(mouseX, mouseY, menu.x() + 2, ry, MENU_W - 4, MENU_ROW)) {
+				graphics.fill(menu.x() + 2, ry, menu.x() + MENU_W - 2, ry + MENU_ROW, Theme.PANEL_HOVER);
+			}
+			graphics.text(font, Theme.clip(font, menu.actions().get(i).getKey(), MENU_W - 14), menu.x() + 8, ry + 3, Theme.TEXT, false);
+		}
+	}
+
+	@Override
+	public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
+		MemberMenu menu = memberMenu;
+		if (menu != null) {
+			// The menu takes the click: a line does its action, anywhere else closes it.
+			memberMenu = null;
+			int index = (int) Math.floor((event.y() - menu.y() - 3) / MENU_ROW);
+			if (Theme.inside(event.x(), event.y(), menu.x(), menu.y(), MENU_W, menu.actions().size() * MENU_ROW + 6) && index >= 0 && index < menu.actions().size()) {
+				menu.actions().get(index).getValue().run();
+			}
+			return true;
+		}
+		return super.mouseClicked(event, doubleClick);
+	}
+
 	/**
 	 * A group's member list, right of the conversation: each member with their head, their colour on the right, a star
 	 * for the leader. The leader can add friends, remove members and pass the lead on.
@@ -758,23 +868,28 @@ public final class SocialScreen extends OrbitScreen {
 			if (member.online() || self) {
 				graphics.fill(x + 14, y + 13, x + 18, y + 17, 0xFF3CB043);
 			}
-			boolean actions = leader && !self;
-			graphics.text(font, Theme.clip(font, Component.literal(member.name()), MEMBERS - 24 - (actions ? 30 : 0) - (uuid.equals(group.owner()) ? 12 : 0)), x + 21, y + 6,
-				Theme.TEXT, false);
+			boolean partied = social().inParty(uuid) && social().party().chat().equals(group.id());
+			int marks = (uuid.equals(group.owner()) ? 12 : 0) + (partied ? 12 : 0);
+			int nameWidth = MEMBERS - 24 - (self ? 0 : 16) - marks;
+			graphics.text(font, Theme.clip(font, Component.literal(member.name()), nameWidth), x + 21, y + 6, Theme.TEXT, false);
+			int markX = x + 21 + Math.min(font.width(member.name()), nameWidth) + 3;
 			if (uuid.equals(group.owner())) {
-				Theme.icon(graphics, "star", x + 21 + Math.min(font.width(member.name()), MEMBERS - 54) + 3, y + 5, Theme.GOLD);
+				Theme.icon(graphics, "star", markX, y + 5, Theme.GOLD);
+				markX += 12;
 			}
-			if (actions) {
-				Hotspot lead = spot("group:lead:" + uuid, Component.translatable("orbit_cosmetic.social.group.make_leader", member.name()), x + MEMBERS - 30, y + 4, 12, 12,
-					h -> confirm("group.make_leader", member.name(), () -> social().makeGroupLeader(group.id(), uuid)));
-				lead.setTooltip(Tooltip.create(Component.translatable("orbit_cosmetic.social.group.make_leader", member.name())));
-				Theme.icon(graphics, "star", x + MEMBERS - 29, y + 5, lead.isHoveredOrFocused() ? Theme.GOLD : Theme.FAINT);
-				Hotspot remove = spot("group:remove:" + uuid, Component.translatable("orbit_cosmetic.social.group.remove", member.name()), x + MEMBERS - 16, y + 4, 12, 12,
-					h -> confirm("group.remove", member.name(), () -> social().removeGroupMember(group.id(), uuid)));
-				remove.setTooltip(Tooltip.create(Component.translatable("orbit_cosmetic.social.group.remove", member.name())));
-				Theme.icon(graphics, "close", x + MEMBERS - 15, y + 5, remove.isHoveredOrFocused() ? Theme.RED : Theme.FAINT);
-				lead.drawFocus(graphics);
-				remove.drawFocus(graphics);
+			if (partied) {
+				partyMark(graphics, uuid, markX, y + 5);
+			}
+			if (!self) {
+				// Everything to do with the member, in a menu.
+				Hotspot more = spot("group:menu:" + uuid, Component.translatable("orbit_cosmetic.social.member.menu", member.name()), x + MEMBERS - 16, y + 4, 12, 12,
+					h -> openMemberMenu(group, member, x + MEMBERS - 16, h.getY() + 14));
+				more.setTooltip(Tooltip.create(Component.translatable("orbit_cosmetic.social.member.menu", member.name())));
+				boolean hot = more.isHoveredOrFocused() || memberMenu != null && memberMenu.player().equals(uuid);
+				for (int dot = 0; dot < 3; dot++) {
+					graphics.fill(x + MEMBERS - 14 + dot * 4, y + 9, x + MEMBERS - 12 + dot * 4, y + 11, hot ? Theme.TEXT : Theme.FAINT);
+				}
+				more.drawFocus(graphics);
 			}
 			y += 20;
 		}
@@ -874,6 +989,13 @@ public final class SocialScreen extends OrbitScreen {
 			}
 			cy += 68;
 		}
+		if (content.get("party") instanceof JsonObject invitation) {
+			int cw = Math.min(bubbleWidth(w), 220);
+			if (draw) {
+				drawPartyInvite(graphics, entry, text(invitation, "leader"), mine ? x + w - 6 - cw : x + 6, cy, cw, areaTop, areaBottom);
+			}
+			cy += 36;
+		}
 		if (content.get("invite") instanceof JsonObject invite) {
 			if (draw) {
 				drawServer(graphics, entry.id() + ":invite", invite.get("address").getAsString(), text(invite, "world"), text(invite, "motd"), text(invite, "icon"), mine, x, cy, w,
@@ -884,6 +1006,33 @@ public final class SocialScreen extends OrbitScreen {
 			cy += 48;
 		}
 		return cy - y + 2;
+	}
+
+	/**
+	 * An invitation to the conversation's party: who started it, and Join while it is on (or that the player is in
+	 * it, or that it ended).
+	 */
+	private void drawPartyInvite(GuiGraphicsExtractor graphics, Social.Entry entry, String leader, int x, int y, int w, int areaTop, int areaBottom) {
+		int h = 32;
+		Theme.panel(graphics, x, y, w, h, Theme.PANEL_2);
+		graphics.fill(x, y, x + 2, y + h, Theme.RED);
+		Theme.icon(graphics, "party", x + 8, y + 6, Theme.GOLD);
+		graphics.text(font, Theme.clip(font, Component.translatable("orbit_cosmetic.party.invite", leader), w - 26), x + 21, y + 6, Theme.TEXT, false);
+		Social.Party party = social().party();
+		boolean in = party != null && party.chat().equals(open);
+		boolean on = in || social().openParty(open) != null;
+		Component state = Component.translatable(in ? "orbit_cosmetic.party.invite.in" : on ? "orbit_cosmetic.party.invite.on" : "orbit_cosmetic.party.invite.ended");
+		graphics.text(font, state, x + 21, y + 18, in ? Theme.GREEN : Theme.MUTED, false);
+		if (on && !in) {
+			Component join = Component.translatable("orbit_cosmetic.party.invite.join");
+			int bw = font.width(join) + 12;
+			int bx = x + w - bw - 6;
+			UUID chat = open;
+			Hotspot button = spot(entry.id() + ":party", join, bx, y + 7, bw, 18, areaTop, areaBottom, h2 -> social().startParty(chat));
+			graphics.fill(bx, y + 7, bx + bw, y + 25, button.isHoveredOrFocused() ? 0xFFE02626 : 0xFFC21E1E);
+			graphics.text(font, join, bx + 6, y + 12, Theme.TEXT, false);
+			button.drawFocus(graphics);
+		}
 	}
 
 	/** End-to-end encrypted messages have a dashed outline. */

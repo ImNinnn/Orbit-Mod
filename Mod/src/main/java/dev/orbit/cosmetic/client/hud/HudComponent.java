@@ -56,7 +56,8 @@ public final class HudComponent {
 		ITEM(true, "main_hand", "off_hand"),
 		TIME(false, "game_time", "real_time"),
 		LOOKING_AT(true),
-		LAST_HIT(true);
+		LAST_HIT(true),
+		PARTY(false, "full", "compact");
 
 		/** Needs a world (shown only in one). */
 		final boolean world;
@@ -236,6 +237,7 @@ public final class HudComponent {
 				int widest = Math.max(first, font.width(look.mod()));
 				yield Math.max(80, steady(widest + 34 + (look.tool() != null ? 20 : 0)));
 			}
+			case PARTY -> is("compact") ? 76 : 140;
 			case LAST_HIT -> {
 				LivingEntity target = lastHit();
 				int name = font.width(target != null ? target.getDisplayName() : Component.translatable("orbit_cosmetic.hud.sample.zombie"));
@@ -258,6 +260,7 @@ public final class HudComponent {
 			case ITEM -> 20;
 			case LOOKING_AT -> 24;
 			case LAST_HIT -> 42;
+			case PARTY -> Math.max(1, partyMembers().size()) * (is("compact") ? 14 : 22) + 4;
 		};
 	}
 
@@ -352,6 +355,7 @@ public final class HudComponent {
 		return switch (type) {
 			case LOOKING_AT -> look() != null;
 			case LAST_HIT -> lastHit() != null;
+			case PARTY -> !partyMembers().isEmpty();
 			case ARMOR -> !(hideEmpty || hideEmptySlots) || !armorSlots().isEmpty() && armorSlots().stream().anyMatch(slot -> {
 				ItemStack stack = armor()[slot];
 				return stack == null || !stack.isEmpty();
@@ -509,6 +513,7 @@ public final class HudComponent {
 			}
 			case LOOKING_AT -> drawLookingAt(graphics, font, preview, screenX, screenY, scale);
 			case LAST_HIT -> drawLastHit(graphics, font, screenX, screenY, scale);
+			case PARTY -> drawParty(graphics, font);
 			default -> {
 			}
 		}
@@ -1115,6 +1120,87 @@ public final class HudComponent {
 		graphics.outline(barX - 1, 16, barW + 2, 7, 0x60000000);
 		String hearts = "❤ " + formatHealth(Math.max(0, health)) + "/" + formatHealth(max);
 		graphics.text(font, hearts, barX, 27, Theme.MUTED, false);
+	}
+
+	// ---------------------------------------------------------------- party
+
+	/** A party member as the component shows them (a sample in the editor when not in a party). */
+	private record Member(UUID uuid, String name, boolean leader, dev.orbit.cosmetic.client.social.PartyLink.@Nullable Status status) {
+	}
+
+	/** The other members of the player's party (or samples, for the add menu and the editor out of a party). */
+	private List<Member> partyMembers() {
+		var social = dev.orbit.cosmetic.client.OrbitClient.get().social();
+		var party = sample ? null : social.party();
+		if (party == null) {
+			if (!sample && !(dev.orbit.cosmetic.client.compat.Compat.screen() instanceof HudEditorScreen)) {
+				return List.of();
+			}
+			return List.of(new Member(new UUID(0, 1), "Alex", true, new dev.orbit.cosmetic.client.social.PartyLink.Status(16, 20, 18, "play.example.net", "", 0)),
+				new Member(new UUID(0, 2), "Steve", false, new dev.orbit.cosmetic.client.social.PartyLink.Status(7, 20, 9, "", "", 0)));
+		}
+		List<Member> members = new java.util.ArrayList<>();
+		for (var person : party.members()) {
+			if (!person.uuid().equals(social.me())) {
+				members.add(new Member(person.uuid(), person.name(), person.uuid().equals(party.leader()), dev.orbit.cosmetic.client.social.PartyLink.get().status(person.uuid())));
+			}
+		}
+		return members;
+	}
+
+	/** Each other member: head, name (the leader's party mark in gold), health and hunger bars, and where they play. */
+	private void drawParty(GuiGraphicsExtractor graphics, Font font) {
+		int w = width();
+		int h = height();
+		drawFrame(graphics, 0, 0, w, h, 1);
+		boolean compact = is("compact");
+		List<Member> members = partyMembers();
+		String here = ownPlace();
+		int y = 2;
+		for (Member member : members) {
+			int size = compact ? 10 : 16;
+			if (member.uuid().getMostSignificantBits() == 0) {
+				graphics.fill(5, y + 1, 5 + size, y + 1 + size, member.leader() ? 0xFFB07A4A : 0xFF4A6FB0);
+			} else {
+				dev.orbit.cosmetic.client.social.SocialPopups.face(graphics, member.uuid(), member.name(), 5, y + 1, size);
+			}
+			var status = member.status();
+			int barX = 5 + size + 4;
+			int barW = w - barX - 5;
+			if (!compact) {
+				graphics.text(font, Theme.clip(font, Component.literal(member.name()), barW - 12), barX, y + 1, text(), false);
+				if (member.leader()) {
+					Theme.icon(graphics, "party", barX + Math.min(font.width(member.name()), barW - 12) + 3, y, Theme.GOLD);
+				}
+				String place = status == null ? "" : status.server().isEmpty() ? status.world() : status.server();
+				if (!place.isEmpty() && !place.equals(here)) {
+					String shown = font.plainSubstrByWidth(place, Math.max(0, barW / 2));
+					graphics.text(font, shown, w - 5 - font.width(shown), y + 1, Theme.FAINT, false);
+				}
+			} else if (member.leader()) {
+				graphics.fill(5, y + 1, 7, y + 3, Theme.GOLD);
+			}
+			int barY = compact ? y + 2 : y + 11;
+			// Health (red) over hunger (amber); grey until their game has said.
+			float health = status == null ? 0 : Mth.clamp(status.health() / Math.max(1, status.maxHealth()), 0, 1);
+			float hunger = status == null ? 0 : Mth.clamp(status.hunger() / 20F, 0, 1);
+			graphics.fill(barX, barY, barX + barW, barY + 3, 0x80000000);
+			graphics.fill(barX, barY, barX + Math.round(barW * health), barY + 3, 0xFFE03A3A);
+			graphics.fill(barX, barY + 4, barX + barW, barY + 6, 0x80000000);
+			graphics.fill(barX, barY + 4, barX + Math.round(barW * hunger), barY + 6, 0xFFD69A3A);
+			y += compact ? 14 : 22;
+		}
+	}
+
+	/** Where this player plays: the server's address, or the singleplayer world's name. */
+	private static String ownPlace() {
+		Minecraft minecraft = Minecraft.getInstance();
+		var server = minecraft.getCurrentServer();
+		if (server != null && !minecraft.isLocalServer()) {
+			return server.ip;
+		}
+		var integrated = minecraft.getSingleplayerServer();
+		return integrated != null ? integrated.getWorldData().getLevelName() : "";
 	}
 
 	private static String facing(float yaw) {

@@ -252,13 +252,34 @@ public final class Social {
 
 	/** Starts a conversation's party (or joins it, if it has one): a group's ID or a friend's UUID. */
 	public void startParty(UUID chat) {
+		boolean starting = openParties.get(chat) == null && (party == null || !party.chat().equals(chat));
 		JsonObject body = new JsonObject();
 		body.addProperty("chat", chat.toString());
-		OrbitClient.get().backend().socialCall("POST", "/party", body, result -> refresh(), error -> Notifications.warning(
-			Component.translatable("orbit_cosmetic.party.failed"), Component.literal(error)));
+		OrbitClient.get().backend().socialCall("POST", "/party", body, result -> {
+			// The state answered: shown at once.
+			applyParty(result, true);
+			version++;
+			if (starting) {
+				// A party just started: the conversation gets an invitation to join it.
+				JsonObject invitation = new JsonObject();
+				invitation.addProperty("leader", Minecraft.getInstance().getUser().getName());
+				JsonObject content = new JsonObject();
+				content.add("party", invitation);
+				send(List.of(chat), content, null, () -> {
+				});
+			}
+			refresh();
+		}, error -> Notifications.warning(Component.translatable("orbit_cosmetic.party.failed"), Component.literal(error)));
+	}
+
+	/** Whether a player is in the party the player is in. */
+	public boolean inParty(UUID player) {
+		return party != null && party.members().stream().anyMatch(member -> member.uuid().equals(player));
 	}
 
 	public void leaveParty() {
+		party = null;
+		version++;
 		OrbitClient.get().backend().socialCall("POST", "/party/leave", new JsonObject(), result -> refresh(), error -> OrbitClient.LOGGER.warn("Party: {}", error));
 	}
 
@@ -1128,6 +1149,7 @@ public final class Social {
 
 	private static final java.util.regex.Pattern HEX32 = java.util.regex.Pattern.compile("[0-9a-f]{32}");
 	private static final java.util.regex.Pattern HEX64 = java.util.regex.Pattern.compile("[0-9a-f]{64}");
+	private static final java.util.regex.Pattern NAME = java.util.regex.Pattern.compile("[A-Za-z0-9_]{1,16}");
 
 	/**
 	 * A friend's message as the game reads it: only the parts it knows (text, picture, cosmetic, invite), each with
@@ -1185,6 +1207,15 @@ public final class Social {
 					world.addProperty("icon", icon);
 				}
 				clean.add("invite", world);
+			}
+		}
+		if (content.get("party") instanceof JsonObject party) {
+			// An invitation to the conversation's party: who started it.
+			String leader = string(party, "leader", 16);
+			if (leader != null && NAME.matcher(leader).matches()) {
+				JsonObject invitation = new JsonObject();
+				invitation.addProperty("leader", leader);
+				clean.add("party", invitation);
 			}
 		}
 		return clean.isEmpty() ? null : clean;
@@ -1258,6 +1289,9 @@ public final class Social {
 		}
 		if (content.has("invite")) {
 			return Component.translatable("orbit_cosmetic.social.preview.invite").getString();
+		}
+		if (content.has("party")) {
+			return Component.translatable("orbit_cosmetic.social.preview.party").getString();
 		}
 		return "";
 	}

@@ -484,6 +484,9 @@ public final class FloatingChats {
 		if (content.has("invite")) {
 			parts.add(new Part(Component.translatable("orbit_cosmetic.social.sent.invite"), true));
 		}
+		if (content.has("party")) {
+			parts.add(new Part(Component.translatable("orbit_cosmetic.social.sent.party"), true));
+		}
 		if (parts.isEmpty()) {
 			parts.add(new Part(Component.literal(Social.preview(content)), false));
 		}

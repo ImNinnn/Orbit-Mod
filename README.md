@@ -398,6 +398,8 @@ times as you like:
   entity's health beside it) and the mod it is from; for a block, the weakest tool that makes it drop (a diamond pickaxe for ancient debris) with a tick when
   the item in your hand is enough and a cross when it is not, and a bar of how far you are in breaking it.
 * **Last hit**: the last entity you hit, with its model, name and health, for 15 seconds after the hit.
+* **Party**: your party's other members, with their heads, health and hunger bars, and the server they play on
+  when it is not yours (or *Compact*: heads and bars). It shows while you are in a party.
 * **Chat window**: pops a conversation out as a floating chat window (see Friends and messages). Windows are
   placed, resized and lined up here like the components, with their own settings: **Auto-hide** (hide 30 seconds
   after the last message while playing, or stay), the accent colour (your messages and the bar on the left) and
@@ -508,9 +510,16 @@ message or until you click it: over the pause menu, hidden windows show see-thro
 **×** closes it. A conversation with a floating window gets no popups.
 
 **Parties.** In a conversation (with a friend, or a group chat), the party button starts a party, or joins the
-one someone started there (it shows green, and you get a notification when one starts). You are in one party at a
-time; when the leader leaves, the member there the longest leads. While in a party, your game shares your health,
-hunger and server with the other members only (its tooltip lists them); more party features are on their way.
+one someone started there (it shows green, and you get a notification when one starts). Starting one sends an
+invitation in the chat, with **Join** while the party is on. You are in one party at a time; when the leader leaves,
+the member there the longest leads. Party members have a party icon beside their name (gold for the leader). In a
+friend's chat, the party's leader hands the lead over with the star beside the party button; in a group, from the
+member's menu. While in a party, your game shares your health, hunger and server with the other members only (the
+party button's tooltip lists them, and the **Party** HUD component shows them).
+
+**Group members.** The **⋯** beside a member in a group's member list opens what can be done with them: see their
+page, make them party leader or remove them from the party (when you lead it), make them group leader or remove
+them from the group (when you lead it), add or remove them as a friend, block or unblock them.
 
 **Messages from Orbit.** The Orbit team can send a message to every player (text, and a picture). It shows as a
 conversation with **Orbit**, with the Orbit icon, and pops up when it is new. You cannot answer it, and it

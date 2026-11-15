@@ -943,5 +943,19 @@
 	"orbit_cosmetic.party.join_hint": "In %s: open the chat to join it.",
 	"orbit_cosmetic.party.with_you": "your chat",
 	"orbit_cosmetic.party.failed": "Could not start or join the party",
-	"orbit_cosmetic.party.status": "❤ %s/%s · hunger %s"
+	"orbit_cosmetic.party.status": "❤ %s/%s · hunger %s",
+	"orbit_cosmetic.social.preview.party": "Party invitation",
+	"orbit_cosmetic.social.sent.party": "*invited you to a party*",
+	"orbit_cosmetic.party.invite": "%s started a party",
+	"orbit_cosmetic.party.invite.join": "Join",
+	"orbit_cosmetic.party.invite.on": "Join to play together",
+	"orbit_cosmetic.party.invite.in": "You are in this party",
+	"orbit_cosmetic.party.invite.ended": "This party ended",
+	"orbit_cosmetic.party.make_leader": "Make %s party leader",
+	"orbit_cosmetic.party.remove": "Remove %s from the party",
+	"orbit_cosmetic.social.member.menu": "%s: more",
+	"orbit_cosmetic.social.party.make_leader.title": "Make %s the party's leader?",
+	"orbit_cosmetic.social.party.make_leader.text": "They will lead the party: invite and remove members, and hand the lead on.",
+	"orbit_cosmetic.hud.type.party": "Party",
+	"orbit_cosmetic.hud.variant.compact": "Compact"
 }
