@@ -493,6 +493,33 @@ final class BackendClient {
 		return json(send(builder, 4 * 1024 * 1024));
 	}
 
+	/**
+	 * Opens the party's live socket ({@code /v1/social/live}), signed in like every request. A refused sign-in is a
+	 * 401, so the caller signs in again.
+	 */
+	java.net.http.WebSocket openLive(java.net.http.WebSocket.Listener listener) throws IOException, InterruptedException {
+		URI uri = URI.create(baseUrl.replaceFirst("^http", "ws") + "/v1/social/live");
+		java.net.http.WebSocket.Builder builder = http.newWebSocketBuilder().connectTimeout(Duration.ofSeconds(5)).header("X-Orbit-Version", modVersion);
+		String current = token;
+		if (current != null) {
+			builder.header("Authorization", "Bearer " + current);
+		}
+		if (devPlayer != null) {
+			builder.header("X-Orbit-Dev-Player", devPlayer);
+		}
+		try {
+			return builder.buildAsync(uri, listener).get(10, java.util.concurrent.TimeUnit.SECONDS);
+		} catch (java.util.concurrent.ExecutionException e) {
+			if (e.getCause() instanceof java.net.http.WebSocketHandshakeException handshake) {
+				int status = handshake.getResponse().statusCode();
+				throw new BackendException(status == 403 ? 401 : status, "live_refused", "The live socket was refused (" + status + ")");
+			}
+			throw new IOException("The live socket could not open", e.getCause());
+		} catch (java.util.concurrent.TimeoutException e) {
+			throw new IOException("The live socket did not open in time", e);
+		}
+	}
+
 	/** Waits up to 25 seconds for a change; returns the new change cursor. */
 	/** The wait's answer: the new {@code cursor}, and {@code signals} (see BackendSync#signals). */
 	JsonObject socialWait(int cursor) throws IOException, InterruptedException {

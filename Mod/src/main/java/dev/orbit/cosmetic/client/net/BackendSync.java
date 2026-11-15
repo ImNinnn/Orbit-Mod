@@ -1182,6 +1182,11 @@ public final class BackendSync {
 		social(client -> client.socialPutRaw(path, data), done, failed);
 	}
 
+	/** Opens the party's live socket (signing in first if needed); the socket comes back on the game's thread. */
+	public void openLive(java.net.http.WebSocket.Listener listener, Consumer<java.net.http.WebSocket> done, Consumer<String> failed) {
+		social(client -> client.openLive(listener), done, failed);
+	}
+
 	public void socialCall(String method, String path, com.google.gson.JsonElement body, Consumer<com.google.gson.JsonObject> done, Consumer<String> failed) {
 		social(client -> client.social(method, path, body), done, failed);
 	}

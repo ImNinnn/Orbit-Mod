@@ -931,5 +931,17 @@
 	"orbit_cosmetic.hud.make_room.3": "Both",
 	"orbit_cosmetic.hud.make_room.tooltip": "Move down out of the way of the status effect icons and/or the boss bars while they show (linked components move together).",
 	"orbit_cosmetic.hud.background.tooltip": "The dark panel behind it, with the accent bar on its left.",
-	"orbit_cosmetic.hud.shown.tooltip": "Show it on the HUD. Hidden, it stays in the layout (dimmed here) and the quick menu can show it again."
+	"orbit_cosmetic.hud.shown.tooltip": "Show it on the HUD. Hidden, it stays in the layout (dimmed here) and the quick menu can show it again.",
+	"orbit_cosmetic.party.start": "Start a party",
+	"orbit_cosmetic.party.start.tooltip": "Play together: party members see each other's health, hunger and server.",
+	"orbit_cosmetic.party.start.switch": "You will leave the party you are in.",
+	"orbit_cosmetic.party.join": "Join %s's party",
+	"orbit_cosmetic.party.join.tooltip": "%s in it. You will leave any other party.",
+	"orbit_cosmetic.party.leave": "Leave the party",
+	"orbit_cosmetic.party.members": "%s in the party (leader in gold):",
+	"orbit_cosmetic.party.started": "%s started a party",
+	"orbit_cosmetic.party.join_hint": "In %s: open the chat to join it.",
+	"orbit_cosmetic.party.with_you": "your chat",
+	"orbit_cosmetic.party.failed": "Could not start or join the party",
+	"orbit_cosmetic.party.status": "❤ %s/%s · hunger %s"
 }

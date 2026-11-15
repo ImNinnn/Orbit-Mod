@@ -230,6 +230,77 @@ public final class Social {
 	// ---------------------------------------------------------------- group chats
 
 	/** A group chat: its leader, colour, picture (0: the members' heads), members and unread messages. */
+	/** The party the player is in: its conversation (a group, or the friend), its leader and members. */
+	public record Party(UUID chat, boolean group, UUID leader, List<Person> members) {
+	}
+
+	/** A party the player could join: in one of their conversations, started by someone else. */
+	public record OpenParty(UUID chat, UUID leader, String leaderName, int members) {
+	}
+
+	private @Nullable Party party;
+	private Map<UUID, OpenParty> openParties = Map.of();
+
+	public @Nullable Party party() {
+		return party;
+	}
+
+	/** The party of a conversation the player could join, or null. */
+	public @Nullable OpenParty openParty(UUID chat) {
+		return openParties.get(chat);
+	}
+
+	/** Starts a conversation's party (or joins it, if it has one): a group's ID or a friend's UUID. */
+	public void startParty(UUID chat) {
+		JsonObject body = new JsonObject();
+		body.addProperty("chat", chat.toString());
+		OrbitClient.get().backend().socialCall("POST", "/party", body, result -> refresh(), error -> Notifications.warning(
+			Component.translatable("orbit_cosmetic.party.failed"), Component.literal(error)));
+	}
+
+	public void leaveParty() {
+		OrbitClient.get().backend().socialCall("POST", "/party/leave", new JsonObject(), result -> refresh(), error -> OrbitClient.LOGGER.warn("Party: {}", error));
+	}
+
+	public void kickFromParty(UUID player) {
+		OrbitClient.get().backend().socialCall("DELETE", "/party/members/" + player, null, result -> refresh(), error -> OrbitClient.LOGGER.warn("Party: {}", error));
+	}
+
+	public void makePartyLeader(UUID player) {
+		JsonObject body = new JsonObject();
+		body.addProperty("player", player.toString());
+		OrbitClient.get().backend().socialCall("POST", "/party/leader", body, result -> refresh(), error -> OrbitClient.LOGGER.warn("Party: {}", error));
+	}
+
+	/** The party and the parties to join, from the state. */
+	private void applyParty(JsonObject state, boolean first) {
+		Party now = null;
+		if (state.get("party") instanceof JsonObject json) {
+			now = new Party(UUID.fromString(json.get("chat").getAsString()), json.get("group").getAsBoolean(), UUID.fromString(json.get("leader").getAsString()),
+				people(json.getAsJsonArray("members")));
+		}
+		Map<UUID, OpenParty> open = new LinkedHashMap<>();
+		if (state.get("open_parties") instanceof JsonArray list) {
+			for (JsonElement element : list) {
+				JsonObject json = element.getAsJsonObject();
+				UUID chat = UUID.fromString(json.get("chat").getAsString());
+				open.put(chat, new OpenParty(chat, UUID.fromString(json.get("leader").getAsString()), json.get("leader_name").getAsString(), json.get("members").getAsInt()));
+			}
+		}
+		if (!first) {
+			// A party just started in one of the player's conversations: they hear about it once.
+			for (OpenParty started : open.values()) {
+				if (!openParties.containsKey(started.chat())) {
+					Group group = group(started.chat());
+					Component where = group != null ? Component.literal(group.name()) : Component.translatable("orbit_cosmetic.party.with_you");
+					Notifications.info(Component.translatable("orbit_cosmetic.party.started", started.leaderName()), Component.translatable("orbit_cosmetic.party.join_hint", where));
+				}
+			}
+		}
+		party = now;
+		openParties = open;
+	}
+
 	public record Group(UUID id, String name, UUID owner, int color, int picture, List<Person> members, int unread) {
 		public static final int MAX_MEMBERS = 10;
 
@@ -466,6 +537,7 @@ public final class Social {
 			switchAccount(account);
 		}
 		long now = System.currentTimeMillis();
+		PartyLink.get().tick(this);
 		if (!waiting && device != null && now >= waitAgainAt) {
 			waitForNews(account);
 		}
@@ -641,6 +713,7 @@ public final class Social {
 			}
 		}
 		unread = counts;
+		applyParty(state, first);
 		if (state.get("me") instanceof JsonObject meJson && meJson.has("first_seen") && !meJson.get("first_seen").isJsonNull()) {
 			memberSince = meJson.get("first_seen").getAsDouble();
 		}

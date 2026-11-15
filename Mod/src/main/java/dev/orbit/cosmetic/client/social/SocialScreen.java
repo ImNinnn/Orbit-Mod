@@ -245,6 +245,7 @@ public final class SocialScreen extends OrbitScreen {
 					}));
 				popOut.setTooltip(Tooltip.create(Component.translatable("orbit_cosmetic.social.pop_out.tooltip")));
 			}
+			partyButton(friend, px() + pw() - PAD - (FloatingChats.available() ? 128 : 106), headerY);
 			}
 		}
 		if (open != null) {
@@ -288,7 +289,54 @@ public final class SocialScreen extends OrbitScreen {
 				FloatingChats.open(id, name);
 				onClose();
 			})).setTooltip(Tooltip.create(Component.translatable("orbit_cosmetic.social.pop_out.tooltip")));
+			next -= 22;
 		}
+		partyButton(id, next, headerY);
+	}
+
+	/**
+	 * The conversation's party: start one, join the one started, or (in it) leave it. Its tooltip lists the members,
+	 * with their health, hunger and server as the party's live link has them.
+	 */
+	private void partyButton(UUID chat, int x, int y) {
+		Social.Party party = social().party();
+		boolean here = party != null && party.chat().equals(chat);
+		Social.OpenParty open = social().openParty(chat);
+		Component label;
+		Component detail;
+		if (here) {
+			label = Component.translatable("orbit_cosmetic.party.leave");
+			net.minecraft.network.chat.MutableComponent list = Component.empty();
+			for (Social.Person member : party.members()) {
+				list.append("\n").append(Component.literal(member.name()).withStyle(member.uuid().equals(party.leader()) ? ChatFormatting.GOLD : ChatFormatting.WHITE));
+				PartyLink.Status status = PartyLink.get().status(member.uuid());
+				if (status != null) {
+					list.append("  ").append(Component.translatable("orbit_cosmetic.party.status", Math.round(status.health()), Math.round(status.maxHealth()), status.hunger())
+						.withStyle(ChatFormatting.GRAY));
+					if (!status.server().isEmpty() || !status.world().isEmpty()) {
+						list.append(Component.literal("  " + (status.server().isEmpty() ? status.world() : status.server())).withStyle(ChatFormatting.DARK_GRAY));
+					}
+				}
+			}
+			detail = Component.translatable("orbit_cosmetic.party.members", party.members().size()).append(list);
+		} else if (open != null) {
+			label = Component.translatable("orbit_cosmetic.party.join", open.leaderName());
+			detail = Component.translatable("orbit_cosmetic.party.join.tooltip", open.members());
+		} else {
+			label = Component.translatable("orbit_cosmetic.party.start");
+			detail = Component.translatable(party != null ? "orbit_cosmetic.party.start.switch" : "orbit_cosmetic.party.start.tooltip");
+		}
+		FlatButton button = addRenderableWidget(FlatButton.icon(x, y, 18, "party", label, here ? FlatButton.Style.PRIMARY : FlatButton.Style.SECONDARY, b -> {
+			if (here) {
+				social().leaveParty();
+			} else {
+				social().startParty(chat);
+			}
+		}));
+		if (open != null && !here) {
+			button.iconColor(Theme.GREEN);
+		}
+		button.setTooltip(Tooltip.create(label.copy().append("\n").append(detail.copy().withStyle(ChatFormatting.GRAY))));
 	}
 
 	/** Opens a conversation (a group just made, from the group picker). */

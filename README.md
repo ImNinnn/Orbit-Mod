@@ -507,6 +507,11 @@ conversation in Social to see them. **–** hides it until the next
 message or until you click it: over the pause menu, hidden windows show see-through, and a click on one's title bar brings it back.
 **×** closes it. A conversation with a floating window gets no popups.
 
+**Parties.** In a conversation (with a friend, or a group chat), the party button starts a party, or joins the
+one someone started there (it shows green, and you get a notification when one starts). You are in one party at a
+time; when the leader leaves, the member there the longest leads. While in a party, your game shares your health,
+hunger and server with the other members only (its tooltip lists them); more party features are on their way.
+
 **Messages from Orbit.** The Orbit team can send a message to every player (text, and a picture). It shows as a
 conversation with **Orbit**, with the Orbit icon, and pops up when it is new. You cannot answer it, and it
 disappears if the team takes it back.
