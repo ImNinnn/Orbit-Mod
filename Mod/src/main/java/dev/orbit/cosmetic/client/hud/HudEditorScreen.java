@@ -6,6 +6,7 @@ import dev.orbit.cosmetic.client.compat.Compat;
 import dev.orbit.cosmetic.client.gui.ui.ColorRow;
 import dev.orbit.cosmetic.client.gui.ui.FlatButton;
 import dev.orbit.cosmetic.client.gui.ui.Hotspot;
+import dev.orbit.cosmetic.client.gui.ui.SwitchButton;
 import dev.orbit.cosmetic.client.gui.ui.OrbitScreen;
 import dev.orbit.cosmetic.client.gui.ui.Theme;
 import dev.orbit.cosmetic.client.social.FloatingChats;
@@ -618,18 +619,17 @@ public final class HudEditorScreen extends OrbitScreen {
 		if (single instanceof HudComponent component) {
 			componentCells(component, half, cells, colors);
 		} else if (single instanceof FloatingChats.Window window) {
-			cells.add(cell(toggleButton(half, "orbit_cosmetic.hud.auto_hide", () -> window.autoHide, on -> window.autoHide = on,
-				"orbit_cosmetic.hud.auto_hide.tooltip")));
-			cells.add(cell(toggleButton(half, "orbit_cosmetic.hud.pinned", () -> window.pinned, on -> window.pinned = on, "orbit_cosmetic.hud.pinned.tooltip")));
+			cells.add(cell(toggleButton(half, "clock", "orbit_cosmetic.hud.auto_hide", () -> window.autoHide, on -> window.autoHide = on)));
+			cells.add(cell(toggleButton(half, "pin", "orbit_cosmetic.hud.pinned", () -> window.pinned, on -> window.pinned = on)));
 			colors.add(new Object[] {"orbit_cosmetic.hud.accent", window.accent, CHAT_ACCENTS, (Consumer<Integer>) color -> window.accent = color});
 		} else {
 			// Several: what they share.
 			List<HudComponent> components = selectedComponents();
 			if (!components.isEmpty()) {
-				cells.add(cell(groupToggle(half, components, "orbit_cosmetic.hud.menus", c -> c.inMenus, (c, on) -> c.inMenus = on)));
-				cells.add(cell(groupToggle(half, components, "orbit_cosmetic.hud.background", c -> c.background, (c, on) -> c.background = on)));
-				cells.add(cell(groupToggle(half, components, "orbit_cosmetic.hud.shown", c -> !c.hidden, (c, on) -> c.hidden = !on)));
-				cells.add(cell(groupToggle(half, components, "orbit_cosmetic.hud.pinned", c -> c.pinned, (c, on) -> c.pinned = on)));
+				cells.add(cell(groupToggle(half, "window", components, "orbit_cosmetic.hud.menus", c -> c.inMenus, (c, on) -> c.inMenus = on)));
+				cells.add(cell(groupToggle(half, "fill", components, "orbit_cosmetic.hud.background", c -> c.background, (c, on) -> c.background = on)));
+				cells.add(cell(groupToggle(half, "eye", components, "orbit_cosmetic.hud.shown", c -> !c.hidden, (c, on) -> c.hidden = !on)));
+				cells.add(cell(groupToggle(half, "pin", components, "orbit_cosmetic.hud.pinned", c -> c.pinned, (c, on) -> c.pinned = on)));
 				cells.add(cell(makeRoomButton(half, components)));
 				HudComponent first = components.getFirst();
 				colors.add(new Object[] {"orbit_cosmetic.hud.color", first.color, TEXT_COLORS, (Consumer<Integer>) color -> components.forEach(c -> c.color = color)});
@@ -681,7 +681,7 @@ public final class HudEditorScreen extends OrbitScreen {
 
 	private void componentCells(HudComponent component, int half, List<Cell> cells, List<Object[]> colors) {
 		if (component.type.hasVariants()) {
-			cells.add(cell(new FlatButton(0, 0, half, 18, setting("orbit_cosmetic.hud.style", component.type.variantLabel(component.variant)), null,
+			cells.add(cell(new FlatButton(0, 0, half, 18, setting("orbit_cosmetic.hud.style", component.type.variantLabel(component.variant)), "brush",
 				FlatButton.Style.SECONDARY, b -> {
 					int[] before = bounds(component);
 					component.variant = (component.variant + 1) % component.type.variants.length;
@@ -695,15 +695,15 @@ public final class HudEditorScreen extends OrbitScreen {
 					rebuildWidgets();
 				})));
 		}
-		cells.add(cell(toggleButton(half, "orbit_cosmetic.hud.menus", () -> component.inMenus, on -> component.inMenus = on, "orbit_cosmetic.hud.menus.tooltip")));
-		cells.add(cell(toggleButton(half, "orbit_cosmetic.hud.background", () -> component.background, on -> component.background = on, null)));
-		cells.add(cell(toggleButton(half, "orbit_cosmetic.hud.shown", () -> !component.hidden, on -> component.hidden = !on, null)));
+		cells.add(cell(toggleButton(half, "window", "orbit_cosmetic.hud.menus", () -> component.inMenus, on -> component.inMenus = on)));
+		cells.add(cell(toggleButton(half, "fill", "orbit_cosmetic.hud.background", () -> component.background, on -> component.background = on)));
+		cells.add(cell(toggleButton(half, "eye", "orbit_cosmetic.hud.shown", () -> !component.hidden, on -> component.hidden = !on)));
 		// Pinning a linked member pins its whole group.
 		List<HudComponent> group = HudLayout.group(component);
-		cells.add(cell(groupToggle(half, group, "orbit_cosmetic.hud.pinned", c -> c.pinned, (c, on) -> c.pinned = on)));
+		cells.add(cell(groupToggle(half, "pin", group, "orbit_cosmetic.hud.pinned", c -> c.pinned, (c, on) -> c.pinned = on)));
 		cells.add(cell(makeRoomButton(half, List.of(component))));
 		if (component.hasDetail()) {
-			cells.add(cell(new FlatButton(0, 0, half, 18, setting("orbit_cosmetic.hud.detail", component.detail.label()), null, FlatButton.Style.SECONDARY, b -> {
+			cells.add(cell(new FlatButton(0, 0, half, 18, setting("orbit_cosmetic.hud.detail", component.detail.label()), "filter", FlatButton.Style.SECONDARY, b -> {
 				HudComponent.Detail[] details = HudComponent.Detail.values();
 				component.detail = details[(component.detail.ordinal() + 1) % details.length];
 				HudLayout.save();
@@ -711,12 +711,10 @@ public final class HudEditorScreen extends OrbitScreen {
 			})));
 		}
 		if (component.type == HudComponent.Type.ARMOR || component.type == HudComponent.Type.ITEM) {
-			cells.add(cell(toggleButton(half, "orbit_cosmetic.hud.hide_empty", () -> component.hideEmpty, on -> component.hideEmpty = on,
-				"orbit_cosmetic.hud.hide_empty.tooltip")));
+			cells.add(cell(toggleButton(half, "close", "orbit_cosmetic.hud.hide_empty", () -> component.hideEmpty, on -> component.hideEmpty = on)));
 		}
 		if (component.type == HudComponent.Type.ARMOR) {
-			cells.add(cell(toggleButton(half, "orbit_cosmetic.hud.hide_empty_slots", () -> component.hideEmptySlots, on -> component.hideEmptySlots = on,
-				"orbit_cosmetic.hud.hide_empty_slots.tooltip")));
+			cells.add(cell(toggleButton(half, "empty_slot", "orbit_cosmetic.hud.hide_empty_slots", () -> component.hideEmptySlots, on -> component.hideEmptySlots = on)));
 		}
 		if (component.type == HudComponent.Type.PAPERDOLL) {
 			// Its turn, typed in degrees, or 15 at a time with the arrows.
@@ -753,7 +751,7 @@ public final class HudEditorScreen extends OrbitScreen {
 	private FlatButton makeRoomButton(int width, List<HudComponent> components) {
 		java.util.function.Supplier<Component> label = () -> setting("orbit_cosmetic.hud.make_room",
 			Component.translatable("orbit_cosmetic.hud.make_room." + components.getFirst().avoid));
-		FlatButton button = new FlatButton(0, 0, width, 18, label.get(), null, FlatButton.Style.SECONDARY, b -> {
+		FlatButton button = new FlatButton(0, 0, width, 18, label.get(), "chevron_down", FlatButton.Style.SECONDARY, b -> {
 			int next = (components.getFirst().avoid + 1) % 4;
 			components.forEach(component -> component.avoid = next);
 			HudLayout.save();
@@ -767,24 +765,19 @@ public final class HudEditorScreen extends OrbitScreen {
 		return new Cell(List.of(widget));
 	}
 
-	private FlatButton toggleButton(int width, String key, java.util.function.BooleanSupplier get, Consumer<Boolean> set, @Nullable String tooltip) {
-		FlatButton button = new FlatButton(0, 0, width, 18, toggle(key, get.getAsBoolean()), null, FlatButton.Style.SECONDARY, b -> {
-			set.accept(!get.getAsBoolean());
+	/** An on/off setting: its icon, its name and the settings menu's switch, with a tooltip saying what it does. */
+	private SwitchButton toggleButton(int width, String icon, String key, java.util.function.BooleanSupplier get, Consumer<Boolean> set) {
+		return new SwitchButton(width, 18, icon, Component.translatable(key), Component.translatable(key + ".tooltip"), get, on -> {
+			set.accept(on);
 			HudLayout.save();
-			b.setMessage(toggle(key, get.getAsBoolean()));
 		});
-		if (tooltip != null) {
-			button.setTooltip(Tooltip.create(Component.translatable(tooltip)));
-		}
-		return button;
 	}
 
 	/** A switch for several components: on when all are, a click turns all on (or all off when all were on). */
-	private FlatButton groupToggle(int width, List<HudComponent> components, String key, Function<HudComponent, Boolean> get,
+	private SwitchButton groupToggle(int width, String icon, List<HudComponent> components, String key, Function<HudComponent, Boolean> get,
 		java.util.function.BiConsumer<HudComponent, Boolean> set) {
 		java.util.function.BooleanSupplier all = () -> components.stream().allMatch(get::apply);
-		return toggleButton(width, key, all, on -> components.forEach(component -> set.accept(component, on)),
-			key.equals("orbit_cosmetic.hud.pinned") ? "orbit_cosmetic.hud.pinned.tooltip" : null);
+		return toggleButton(width, icon, key, all, on -> components.forEach(component -> set.accept(component, on)));
 	}
 
 	private static Component toggle(String key, boolean on) {

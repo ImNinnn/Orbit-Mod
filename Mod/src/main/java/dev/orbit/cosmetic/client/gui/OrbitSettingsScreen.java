@@ -119,9 +119,7 @@ public final class OrbitSettingsScreen extends OrbitScreen {
 			boolean on = value.getAsBoolean();
 			int sx = x + width - 30;
 			int sy = y + (height - 10) / 2;
-			graphics.fill(sx, sy, sx + 20, sy + 10, on ? Theme.BLUE : Theme.PANEL_2);
-			graphics.outline(sx, sy, 20, 10, on ? Theme.BLUE : Theme.BORDER_LIGHT);
-			graphics.fill(on ? sx + 11 : sx + 1, sy + 1, on ? sx + 19 : sx + 9, sy + 9, on ? Theme.TEXT : Theme.FAINT);
+			Theme.toggleSwitch(graphics, sx, sy, on);
 		}
 
 		@Override

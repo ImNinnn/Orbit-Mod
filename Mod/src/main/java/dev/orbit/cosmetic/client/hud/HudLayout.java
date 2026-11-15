@@ -325,16 +325,24 @@ public final class HudLayout {
 				taken.add(new int[] {screenWidth / 2 - 91, 0, screenWidth / 2 + 91, bottom, HudComponent.AVOID_BOSS_BARS});
 			}
 		}
+		// Down below what it covers, again until it covers nothing (below one row of icons may be the next row).
 		int down = 0;
-		for (Map.Entry<HudComponent, int[]> entry : positions.entrySet()) {
-			HudComponent member = entry.getKey();
-			int[] at = entry.getValue();
-			for (int[] area : taken) {
-				boolean across = at[0] < area[2] && at[0] + member.scaledWidth() > area[0];
-				boolean over = at[1] < area[3] && at[1] + member.scaledHeight() > area[1];
-				if ((member.avoid & area[4]) != 0 && across && over) {
-					down = Math.max(down, area[3] + 2 - at[1]);
+		for (int pass = 0; pass < 8; pass++) {
+			int before = down;
+			for (Map.Entry<HudComponent, int[]> entry : positions.entrySet()) {
+				HudComponent member = entry.getKey();
+				int[] at = entry.getValue();
+				int top = at[1] + down;
+				for (int[] area : taken) {
+					boolean across = at[0] < area[2] && at[0] + member.scaledWidth() > area[0];
+					boolean over = top < area[3] && top + member.scaledHeight() > area[1];
+					if ((member.avoid & area[4]) != 0 && across && over) {
+						down = Math.max(down, area[3] + 2 - at[1]);
+					}
 				}
+			}
+			if (down == before) {
+				break;
 			}
 		}
 		return down;

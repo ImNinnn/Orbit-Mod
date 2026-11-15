@@ -911,7 +911,7 @@
 	"orbit_cosmetic.hud.pinned.tooltip": "Pinned: in every HUD profile (with everything linked to it).",
 	"orbit_cosmetic.hud.hide_empty": "Hide if empty",
 	"orbit_cosmetic.hud.hide_empty.tooltip": "Hide it when there is nothing to show (no armour, an empty hand).",
-	"orbit_cosmetic.hud.hide_empty_slots": "Empty slots: hide",
+	"orbit_cosmetic.hud.hide_empty_slots": "Hide empty slots",
 	"orbit_cosmetic.hud.hide_empty_slots.tooltip": "Only show the armour slots with something in them.",
 	"orbit_cosmetic.hud.turn.label": "Turn in degrees",
 	"orbit_cosmetic.hud.remove_all": "Remove all",
@@ -929,5 +929,7 @@
 	"orbit_cosmetic.hud.make_room.1": "Effects",
 	"orbit_cosmetic.hud.make_room.2": "Boss bars",
 	"orbit_cosmetic.hud.make_room.3": "Both",
-	"orbit_cosmetic.hud.make_room.tooltip": "Move down out of the way of the status effect icons and/or the boss bars while they show (linked components move together)."
+	"orbit_cosmetic.hud.make_room.tooltip": "Move down out of the way of the status effect icons and/or the boss bars while they show (linked components move together).",
+	"orbit_cosmetic.hud.background.tooltip": "The dark panel behind it, with the accent bar on its left.",
+	"orbit_cosmetic.hud.shown.tooltip": "Show it on the HUD. Hidden, it stays in the layout (dimmed here) and the quick menu can show it again."
 }

@@ -96,6 +96,13 @@ public final class Theme {
 		panel(graphics, x, y, width, height, PANEL);
 	}
 
+	/** The settings' on/off switch, 20 by 10: Orbit red when on. */
+	public static void toggleSwitch(GuiGraphicsExtractor graphics, int x, int y, boolean on) {
+		graphics.fill(x, y, x + 20, y + 10, on ? RED_DARK : PANEL_2);
+		graphics.outline(x, y, 20, 10, on ? RED : BORDER_LIGHT);
+		graphics.fill(on ? x + 11 : x + 1, y + 1, on ? x + 19 : x + 9, y + 9, on ? TEXT : FAINT);
+	}
+
 	/** A 9x9 icon, tinted. */
 	private static final Identifier VANILLA_BUTTON = Identifier.withDefaultNamespace("widget/button");
 	private static final Identifier VANILLA_BUTTON_HOT = Identifier.withDefaultNamespace("widget/button_highlighted");
