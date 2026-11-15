@@ -130,6 +130,33 @@ public final class SocialPopups {
 		add(popup);
 	}
 
+	/** The party's leader went somewhere: an invite to follow them there (Join). */
+	public static void follow(UUID leader, String name, String address, String world) {
+		// A newer invite from the leader takes the place of the one still showing.
+		POPUPS.removeIf(shown -> shown.kind == Kind.INVITE && shown.player.equals(leader) && address.equals(shown.address));
+		Popup popup = new Popup(Kind.INVITE, leader, name, Component.translatable("orbit_cosmetic.popup.follow", name), address, world);
+		add(popup);
+		if (POPUPS.contains(popup)) {
+			if (links == null) {
+				links = new ServerLinks();
+			}
+			links.status(popup.address, world);
+		}
+	}
+
+	/**
+	 * The social key with Shift: the newest popup's button (Join, Accept, Invite...) without freeing the mouse; a
+	 * popup without one opens what it is about. False when there is no popup.
+	 */
+	public static boolean pressNewest() {
+		Popup newest = POPUPS.stream().filter(popup -> popup.kind == Kind.INVITE || popup.kind == Kind.ACTION).findFirst().orElse(POPUPS.isEmpty() ? null : POPUPS.getFirst());
+		if (newest == null) {
+			return false;
+		}
+		use(newest, Compat.screen(), true);
+		return true;
+	}
+
 	public static void request(UUID player, String name) {
 		add(new Popup(Kind.REQUEST, player, name, Component.translatable("orbit_cosmetic.popup.request"), null, null));
 	}
@@ -243,22 +270,27 @@ public final class SocialPopups {
 			if (mouseX < popup.x || mouseY < popup.y || mouseX >= popup.x + WIDTH || mouseY >= popup.y + HEIGHT) {
 				continue;
 			}
-			POPUPS.remove(popup);
 			int by = popup.y + (HEIGHT - 18) / 2;
-			if (popup.kind == Kind.ACTION) {
-				if (mouseX >= playX(popup) && mouseY >= by && mouseY < by + 18 && popup.action != null) {
-					popup.action.run();
-				}
-			} else if (popup.kind == Kind.INVITE && mouseX >= playX(popup) && mouseY >= by && mouseY < by + 18) {
-				ServerLinks.join(screen, popup.address, popup.world);
-			} else if (popup.kind == Kind.REQUEST) {
-				Compat.setScreen(SocialScreen.friends(screen));
-			} else {
-				Compat.setScreen(SocialScreen.chat(screen, popup.player));
-			}
+			use(popup, screen, mouseX >= playX(popup) && mouseY >= by && mouseY < by + 18);
 			return true;
 		}
 		return false;
+	}
+
+	/** Uses a popup: its button when pressed (Join, Accept...), else what it is about (the chat, the friends). */
+	private static void use(Popup popup, @Nullable Screen screen, boolean button) {
+		POPUPS.remove(popup);
+		if (popup.kind == Kind.ACTION) {
+			if (button && popup.action != null) {
+				popup.action.run();
+			}
+		} else if (popup.kind == Kind.INVITE && button) {
+			ServerLinks.join(screen, popup.address, popup.world);
+		} else if (popup.kind == Kind.REQUEST) {
+			Compat.setScreen(SocialScreen.friends(screen));
+		} else {
+			Compat.setScreen(SocialScreen.chat(screen, popup.player));
+		}
 	}
 
 	private static final Identifier ORBIT_ICON = Identifier.fromNamespaceAndPath(OrbitClient.MOD_ID, "icon.png");

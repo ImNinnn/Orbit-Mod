@@ -716,6 +716,17 @@ public final class HudEditorScreen extends OrbitScreen {
 		if (component.type == HudComponent.Type.ARMOR) {
 			cells.add(cell(toggleButton(half, "empty_slot", "orbit_cosmetic.hud.hide_empty_slots", () -> component.hideEmptySlots, on -> component.hideEmptySlots = on)));
 		}
+		if (component.type == HudComponent.Type.PARTY) {
+			// What it shows of each member, with the game's own icons where it has them.
+			Object[][] parts = {{"minecraft:hud/heart/full", "health", PartyBars.HEALTH_PART}, {"minecraft:hud/food_full", "hunger", PartyBars.HUNGER_PART},
+				{"xp", "xp", PartyBars.XP_PART}, {"minecraft:hud/armor_full", "armor", PartyBars.ARMOR_PART}, {"minecraft:hud/air", "air", PartyBars.AIR_PART},
+				{"armor_slots", "armor_slots", PartyBars.ARMOR_SLOTS_PART}, {"held_item", "held", PartyBars.HELD_PART}, {"offhand", "offhand", PartyBars.OFFHAND_PART}};
+			for (Object[] part : parts) {
+				int bit = (Integer) part[2];
+				cells.add(cell(toggleButton(half, (String) part[0], "orbit_cosmetic.hud.party." + part[1], () -> (component.partyParts & bit) != 0,
+					on -> component.partyParts = on ? component.partyParts | bit : component.partyParts & ~bit)));
+			}
+		}
 		if (component.type == HudComponent.Type.PAPERDOLL) {
 			// Its turn, typed in degrees, or 15 at a time with the arrows.
 			EditBox angle = new EditBox(font, 0, 0, half - 44 - 8, 10, Component.translatable("orbit_cosmetic.hud.turn.label"));

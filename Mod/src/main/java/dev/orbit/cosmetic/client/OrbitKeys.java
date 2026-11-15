@@ -69,6 +69,11 @@ public final class OrbitKeys {
 			}
 		}
 		while (social.consumeClick()) {
+			// With Shift: the newest social popup's button, without freeing the mouse.
+			boolean shift = Compat.keyDown(InputConstants.KEY_LSHIFT) || Compat.keyDown(InputConstants.KEY_RSHIFT);
+			if (shift && dev.orbit.cosmetic.client.social.SocialPopups.pressNewest()) {
+				continue;
+			}
 			if (free) {
 				Compat.setScreen(new SocialScreen(null));
 			}

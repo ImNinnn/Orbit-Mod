@@ -34,6 +34,28 @@ final class PartyBars {
 	private static final Identifier MOUNT_CONTAINER = Identifier.withDefaultNamespace("hud/heart/vehicle_container");
 	private static final Identifier MOUNT_FULL = Identifier.withDefaultNamespace("hud/heart/vehicle_full");
 	private static final Identifier MOUNT_HALF = Identifier.withDefaultNamespace("hud/heart/vehicle_half");
+	/** What the component shows of each member (its toggles), as bits. */
+	static final int HEALTH_PART = 1;
+	static final int HUNGER_PART = 2;
+	static final int XP_PART = 4;
+	static final int ARMOR_PART = 8;
+	static final int AIR_PART = 16;
+	static final int ARMOR_SLOTS_PART = 32;
+	static final int HELD_PART = 64;
+	static final int OFFHAND_PART = 128;
+	static final int SLOT_PARTS = ARMOR_SLOTS_PART | HELD_PART | OFFHAND_PART;
+	static final int DEFAULT_PARTS = HEALTH_PART | HUNGER_PART | ARMOR_PART | AIR_PART;
+	private static final Identifier ARMOR_EMPTY = Identifier.withDefaultNamespace("hud/armor_empty");
+	private static final Identifier ARMOR_HALF = Identifier.withDefaultNamespace("hud/armor_half");
+	private static final Identifier ARMOR_FULL = Identifier.withDefaultNamespace("hud/armor_full");
+	private static final Identifier AIR = Identifier.withDefaultNamespace("hud/air");
+	private static final Identifier AIR_BURSTING = Identifier.withDefaultNamespace("hud/air_bursting");
+	private static final Identifier AIR_EMPTY = Identifier.withDefaultNamespace("hud/air_empty");
+	private static final Identifier XP_BACKGROUND = Identifier.withDefaultNamespace("hud/experience_bar_background");
+	private static final Identifier XP_PROGRESS = Identifier.withDefaultNamespace("hud/experience_bar_progress");
+	private static final int XP = 0xFF80FF20;
+	private static final int ARMOR = 0xFFC8CDD3;
+	private static final int AIR_COLOR = 0xFF4FA3FF;
 	/** With AppleSkin, members' saturation and exhaustion show on their hunger as AppleSkin shows the player's. */
 	static boolean appleSkin = FabricLoader.getInstance().isModLoaded("appleskin");
 	static final int SATURATION = 0xFFF5D24A;
@@ -167,17 +189,47 @@ final class PartyBars {
 		}
 	}
 
-	/** The height of a member's hearts and shanks in the vanilla style (taller with more rows of hearts). */
-	static int vanillaHeight(UUID member, PartyLink.@Nullable Status status) {
-		Track track = TRACKS.get(member);
-		return Layout.of(status, track == null ? 0 : track.display).height();
+	/** Whether the game would show the member's air now: under water, or not full again yet. */
+	private static boolean airShown(PartyLink.Status status) {
+		return status.extra().underwater() || status.extra().air() < status.extra().maxAir();
+	}
+
+	/** Whether the row over the hearts and shanks shows: armour points (left) or air (right). */
+	private static boolean topRow(PartyLink.@Nullable Status status, int parts) {
+		if (!shown(status)) {
+			return false;
+		}
+		return (parts & ARMOR_PART) != 0 && status.extra().armor() > 0 || (parts & AIR_PART) != 0 && airShown(status);
 	}
 
 	/**
-	 * Hearts from {@code left} and shanks (or the mount's hearts) ending at {@code right}, as the game draws the
-	 * player's own, in {@code height} from {@code top} (the rows start from its bottom and go up, as the game's).
+	 * The height of a member's rows in the vanilla style, under their name: armour and air, hearts and shanks
+	 * (taller with more rows of hearts), and the experience bar, as the toggles have them.
 	 */
-	static void drawVanilla(GuiGraphicsExtractor graphics, Font font, UUID member, PartyLink.@Nullable Status status, int left, int top, int right) {
+	static int vanillaHeight(UUID member, PartyLink.@Nullable Status status, int parts) {
+		if (status != null && status.playing() && !status.showsHealth()) {
+			return 9;
+		}
+		Track track = TRACKS.get(member);
+		int height = 0;
+		if (topRow(status, parts)) {
+			height += 10;
+		}
+		if ((parts & (HEALTH_PART | HUNGER_PART)) != 0) {
+			height += Layout.of(status, track == null ? 0 : track.display).height() + 1;
+		}
+		if ((parts & XP_PART) != 0) {
+			height += 10;
+		}
+		return Math.max(height, 1);
+	}
+
+	/**
+	 * A member as the game draws the player's own: armour points over the hearts and air over the shanks, hearts
+	 * from {@code left} and shanks (or the mount's hearts) ending at {@code right}, then the experience bar with
+	 * its level; each as the toggles have it.
+	 */
+	static void drawVanilla(GuiGraphicsExtractor graphics, Font font, UUID member, PartyLink.@Nullable Status status, int parts, int left, int top, int right) {
 		long now = System.currentTimeMillis();
 		Track track = track(member, status, now);
 		if (status != null && status.playing() && !status.showsHealth()) {
@@ -185,15 +237,88 @@ final class PartyBars {
 			graphics.text(font, Component.translatable("orbit_cosmetic.hud.party.mode." + status.mode()), left, top + 1, Theme.FAINT, false);
 			return;
 		}
-		Layout layout = Layout.of(status, track == null ? 0 : track.display);
-		int base = top + layout.height() - 9;
 		long tick = now / TICK_MS;
 		Random random = new Random(tick * 312871L ^ member.getLeastSignificantBits());
-		drawHearts(graphics, track, status, layout, left, base, now, tick, random);
-		if (track != null && layout.mountHearts() > 0) {
-			drawMount(graphics, status, layout.mountHearts(), base, right);
-		} else {
-			drawFood(graphics, status, track != null, base, right, tick, random);
+		int y = top;
+		if (topRow(status, parts)) {
+			if ((parts & ARMOR_PART) != 0) {
+				drawArmor(graphics, status.extra().armor(), left, y);
+			}
+			if ((parts & AIR_PART) != 0 && airShown(status)) {
+				drawAir(graphics, status, right, y, tick, random);
+			}
+			y += 10;
+		}
+		if ((parts & (HEALTH_PART | HUNGER_PART)) != 0) {
+			Layout layout = Layout.of(status, track == null ? 0 : track.display);
+			int base = y + layout.height() - 9;
+			if ((parts & HEALTH_PART) != 0) {
+				drawHearts(graphics, track, status, layout, left, base, now, tick, random);
+			}
+			if ((parts & HUNGER_PART) != 0) {
+				if (track != null && layout.mountHearts() > 0) {
+					drawMount(graphics, status, layout.mountHearts(), base, right);
+				} else {
+					drawFood(graphics, status, track != null, base, right, tick, random);
+				}
+			}
+			y += layout.height() + 1;
+		}
+		if ((parts & XP_PART) != 0) {
+			drawExperience(graphics, font, status, left, y + 4, right - left);
+		}
+	}
+
+	/** Armour points, as the game draws them over the hearts (only when there are any). */
+	private static void drawArmor(GuiGraphicsExtractor graphics, int armor, int left, int y) {
+		if (armor <= 0) {
+			return;
+		}
+		for (int i = 0; i < 10; i++) {
+			int x = left + i * 8;
+			Identifier sprite = i * 2 + 1 < armor ? ARMOR_FULL : i * 2 + 1 == armor ? ARMOR_HALF : ARMOR_EMPTY;
+			graphics.blitSprite(RenderPipelines.GUI_TEXTURED, sprite, x, y, 9, 9);
+		}
+	}
+
+	/** Air, as the game draws it over the shanks: full bubbles, the one bursting, and the empty ones wobbling. */
+	private static void drawAir(GuiGraphicsExtractor graphics, PartyLink.Status status, int right, int y, long tick, Random random) {
+		int max = Math.max(1, status.extra().maxAir());
+		int air = Math.clamp(status.extra().air(), 0, max);
+		boolean underwater = status.extra().underwater();
+		int full = Mth.ceil((air - 2) * 10F / max);
+		int bursting = Mth.ceil(air * 10F / max);
+		int empty = 10 - Mth.ceil((air + (air != 0 && underwater ? 1 : 0)) * 10F / max);
+		for (int bubble = 1; bubble <= 10; bubble++) {
+			int x = right - (bubble - 1) * 8 - 9;
+			if (bubble <= full) {
+				graphics.blitSprite(RenderPipelines.GUI_TEXTURED, AIR, x, y, 9, 9);
+			} else if (full != bursting && bubble == bursting && underwater) {
+				graphics.blitSprite(RenderPipelines.GUI_TEXTURED, AIR_BURSTING, x, y, 9, 9);
+			} else if (bubble > 10 - empty) {
+				int wobble = empty == 10 && tick % 2 == 0 ? random.nextInt(2) : 0;
+				graphics.blitSprite(RenderPipelines.GUI_TEXTURED, AIR_EMPTY, x, y + wobble, 9, 9);
+			}
+		}
+	}
+
+	/** The experience bar across the hearts and shanks, its level in green over it, as the game's. */
+	private static void drawExperience(GuiGraphicsExtractor graphics, Font font, PartyLink.@Nullable Status status, int left, int y, int width) {
+		boolean known = shown(status);
+		graphics.blitSprite(RenderPipelines.GUI_TEXTURED, XP_BACKGROUND, left, y, width, 5);
+		int progress = known ? (int) (Mth.clamp(status.extra().xpProgress(), 0, 1) * (width + 1)) : 0;
+		if (progress > 0) {
+			graphics.blitSprite(RenderPipelines.GUI_TEXTURED, XP_PROGRESS, width, 5, 0, 0, left, y, Math.min(progress, width), 5);
+		}
+		if (known && status.extra().xpLevel() > 0) {
+			Component level = Component.translatable("gui.experience.level", status.extra().xpLevel());
+			int x = left + (width - font.width(level)) / 2;
+			int ty = y - 4;
+			graphics.text(font, level, x + 1, ty, 0xFF000000, false);
+			graphics.text(font, level, x - 1, ty, 0xFF000000, false);
+			graphics.text(font, level, x, ty + 1, 0xFF000000, false);
+			graphics.text(font, level, x, ty - 1, 0xFF000000, false);
+			graphics.text(font, level, x, ty, 0xFF80FF20, false);
 		}
 	}
 
@@ -308,22 +433,55 @@ final class PartyBars {
 		};
 	}
 
+	/** The bars the toggles show, top to bottom: health (3 high), then hunger, experience, armour and air (2 high). */
+	static int barsHeight(int parts) {
+		int height = 0;
+		for (int part : new int[] {HEALTH_PART, HUNGER_PART, XP_PART, ARMOR_PART, AIR_PART}) {
+			if ((parts & part) != 0) {
+				height += (height == 0 ? 0 : 1) + (part == HEALTH_PART ? 3 : 2);
+			}
+		}
+		return height;
+	}
+
 	/**
-	 * Health (coloured by the hearts' state, absorption in gold after it) over hunger (amber, green with the hunger
-	 * effect, its saturation in gold with AppleSkin); what was just lost flashes white. Creative and spectator
-	 * players have none.
+	 * Health (coloured by the hearts' state, absorption in gold after it), hunger (amber, green with the hunger
+	 * effect, its saturation in gold with AppleSkin), experience (green), armour (grey) and air (blue, while it is
+	 * not full), as the toggles have them; health and hunger lost flash white. Creative and spectator players have
+	 * none.
 	 */
-	static void drawBars(GuiGraphicsExtractor graphics, UUID member, PartyLink.@Nullable Status status, int x, int y, int width) {
+	static void drawBars(GuiGraphicsExtractor graphics, UUID member, PartyLink.@Nullable Status status, int parts, int x, int y, int width) {
 		long now = System.currentTimeMillis();
 		Track track = track(member, status, now);
 		if (status != null && status.playing() && !status.showsHealth()) {
 			return;
 		}
-		graphics.fill(x, y, x + width, y + 3, 0x80000000);
-		graphics.fill(x, y + 4, x + width, y + 6, 0x80000000);
-		if (track == null) {
-			return;
+		int row = y;
+		for (int part : new int[] {HEALTH_PART, HUNGER_PART, XP_PART, ARMOR_PART, AIR_PART}) {
+			if ((parts & part) == 0) {
+				continue;
+			}
+			int height = part == HEALTH_PART ? 3 : 2;
+			graphics.fill(x, row, x + width, row + height, 0x80000000);
+			if (track != null) {
+				switch (part) {
+					case HEALTH_PART -> drawHealthBar(graphics, status, track, now, x, row, width);
+					case HUNGER_PART -> drawHungerBar(graphics, status, track, now, x, row, width);
+					case XP_PART -> graphics.fill(x, row, x + Math.round(width * Mth.clamp(status.extra().xpProgress(), 0, 1)), row + 2, XP);
+					case ARMOR_PART -> graphics.fill(x, row, x + Math.round(width * Mth.clamp(status.extra().armor() / 20F, 0, 1)), row + 2, ARMOR);
+					default -> {
+						if (airShown(status)) {
+							float air = Mth.clamp(status.extra().air() / (float) Math.max(1, status.extra().maxAir()), 0, 1);
+							graphics.fill(x, row, x + Math.round(width * air), row + 2, AIR_COLOR);
+						}
+					}
+				}
+			}
+			row += height + 1;
 		}
+	}
+
+	private static void drawHealthBar(GuiGraphicsExtractor graphics, PartyLink.Status status, Track track, long now, int x, int y, int width) {
 		// Health and absorption share the bar as hearts share the rows: the absorption after the health's room.
 		float room = Math.max(status.maxHealth(), track.health);
 		float total = room + Mth.ceil(status.absorption());
@@ -341,16 +499,89 @@ final class PartyBars {
 			int absorption = Math.round(width * Mth.clamp(status.absorption() / total, 0, 1));
 			graphics.fill(x + roomEnd, y, x + Math.min(width, roomEnd + absorption), y + 3, Heart.of(status) == Heart.WITHERED ? WITHERED : ABSORBING);
 		}
+	}
+
+	private static void drawHungerBar(GuiGraphicsExtractor graphics, PartyLink.Status status, Track track, long now, int x, int y, int width) {
 		int hunger = Math.round(width * Mth.clamp(status.hunger() / 20F, 0, 1));
 		int hungerColor = status.has(PartyLink.HUNGER) ? HUNGRY : HUNGER;
 		boolean hungerFlash = blinkOn(track.hungerFlashUntil, now);
-		graphics.fill(x, y + 4, x + hunger, y + 6, hungerFlash ? Theme.mix(hungerColor, 0xFFFFFFFF, 0.45F) : hungerColor);
+		graphics.fill(x, y, x + hunger, y + 2, hungerFlash ? Theme.mix(hungerColor, 0xFFFFFFFF, 0.45F) : hungerColor);
 		if (track.hungerFlashUntil > now) {
 			int before = Math.round(width * Mth.clamp(track.hungerBefore / 20F, 0, 1));
-			graphics.fill(x + hunger, y + 4, x + before, y + 6, hungerFlash ? 0xFFFFFFFF : 0x80FFFFFF);
+			graphics.fill(x + hunger, y, x + before, y + 2, hungerFlash ? 0xFFFFFFFF : 0x80FFFFFF);
 		}
 		if (appleSkin) {
-			graphics.fill(x, y + 5, x + Math.round(width * Mth.clamp(status.saturation() / 20F, 0, 1)), y + 6, SATURATION);
+			graphics.fill(x, y + 1, x + Math.round(width * Mth.clamp(status.saturation() / 20F, 0, 1)), y + 2, SATURATION);
 		}
+	}
+
+	// ---------------------------------------------------------------- items
+
+	/** The slots shown, left to right: off hand, main hand, then the armour from head to feet. */
+	private static final String[][] SLOT_GROUPS = {{"offhand"}, {"mainhand"}, {"head", "chest", "legs", "feet"}};
+	private static final int[] SLOT_GROUP_PARTS = {OFFHAND_PART, HELD_PART, ARMOR_SLOTS_PART};
+	/** Items made from what members' games sent (by what was sent), so they are not made again every frame. */
+	private static final Map<String, net.minecraft.world.item.ItemStack> STACKS = new HashMap<>();
+
+	static int slotsWidth(int parts) {
+		int width = 0;
+		for (int group = 0; group < SLOT_GROUPS.length; group++) {
+			if ((parts & SLOT_GROUP_PARTS[group]) != 0) {
+				width += SLOT_GROUPS[group].length * 19 + 3;
+			}
+		}
+		return width;
+	}
+
+	static int slotsHeight(int parts) {
+		return (parts & SLOT_PARTS) != 0 ? 19 : 0;
+	}
+
+	/** The member's items in slots as the hotbar's, as the toggles have them (empty slots while not known). */
+	static void drawSlots(GuiGraphicsExtractor graphics, Font font, PartyLink.@Nullable Status status, int parts, int x, int y, boolean itemsReady) {
+		for (int group = 0; group < SLOT_GROUPS.length; group++) {
+			if ((parts & SLOT_GROUP_PARTS[group]) == 0) {
+				continue;
+			}
+			for (String slot : SLOT_GROUPS[group]) {
+				graphics.fill(x, y, x + 18, y + 18, 0x60000000);
+				graphics.outline(x, y, 18, 18, 0x60FFFFFF);
+				var stack = itemsReady && status != null && status.playing() ? stack(status.extra().items().get(slot)) : null;
+				if (stack != null) {
+					graphics.item(stack, x + 1, y + 1);
+					graphics.itemDecorations(font, stack, x + 1, y + 1);
+				}
+				x += 19;
+			}
+			x += 3;
+		}
+	}
+
+	/** The item a member's game described (its ID, count, damage and glint), or null when there is none. */
+	private static net.minecraft.world.item.@Nullable ItemStack stack(com.google.gson.@Nullable JsonObject item) {
+		if (item == null || !item.has("id")) {
+			return null;
+		}
+		String key = item.toString();
+		var made = STACKS.get(key);
+		if (made != null) {
+			return made;
+		}
+		Identifier id = Identifier.tryParse(item.get("id").getAsString());
+		if (id == null || !net.minecraft.core.registries.BuiltInRegistries.ITEM.containsKey(id)) {
+			return null;
+		}
+		var stack = new net.minecraft.world.item.ItemStack(net.minecraft.core.registries.BuiltInRegistries.ITEM.getValue(id), Math.max(1, item.has("count") ? item.get("count").getAsInt() : 1));
+		if (stack.isDamageableItem() && item.has("damage")) {
+			stack.setDamageValue(item.get("damage").getAsInt());
+		}
+		if (item.has("glint") && item.get("glint").getAsBoolean()) {
+			stack.set(net.minecraft.core.component.DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
+		}
+		if (STACKS.size() > 256) {
+			STACKS.clear();
+		}
+		STACKS.put(key, stack);
+		return stack;
 	}
 }

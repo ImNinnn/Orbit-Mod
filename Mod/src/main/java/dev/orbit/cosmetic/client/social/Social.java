@@ -235,7 +235,7 @@ public final class Social {
 	}
 
 	/** A party the player could join: in one of their conversations, started by someone else. */
-	public record OpenParty(UUID chat, UUID leader, String leaderName, int members) {
+	public record OpenParty(UUID chat, UUID leader, String leaderName, int members, java.util.Set<UUID> memberIds) {
 	}
 
 	private @Nullable Party party;
@@ -248,6 +248,11 @@ public final class Social {
 	/** The party of a conversation the player could join, or null. */
 	public @Nullable OpenParty openParty(UUID chat) {
 		return openParties.get(chat);
+	}
+
+	/** The parties going in the player's conversations that they are not in. */
+	public java.util.Collection<OpenParty> openParties() {
+		return openParties.values();
 	}
 
 	/** Starts a conversation's party (or joins it, if it has one): a group's ID or a friend's UUID. */
@@ -320,7 +325,12 @@ public final class Social {
 			for (JsonElement element : list) {
 				JsonObject json = element.getAsJsonObject();
 				UUID chat = UUID.fromString(json.get("chat").getAsString());
-				open.put(chat, new OpenParty(chat, UUID.fromString(json.get("leader").getAsString()), json.get("leader_name").getAsString(), json.get("members").getAsInt()));
+				java.util.Set<UUID> ids = new java.util.HashSet<>();
+				if (json.get("member_ids") instanceof JsonArray memberIds) {
+					memberIds.forEach(id -> ids.add(UUID.fromString(id.getAsString())));
+				}
+				open.put(chat, new OpenParty(chat, UUID.fromString(json.get("leader").getAsString()), json.get("leader_name").getAsString(), json.get("members").getAsInt(),
+					java.util.Set.copyOf(ids)));
 			}
 		}
 		if (!first) {
@@ -575,6 +585,7 @@ public final class Social {
 		long now = System.currentTimeMillis();
 		PartyLink.get().tick(this);
 		ServerParty.tick(this);
+		PartyFollow.tick(this);
 		if (!waiting && device != null && now >= waitAgainAt) {
 			waitForNews(account);
 		}

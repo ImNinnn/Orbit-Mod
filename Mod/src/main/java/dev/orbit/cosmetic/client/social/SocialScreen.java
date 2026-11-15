@@ -161,7 +161,8 @@ public final class SocialScreen extends OrbitScreen {
 	/** What the party buttons show: the party (its conversation, leader and size) and whether this conversation has one to join. */
 	private String partyKey() {
 		Social.Party party = social().party();
-		return (party == null ? "-" : party.chat() + ":" + party.leader() + ":" + party.members().size()) + "/" + (open != null && social().openParty(open) != null);
+		return (party == null ? "-" : party.chat() + ":" + party.leader() + ":" + party.members().size()) + "/" + (open != null && social().openParty(open) != null)
+			+ "/" + (PartyFollow.leaderPlace(social()) != null);
 	}
 
 	@Override
@@ -253,6 +254,12 @@ public final class SocialScreen extends OrbitScreen {
 			}
 			int partyX = px() + pw() - PAD - (FloatingChats.available() ? 128 : 106);
 			partyButton(friend, partyX, headerY);
+			if (joinLeaderButton()) {
+				// Not with the party's leader: join them where they play.
+				FlatButton join = addRenderableWidget(FlatButton.icon(partyX - 22, headerY, 18, "play", Component.translatable("orbit_cosmetic.party.join_leader", name),
+					FlatButton.Style.PRIMARY, b -> PartyFollow.joinLeader(this, social())));
+				join.setTooltip(Tooltip.create(Component.translatable("orbit_cosmetic.party.join_leader", name)));
+			}
 			if (partyLeadButton()) {
 				// No member list in a friend's chat: the party's lead is handed over here.
 				addRenderableWidget(FlatButton.icon(partyX - 22, headerY, 18, "star", Component.translatable("orbit_cosmetic.party.make_leader", name), FlatButton.Style.SECONDARY,
@@ -308,6 +315,13 @@ public final class SocialScreen extends OrbitScreen {
 	}
 
 	/** In a friend's chat: the player leads its party and the friend is in it (the lead can be handed over). */
+	/** In a friend's chat whose party the player is in, led by the friend, and not with them: Join leader. */
+	private boolean joinLeaderButton() {
+		Social.Party party = social().party();
+		return open != null && !social().isGroup(open) && party != null && party.chat().equals(open) && party.leader().equals(open)
+			&& PartyFollow.leaderPlace(social()) != null;
+	}
+
 	private boolean partyLeadButton() {
 		Social.Party party = social().party();
 		return open != null && !social().isGroup(open) && party != null && party.chat().equals(open) && party.leader().equals(social().me()) && social().inParty(open);
@@ -316,8 +330,18 @@ public final class SocialScreen extends OrbitScreen {
 	/** The party icon beside a party member's name: gold for its leader. */
 	private void partyMark(GuiGraphicsExtractor graphics, UUID player, int x, int y) {
 		Social.Party party = social().party();
-		boolean leader = party != null && party.leader().equals(player);
+		boolean leader = party != null && party.leader().equals(player) || social().openParties().stream().anyMatch(open -> open.leader().equals(player));
 		Theme.icon(graphics, "party", x, y, leader ? Theme.GOLD : Theme.MUTED);
+	}
+
+	/** Whether a player is in a conversation's party: the player's own, or one going there they are not in. */
+	private boolean inChatParty(UUID chat, UUID player) {
+		Social.Party party = social().party();
+		if (party != null && party.chat().equals(chat)) {
+			return social().inParty(player);
+		}
+		Social.OpenParty open = social().openParty(chat);
+		return open != null && open.memberIds().contains(player);
 	}
 
 	/**
@@ -700,10 +724,10 @@ public final class SocialScreen extends OrbitScreen {
 		Social.Group group = social().group(friend.uuid());
 		face(graphics, friend.uuid(), friend.name(), x, top + 2, 16);
 		// The name, short of the header's buttons.
-		int buttons = (group == null ? 106 : 90) + 22 + (partyLeadButton() ? 22 : 0);
+		int buttons = (group == null ? 106 : 90) + 22 + (partyLeadButton() || joinLeaderButton() ? 22 : 0);
 		int nameWidth = Math.max(40, px() + pw() - PAD - buttons - 4 - (x + 22) - 12);
 		graphics.text(font, Theme.clip(font, Component.literal(friend.name()), nameWidth), x + 22, top + 2, Theme.TEXT, false);
-		if (group == null && social().inParty(friend.uuid())) {
+		if (group == null && inChatParty(friend.uuid(), friend.uuid())) {
 			partyMark(graphics, friend.uuid(), x + 22 + Math.min(font.width(friend.name()), nameWidth) + 3, top + 1);
 		}
 		Component status = Social.isOrbit(friend.uuid()) ? Component.translatable("orbit_cosmetic.social.orbit_detail").withStyle(ChatFormatting.GRAY)
@@ -801,6 +825,9 @@ public final class SocialScreen extends OrbitScreen {
 			actions.add(Map.entry(Component.translatable("orbit_cosmetic.party.make_leader", name), () -> confirm("party.make_leader", name, () -> social.makePartyLeader(uuid))));
 			actions.add(Map.entry(Component.translatable("orbit_cosmetic.party.remove", name), () -> social.kickFromParty(uuid)));
 		}
+		if (party != null && party.chat().equals(group.id()) && party.leader().equals(uuid) && PartyFollow.leaderPlace(social) != null) {
+			actions.addFirst(Map.entry(Component.translatable("orbit_cosmetic.party.join_leader", name), () -> PartyFollow.joinLeader(this, social)));
+		}
 		if (group.owner().equals(social.me())) {
 			actions.add(Map.entry(Component.translatable("orbit_cosmetic.social.group.make_leader", name),
 				() -> confirm("group.make_leader", name, () -> social.makeGroupLeader(group.id(), uuid))));
@@ -884,7 +911,7 @@ public final class SocialScreen extends OrbitScreen {
 			if (member.online() || self) {
 				graphics.fill(x + 14, y + 13, x + 18, y + 17, 0xFF3CB043);
 			}
-			boolean partied = social().inParty(uuid) && social().party().chat().equals(group.id());
+			boolean partied = inChatParty(group.id(), uuid);
 			int marks = (uuid.equals(group.owner()) ? 12 : 0) + (partied ? 12 : 0);
 			int nameWidth = MEMBERS - 24 - (self ? 0 : 16) - marks;
 			graphics.text(font, Theme.clip(font, Component.literal(member.name()), nameWidth), x + 21, y + 6, Theme.TEXT, false);

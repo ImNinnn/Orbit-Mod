@@ -30,7 +30,7 @@ public final class PartyLink implements WebSocket.Listener {
 	 * hearts), and where they play. {@code playing} is false in the game's menus (out of a world).
 	 */
 	public record Status(float health, float maxHealth, float absorption, int hunger, float saturation, float exhaustion, int flags, String mode,
-		float mountHealth, float mountMaxHealth, boolean playing, String server, String world, long at) {
+		float mountHealth, float mountMaxHealth, Extra extra, boolean playing, String server, String world, long at) {
 		/** Dead: in a world with no health left. */
 		public boolean dead() {
 			return playing && health <= 0;
@@ -49,6 +49,15 @@ public final class PartyLink implements WebSocket.Listener {
 		public boolean showsHealth() {
 			return mode.equals("survival") || mode.equals("adventure");
 		}
+	}
+
+	/**
+	 * The rest of a member's state: experience, armour points, air (and whether they are under water), whether
+	 * they are invisible, the online address of the world they host (e4mc), and their armour and held items (by
+	 * slot: head, chest, legs, feet, mainhand, offhand; each its item's ID, count, damage and glint).
+	 */
+	public record Extra(int xpLevel, float xpProgress, int armor, int air, int maxAir, boolean underwater, boolean invisible, String host, Map<String, JsonObject> items) {
+		public static final Extra NONE = new Extra(0, 0, 0, 300, 300, false, false, "", Map.of());
 	}
 
 	public static final int POISON = 1;
@@ -158,6 +167,33 @@ public final class PartyLink implements WebSocket.Listener {
 			json.addProperty("mount_health", mount.getHealth());
 			json.addProperty("mount_max_health", mount.getMaxHealth());
 		}
+		if (player != null) {
+			json.addProperty("xp_level", player.experienceLevel);
+			json.addProperty("xp_progress", Math.round(player.experienceProgress * 1000) / 1000F);
+			json.addProperty("armor", player.getArmorValue());
+			json.addProperty("air", player.getAirSupply());
+			json.addProperty("max_air", player.getMaxAirSupply());
+			json.addProperty("underwater", player.isEyeInFluid(net.minecraft.tags.FluidTags.WATER));
+			json.addProperty("invisible", player.isInvisible());
+			JsonObject items = new JsonObject();
+			for (var slot : new net.minecraft.world.entity.EquipmentSlot[] {net.minecraft.world.entity.EquipmentSlot.HEAD, net.minecraft.world.entity.EquipmentSlot.CHEST,
+				net.minecraft.world.entity.EquipmentSlot.LEGS, net.minecraft.world.entity.EquipmentSlot.FEET, net.minecraft.world.entity.EquipmentSlot.MAINHAND,
+				net.minecraft.world.entity.EquipmentSlot.OFFHAND}) {
+				var stack = player.getItemBySlot(slot);
+				if (!stack.isEmpty()) {
+					JsonObject item = new JsonObject();
+					item.addProperty("id", net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem()).toString());
+					item.addProperty("count", stack.getCount());
+					item.addProperty("damage", stack.getDamageValue());
+					item.addProperty("max_damage", stack.getMaxDamage());
+					item.addProperty("glint", stack.hasFoil());
+					items.add(slot.getName(), item);
+				}
+			}
+			json.add("items", items);
+		}
+		String hosted = dev.orbit.cosmetic.client.host.Hosting.address();
+		json.addProperty("host", hosted == null ? "" : hosted);
 		json.addProperty("playing", player != null);
 		ServerData server = minecraft.getCurrentServer();
 		json.addProperty("server", server != null && !minecraft.isLocalServer() ? server.ip : "");
@@ -245,11 +281,20 @@ public final class PartyLink implements WebSocket.Listener {
 
 	/** Tells the other members' games something (see ServerParty): sent at once if the link is open. */
 	void signal(String signal) {
+		signal(signal, null, null);
+	}
+
+	/** A signal carrying a place: "follow" (the leader's server or hosted world, and its name). */
+	void signal(String signal, @Nullable String address, @Nullable String world) {
 		WebSocket open = socket;
 		if (open != null) {
 			JsonObject json = new JsonObject();
 			json.addProperty("type", "signal");
 			json.addProperty("signal", signal);
+			if (address != null) {
+				json.addProperty("address", address);
+				json.addProperty("world", world == null ? address : world);
+			}
 			open.sendText(json.toString(), true);
 		}
 	}
@@ -276,7 +321,13 @@ public final class PartyLink implements WebSocket.Listener {
 				if (type.equals("signal")) {
 					String signal = message.get("signal").getAsString();
 					String name = message.get("name").getAsString();
-					Minecraft.getInstance().execute(() -> ServerParty.signal(OrbitClient.get().social(), player, name, signal));
+					if (signal.equals("follow")) {
+						String address = message.get("address").getAsString();
+						String world = message.get("world").getAsString();
+						Minecraft.getInstance().execute(() -> PartyFollow.followSignal(OrbitClient.get().social(), player, name, address, world));
+					} else {
+						Minecraft.getInstance().execute(() -> ServerParty.signal(OrbitClient.get().social(), player, name, signal));
+					}
 				} else if (type.equals("gone")) {
 					statuses.remove(player);
 				} else if (type.equals("status")) {
@@ -304,8 +355,23 @@ public final class PartyLink implements WebSocket.Listener {
 		}
 		return new Status(message.get("health").getAsFloat(), message.get("max_health").getAsFloat(), number(message, "absorption"), message.get("hunger").getAsInt(),
 			number(message, "saturation"), number(message, "exhaustion"), flags, message.has("mode") ? message.get("mode").getAsString() : "survival",
-			number(message, "mount_health"), number(message, "mount_max_health"), !message.has("playing") || message.get("playing").getAsBoolean(),
+			number(message, "mount_health"), number(message, "mount_max_health"), readExtra(message), !message.has("playing") || message.get("playing").getAsBoolean(),
 			message.get("server").getAsString(), message.get("world").getAsString(), System.currentTimeMillis());
+	}
+
+	private static Extra readExtra(JsonObject message) {
+		Map<String, JsonObject> items = new java.util.HashMap<>();
+		if (message.get("items") instanceof JsonObject sent) {
+			for (String slot : sent.keySet()) {
+				if (sent.get(slot) instanceof JsonObject item) {
+					items.put(slot, item);
+				}
+			}
+		}
+		return new Extra((int) number(message, "xp_level"), number(message, "xp_progress"), (int) number(message, "armor"),
+			message.has("air") ? message.get("air").getAsInt() : 300, message.has("max_air") ? message.get("max_air").getAsInt() : 300,
+			message.has("underwater") && message.get("underwater").getAsBoolean(), message.has("invisible") && message.get("invisible").getAsBoolean(),
+			message.has("host") ? message.get("host").getAsString() : "", Map.copyOf(items));
 	}
 
 	private static float number(JsonObject message, String key) {

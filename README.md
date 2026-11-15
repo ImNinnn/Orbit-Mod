@@ -409,7 +409,9 @@ times as you like:
   (grey), or on another server (yellow); players of the same network (alpha.hypixel.net and mc.hypixel.net) count
   as on the same server. With [AppleSkin](https://modrinth.com/mod/appleskin) installed, their saturation shows on
   their hunger as AppleSkin shows yours, and their exhaustion under it (known in singleplayer, or on servers with
-  AppleSkin when they have it too). It shows while you are in a party.
+  AppleSkin when they have it too). Toggles choose what it shows of each member: health, hunger, experience,
+  the armor bar, air, and their armor, held and offhand items (not in *Compact*). Invisible members' names are
+  faded, and spectators' faded and in italics. It shows while you are in a party.
 * **Chat window**: pops a conversation out as a floating chat window (see Friends and messages). Windows are
   placed, resized and lined up here like the components, with their own settings: **Auto-hide** (hide 30 seconds
   after the last message while playing, or stay), the accent colour (your messages and the bar on the left) and
@@ -526,7 +528,13 @@ the lead goes to the member there the longest (one on the leader's server first)
 closed for two minutes leaves the party (they join again themselves when they come back). Party members have a party icon beside their name (gold for the leader), conversations with a party going have the party icon
 in the list (green for yours) and stars rising behind their messages, in the conversation's colour. While you are
 in a party, a line at the top of every menu says who with ("You are the party leader in Builders - Alex, Steve");
-it steps aside while the mouse is on it. In a
+it steps aside while the mouse is on it. In a group, the party icon marks who is in its party even when you are
+not. **Following the leader:** when the party's leader opens a singleplayer world, it is hosted at once (with
+[e4mc](https://modrinth.com/mod/e4mc)), and when they join a server or their world goes online, the other members
+get an invitation to follow (**Join**). A member who is not with the leader joins them from the leader's menu in
+the group's member list, or with the play button beside the party button in a friend's chat. The quick menu's
+**Warp party** invites everyone again (on Hypixel, it is `/p warp`). **Shift + the social key** (J) presses the
+newest social popup's button (Join, Accept...) without freeing the mouse. In a
 friend's chat, the party's leader hands the lead over with the star beside the party button; in a group, from the
 member's menu. While in a party, your game shares your health, hunger and server with the other members only (the
 party button's tooltip lists them, and the **Party** HUD component shows them).

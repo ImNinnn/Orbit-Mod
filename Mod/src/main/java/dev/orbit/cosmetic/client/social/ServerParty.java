@@ -182,12 +182,17 @@ public final class ServerParty {
 		}
 	}
 
-	/** The leader brings the party's players to them (the quick menu's Warp party). */
+	/**
+	 * The leader brings the party's players to them (the quick menu's Warp party): the server's warp where it has
+	 * one (Hypixel), else the members are invited to follow again.
+	 */
 	public static void warp() {
 		Commands commands = commands();
 		if (commands != null) {
 			send(commands.warp());
 			OrbitClient.LOGGER.info("Party: warping the server's party");
+		} else {
+			PartyFollow.inviteAgain();
 		}
 	}
 }

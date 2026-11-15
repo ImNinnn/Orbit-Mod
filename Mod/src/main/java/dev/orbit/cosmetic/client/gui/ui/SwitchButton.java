@@ -52,7 +52,13 @@ public final class SwitchButton extends AbstractWidget {
 		int y = getY();
 		graphics.fill(x, y, getRight(), getBottom(), hot ? Theme.PANEL_HOVER : Theme.PANEL_2);
 		graphics.outline(x, y, getWidth(), getHeight(), hot ? Theme.BORDER_LIGHT : Theme.BORDER);
-		Theme.icon(graphics, icon, x + 4, y + (getHeight() - 9) / 2, on ? Theme.TEXT : Theme.MUTED);
+		if (icon.contains(":")) {
+			// One of the game's own sprites (a heart, a shank...): kept in its colours, darker when off.
+			graphics.blitSprite(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, net.minecraft.resources.Identifier.parse(icon), x + 4, y + (getHeight() - 9) / 2, 9, 9,
+				on ? 0xFFFFFFFF : 0xFF707070);
+		} else {
+			Theme.icon(graphics, icon, x + 4, y + (getHeight() - 9) / 2, on ? Theme.TEXT : Theme.MUTED);
+		}
 		Font font = Minecraft.getInstance().font;
 		graphics.text(font, Theme.clip(font, getMessage(), getWidth() - 15 - 27), x + 15, y + (getHeight() - 8) / 2, on ? Theme.TEXT : Theme.MUTED, false);
 		Theme.toggleSwitch(graphics, getRight() - 25, y + (getHeight() - 10) / 2, on);

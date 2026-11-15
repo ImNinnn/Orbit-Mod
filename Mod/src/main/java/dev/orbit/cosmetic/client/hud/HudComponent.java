@@ -139,6 +139,8 @@ public final class HudComponent {
 	public boolean hideEmpty;
 	/** Armour: only the slots with something in them. */
 	public boolean hideEmptySlots;
+	/** What the party component shows of each member (see PartyBars: health, hunger, experience, armour...). */
+	public int partyParts = PartyBars.DEFAULT_PARTS;
 	/** Moves down out of the way of the status effect icons ({@link #AVOID_EFFECTS}) and/or the boss bars ({@link #AVOID_BOSS_BARS}). */
 	public int avoid;
 	/** Linked: the member it is attached to, on which side, how far from it and how far along (in that member's pixels). */
@@ -237,7 +239,7 @@ public final class HudComponent {
 				int widest = Math.max(first, font.width(look.mod()));
 				yield Math.max(80, steady(widest + 34 + (look.tool() != null ? 20 : 0)));
 			}
-			case PARTY -> is("compact") ? 76 : Math.max(is("vanilla") ? 198 : 140, steady(partyTextWidth(font)));
+			case PARTY -> is("compact") ? 76 : Math.max(Math.max(is("vanilla") ? 198 : 140, 30 + PartyBars.slotsWidth(partyParts)), steady(partyTextWidth(font)));
 			case LAST_HIT -> {
 				LivingEntity target = lastHit();
 				int name = font.width(target != null ? target.getDisplayName() : Component.translatable("orbit_cosmetic.hud.sample.zombie"));
@@ -1136,8 +1138,10 @@ public final class HudComponent {
 			if (!sample && !(dev.orbit.cosmetic.client.compat.Compat.screen() instanceof HudEditorScreen)) {
 				return List.of();
 			}
-			return List.of(new Member(new UUID(0, 1), "Alex", true, new dev.orbit.cosmetic.client.social.PartyLink.Status(16, 20, 4, 18, 5, 0, 0, "survival", 0, 0, true, "play.example.net", "", 0)),
-				new Member(new UUID(0, 2), "Steve", false, new dev.orbit.cosmetic.client.social.PartyLink.Status(7, 20, 0, 9, 0, 0, dev.orbit.cosmetic.client.social.PartyLink.POISON, "survival", 0, 0, true,
+			return List.of(new Member(new UUID(0, 1), "Alex", true, new dev.orbit.cosmetic.client.social.PartyLink.Status(16, 20, 4, 18, 5, 0, 0, "survival", 0, 0,
+				new dev.orbit.cosmetic.client.social.PartyLink.Extra(23, 0.6F, 15, 300, 300, false, false, "", sampleItems()), true, "play.example.net", "", 0)),
+				new Member(new UUID(0, 2), "Steve", false, new dev.orbit.cosmetic.client.social.PartyLink.Status(7, 20, 0, 9, 0, 0, dev.orbit.cosmetic.client.social.PartyLink.POISON, "survival", 0, 0,
+					new dev.orbit.cosmetic.client.social.PartyLink.Extra(4, 0.2F, 6, 120, 300, true, true, "", java.util.Map.of()), true,
 					ownPlace(), "", 0)));
 		}
 		List<Member> members = new java.util.ArrayList<>();
@@ -1149,10 +1153,44 @@ public final class HudComponent {
 		return members;
 	}
 
+	/** The sample's armour and sword (made once a world is there to make items in). */
+	private static java.util.Map<String, JsonObject> sampleItems() {
+		java.util.Map<String, JsonObject> items = new java.util.HashMap<>();
+		String[][] sample = {{"head", "minecraft:iron_helmet"}, {"chest", "minecraft:diamond_chestplate"}, {"legs", "minecraft:iron_leggings"}, {"feet", "minecraft:iron_boots"},
+			{"mainhand", "minecraft:diamond_sword"}, {"offhand", "minecraft:shield"}};
+		for (String[] slot : sample) {
+			JsonObject item = new JsonObject();
+			item.addProperty("id", slot[1]);
+			item.addProperty("glint", slot[0].equals("mainhand"));
+			items.put(slot[0], item);
+		}
+		return items;
+	}
+
+	/**
+	 * A member's name: as this server shows it, faded while they are invisible or in spectator (in italics then,
+	 * as the player list shows spectators).
+	 */
+	private Component partyName(Member member) {
+		boolean sample = member.uuid().getMostSignificantBits() == 0;
+		Component name = sample ? Component.literal(member.name()) : dev.orbit.cosmetic.client.social.PartyLink.displayName(member.uuid(), member.name());
+		var status = member.status();
+		if (status != null && status.playing() && status.mode().equals("spectator")) {
+			return name.copy().withStyle(net.minecraft.ChatFormatting.ITALIC);
+		}
+		return name;
+	}
+
+	/** Invisible and spectating members' names are drawn faded. */
+	private static boolean faded(Member member) {
+		var status = member.status();
+		return status != null && status.playing() && (status.extra().invisible() || status.mode().equals("spectator"));
+	}
+
 	/**
 	 * Each other member: head (marked when they are dead, away from the game, or on another server), name (as this
-	 * server shows it, the leader's party mark in gold), health and hunger (bars, or the game's hearts and shanks),
-	 * and where they play when it is not here.
+	 * server shows it, the leader's party mark in gold), what the toggles show of them (bars, or the game's own
+	 * hearts, shanks, armour, air and experience), their items, and where they play when it is not here.
 	 */
 	private void drawParty(GuiGraphicsExtractor graphics, Font font) {
 		int w = width();
@@ -1179,32 +1217,52 @@ public final class HudComponent {
 					room -= font.width(shownPlace) + 4;
 					graphics.text(font, shownPlace, w - 5 - font.width(shownPlace), y + 1, Theme.FAINT, false);
 				}
-				Component name = sample ? Component.literal(member.name()) : dev.orbit.cosmetic.client.social.PartyLink.displayName(member.uuid(), member.name());
-				graphics.text(font, clipStyled(font, name, room), barX, y + 1, away ? Theme.FAINT : text(), false);
+				Component name = partyName(member);
+				int color = away ? Theme.FAINT : text();
+				if (faded(member)) {
+					color = (color & 0xFFFFFF) | 0x80000000;
+				}
+				graphics.text(font, clipStyled(font, name, room), barX, y + 1, color, false);
 				if (member.leader()) {
 					Theme.icon(graphics, "party", barX + Math.min(font.width(name), room) + 3, y, Theme.GOLD);
 				}
 			} else if (member.leader()) {
 				graphics.fill(5, y + 1, 7, y + 3, Theme.GOLD);
 			}
+			int below;
 			if (vanilla) {
-				PartyBars.drawVanilla(graphics, font, member.uuid(), status, barX, y + 11, w - 5);
+				PartyBars.drawVanilla(graphics, font, member.uuid(), status, partyParts, barX, y + 11, w - 5);
+				below = y + 11 + PartyBars.vanillaHeight(member.uuid(), status, partyParts) + 1;
 			} else if (!compact && status != null && status.playing() && !status.showsHealth()) {
 				// Creative or spectator: no health or hunger to show.
 				graphics.text(font, Component.translatable("orbit_cosmetic.hud.party.mode." + status.mode()), barX, y + 11, Theme.FAINT, false);
+				below = y + 22;
 			} else {
-				PartyBars.drawBars(graphics, member.uuid(), status, barX, compact ? y + 2 : y + 11, barW);
+				PartyBars.drawBars(graphics, member.uuid(), status, partyParts, barX, compact ? y + 2 : y + 11, barW);
+				below = y + 11 + PartyBars.barsHeight(partyParts) + 2;
+			}
+			if (!compact && PartyBars.slotsHeight(partyParts) > 0) {
+				PartyBars.drawSlots(graphics, font, status, partyParts, barX, below, itemsReady());
 			}
 			y += memberHeight(member);
 		}
 	}
 
-	/** One member's height: in the vanilla style, more rows of hearts make it taller (as the game's own). */
+	/** One member's height: their name, what the toggles show (in the vanilla style, as tall as the game's), their items. */
 	private int memberHeight(Member member) {
 		if (is("compact")) {
-			return 14;
+			return Math.max(14, 2 + PartyBars.barsHeight(partyParts) + 4);
 		}
-		return is("vanilla") ? 11 + PartyBars.vanillaHeight(member.uuid(), member.status()) + 2 : 22;
+		var status = member.status();
+		int shown;
+		if (is("vanilla")) {
+			shown = PartyBars.vanillaHeight(member.uuid(), status, partyParts) + 1;
+		} else if (status != null && status.playing() && !status.showsHealth()) {
+			shown = 11;
+		} else {
+			shown = Math.max(6, PartyBars.barsHeight(partyParts)) + 2;
+		}
+		return 11 + shown + PartyBars.slotsHeight(partyParts) + 2;
 	}
 
 	private int partyHeight() {
@@ -1321,6 +1379,7 @@ public final class HudComponent {
 		json.addProperty("pinned", pinned);
 		json.addProperty("hideEmpty", hideEmpty);
 		json.addProperty("hideEmptySlots", hideEmptySlots);
+		json.addProperty("partyParts", partyParts);
 		json.addProperty("dock", dock);
 		json.addProperty("avoid", avoid);
 		if (parent != null) {
@@ -1358,6 +1417,7 @@ public final class HudComponent {
 			component.pinned = json.has("pinned") && json.get("pinned").getAsBoolean();
 			component.hideEmpty = json.has("hideEmpty") && json.get("hideEmpty").getAsBoolean();
 			component.hideEmptySlots = json.has("hideEmptySlots") && json.get("hideEmptySlots").getAsBoolean();
+			component.partyParts = json.has("partyParts") ? json.get("partyParts").getAsInt() : PartyBars.DEFAULT_PARTS;
 			component.avoid = json.has("avoid") ? json.get("avoid").getAsInt() & 3 : 0;
 			component.dock = json.has("dock") ? Mth.clamp(json.get("dock").getAsInt(), DOCK_NONE, DOCK_BESIDE) : DOCK_NONE;
 			if (json.has("parent")) {
