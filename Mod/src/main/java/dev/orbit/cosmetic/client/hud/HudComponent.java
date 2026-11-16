@@ -1195,15 +1195,15 @@ public final class HudComponent {
 	/** The sample's armour and sword (made once a world is there to make items in). */
 	private static java.util.Map<String, JsonObject> sampleItems() {
 		java.util.Map<String, JsonObject> items = new java.util.HashMap<>();
-		String[][] sample = {{"head", "minecraft:iron_helmet"}, {"chest", "minecraft:diamond_chestplate"}, {"legs", "minecraft:iron_leggings"}, {"feet", "minecraft:iron_boots"},
-			{"mainhand", "minecraft:diamond_sword"}, {"offhand", "minecraft:shield"}};
+		// Their durability written here: items cannot be made before a world has loaded (to ask them).
+		String[][] sample = {{"head", "minecraft:iron_helmet", "165"}, {"chest", "minecraft:diamond_chestplate", "528"}, {"legs", "minecraft:iron_leggings", "225"},
+			{"feet", "minecraft:iron_boots", "195"}, {"mainhand", "minecraft:diamond_sword", "1561"}, {"offhand", "minecraft:shield", "0"}};
 		for (String[] slot : sample) {
 			JsonObject item = new JsonObject();
 			item.addProperty("id", slot[1]);
 			item.addProperty("glint", slot[0].equals("mainhand"));
-			if (!slot[0].equals("offhand")) {
-				var made = BuiltInRegistries.ITEM.getValue(Identifier.parse(slot[1]));
-				int max = new ItemStack(made).getMaxDamage();
+			int max = Integer.parseInt(slot[2]);
+			if (max > 0) {
 				item.addProperty("max_damage", max);
 				item.addProperty("damage", max * (slot[0].equals("mainhand") ? 3 : 1) / 10);
 			}
