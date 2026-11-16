@@ -44,6 +44,8 @@ final class PartyBars {
 	static final int HELD_PART = 64;
 	static final int OFFHAND_PART = 128;
 	static final int SLOT_PARTS = ARMOR_SLOTS_PART | HELD_PART | OFFHAND_PART;
+	/** The items in rows with their durability (as the armour and held item components show them). */
+	static final int DURABILITY_PART = 256;
 	static final int DEFAULT_PARTS = HEALTH_PART | HUNGER_PART | ARMOR_PART | AIR_PART;
 	private static final Identifier ARMOR_EMPTY = Identifier.withDefaultNamespace("hud/armor_empty");
 	private static final Identifier ARMOR_HALF = Identifier.withDefaultNamespace("hud/armor_half");
@@ -586,7 +588,7 @@ final class PartyBars {
 	}
 
 	/** The item a member's game described (its ID, count, damage and glint), or null when there is none. */
-	private static net.minecraft.world.item.@Nullable ItemStack stack(com.google.gson.@Nullable JsonObject item) {
+	static net.minecraft.world.item.@Nullable ItemStack stack(com.google.gson.@Nullable JsonObject item) {
 		if (item == null || !item.has("id")) {
 			return null;
 		}

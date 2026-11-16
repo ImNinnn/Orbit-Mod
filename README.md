@@ -392,7 +392,8 @@ times as you like:
   beside it (moving out of the way when the off hand holds something). **Empty slots: hide** shows only the
   pieces you wear, and **Hide if empty** hides it when you wear none.
 * **Held item**: the item in your main hand or off hand, like full Armour (its count when it has no durability);
-  **Hide if empty** hides it while that hand is empty.
+  **Hide if empty** hides it while that hand is empty. **Vanilla slots** (here and on full Armour) puts the items
+  in the game's own hotbar slots, the off hand in its own.
 * **Time**: the world's day and time of day, or the real time.
 * **Looking at**: the block or entity under your crosshair, like the Jade mod, on two lines: its icon, name (an
   entity's health beside it) and the mod it is from; for a block, the weakest tool that makes it drop (a diamond pickaxe for ancient debris) with a tick when
@@ -411,7 +412,9 @@ times as you like:
   as on the same server. With [AppleSkin](https://modrinth.com/mod/appleskin) installed, their saturation shows on
   their hunger as AppleSkin shows yours, and their exhaustion under it (known in singleplayer, or on servers with
   AppleSkin when they have it too). Toggles choose what it shows of each member: health, hunger, experience,
-  the armor bar, air, and their armor, held and offhand items (not in *Compact*). Invisible members' names are
+  the armor bar, air, and their armor, held and offhand items (in a row; in the game's hotbar slots in *Vanilla*).
+  With **Durability**, the items go one per row (off hand, main hand, armor) with their durability, as the armor
+  component shows it. Invisible members' names are
   faded, and spectators' faded and in italics. It shows while you are in a party.
 * **Chat window**: pops a conversation out as a floating chat window (see Friends and messages). Windows are
   placed, resized and lined up here like the components, with their own settings: **Auto-hide** (hide 30 seconds
@@ -524,12 +527,13 @@ message or until you click it: over the pause menu, hidden windows show see-thro
 
 **Parties.** In a conversation (with a friend, or a group chat), the party button starts a party, or joins the
 one someone started there (it shows green, and you get a notification when one starts). Starting one sends an
-invitation in the chat, with **Join** while the party is on. You are in one party at a time, and parties have no
+invitation in the chat, with **Join** while the party is on (not again when the last message already is one). You are in one party at a time, and parties have no
 leader: everyone leaves by themselves, and a member whose game has been closed for two minutes leaves too (they
 join again when they come back). Party members have a party icon beside their name (in a group, even for a party
 you are not in), conversations with a party going have the party icon in the list (green for yours) and stars
 rising behind their messages, in the conversation's colour. While you are in a party, a line at the top of every
-menu says who with ("In a party in Builders - Alex, Steve"); it steps aside while the mouse is on it. While in a
+menu says who with ("In a party in Builders - Alex, Steve", or in grey "No one in party"); it steps aside while
+the mouse is on it. While in a
 party, your game shares your health, hunger, server and so on with the other members only (the party button's
 tooltip lists them, and the **Party** HUD component shows them).
 
@@ -557,6 +561,9 @@ before and after.
 **Group members.** The **⋯** beside a member in a group's member list opens what can be done with them: join
 them (a party member playing elsewhere), see their page, make them group leader or remove them from the group
 (when you lead it), add or remove them as a friend, block or unblock them.
+
+**What friends do.** Under an online friend's name, instead of "Online", is what they do, as their Discord
+status says: "Playing on mc.hypixel.net", "On the main menu", "Changing cosmetics"...
 
 **Social notifications** are coloured by what they are about: messages and friend requests in red, the party in
 green, a friend coming online in gold, and invitations to a world in blue; each is as wide as its text needs.

@@ -615,6 +615,13 @@ public final class SocialScreen extends OrbitScreen {
 	/** "Online", or "Last online 3 hours ago". */
 	static Component lastOnline(Social.Person person) {
 		if (person.online()) {
+			// What they do, as their Discord status says ("Playing on mc.hypixel.net"), else just online.
+			JsonObject activity = person.activity();
+			if (activity != null) {
+				String key = "orbit_cosmetic.discord." + activity.get("key").getAsString();
+				String argument = activity.has("argument") ? activity.get("argument").getAsString() : "";
+				return (argument.isEmpty() ? Component.translatable(key) : Component.translatable(key, argument)).withStyle(ChatFormatting.GREEN);
+			}
 			return Component.translatable("orbit_cosmetic.social.online").withStyle(ChatFormatting.GREEN);
 		}
 		if (person.lastSeen() <= 0) {

@@ -85,31 +85,41 @@ public final class DiscordPresence {
 
 	/** What the player does, as shown under the game. */
 	private static String state(Minecraft minecraft) {
+		String[] activity = activity(minecraft);
+		return activity[1].isEmpty() ? Component.translatable("orbit_cosmetic.discord." + activity[0]).getString()
+			: Component.translatable("orbit_cosmetic.discord." + activity[0], activity[1]).getString();
+	}
+
+	/**
+	 * What the player does, as a key ("server", "menu"...) and its argument (a server's address, else empty): shown
+	 * on Discord, and to their friends in Orbit (under their name instead of "Online").
+	 */
+	public static String[] activity(Minecraft minecraft) {
 		Screen screen = Compat.screen();
-		String key;
-		Object argument = null;
 		if (screen instanceof SocialScreen || screen != null && screen.getClass().getPackageName().endsWith(".social")) {
-			key = "chatting";
-		} else if (screen instanceof OrbitMenuScreen || screen instanceof AnimationSettingsScreen || screen instanceof BodyPartScreen
-			|| screen != null && screen.getClass().getSimpleName().matches("(Particle|Physics).*Screen")) {
-			key = "cosmetics";
-		} else if (screen instanceof OrbitSettingsScreen || screen != null && screen.getClass().getPackageName().equals("net.minecraft.client.gui.screens.options")) {
-			key = "settings";
-		} else if (screen instanceof ScreenshotsScreen || screen instanceof ScreenshotViewScreen || screen instanceof ScreenshotEditScreen) {
-			key = "screenshots";
-		} else if (minecraft.level == null) {
-			key = "menu";
-		} else if (Hosting.isHosting()) {
-			key = "hosting";
-		} else if (minecraft.getSingleplayerServer() != null) {
-			key = "singleplayer";
-		} else {
-			ServerData server = minecraft.getCurrentServer();
-			key = "server";
-			argument = server == null ? "?" : server.ip;
+			return new String[] {"chatting", ""};
 		}
-		return argument == null ? Component.translatable("orbit_cosmetic.discord." + key).getString()
-			: Component.translatable("orbit_cosmetic.discord." + key, argument).getString();
+		if (screen instanceof OrbitMenuScreen || screen instanceof AnimationSettingsScreen || screen instanceof BodyPartScreen
+			|| screen != null && screen.getClass().getSimpleName().matches("(Particle|Physics).*Screen")) {
+			return new String[] {"cosmetics", ""};
+		}
+		if (screen instanceof OrbitSettingsScreen || screen != null && screen.getClass().getPackageName().equals("net.minecraft.client.gui.screens.options")) {
+			return new String[] {"settings", ""};
+		}
+		if (screen instanceof ScreenshotsScreen || screen instanceof ScreenshotViewScreen || screen instanceof ScreenshotEditScreen) {
+			return new String[] {"screenshots", ""};
+		}
+		if (minecraft.level == null) {
+			return new String[] {"menu", ""};
+		}
+		if (Hosting.isHosting()) {
+			return new String[] {"hosting", ""};
+		}
+		if (minecraft.getSingleplayerServer() != null) {
+			return new String[] {"singleplayer", ""};
+		}
+		ServerData server = minecraft.getCurrentServer();
+		return new String[] {"server", server == null ? "?" : server.ip};
 	}
 
 	// ---------------------------------------------------------------- the worker thread

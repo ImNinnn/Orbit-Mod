@@ -43,8 +43,14 @@ import java.util.function.Supplier;
  * they are, over HTTPS. Game thread only; network calls run in the background.
  */
 public final class Social {
-	/** Someone on the lists; {@code hosting} is the world a friend hosts (address, world, motd), or null. */
-	public record Person(UUID uuid, String name, double lastSeen, boolean online, @Nullable JsonObject hosting) {
+	/**
+	 * Someone on the lists; {@code hosting} is the world a friend hosts (address, world, motd), or null;
+	 * {@code activity} what they do while online ({"key": "server", "argument": "mc.hypixel.net"}), or null.
+	 */
+	public record Person(UUID uuid, String name, double lastSeen, boolean online, @Nullable JsonObject hosting, @Nullable JsonObject activity) {
+		public Person(UUID uuid, String name, double lastSeen, boolean online, @Nullable JsonObject hosting) {
+			this(uuid, name, lastSeen, online, hosting, null);
+		}
 	}
 
 	/**
@@ -264,8 +270,8 @@ public final class Social {
 			// The state answered: shown at once.
 			applyParty(result, true);
 			version++;
-			if (starting) {
-				// A party just started: the conversation gets an invitation to join it.
+			if (starting && !lastIsPartyInvite(chat)) {
+				// A party just started: the conversation gets an invitation to join it (one is enough in a row).
 				JsonObject invitation = new JsonObject();
 				invitation.addProperty("leader", Minecraft.getInstance().getUser().getName());
 				JsonObject content = new JsonObject();
@@ -275,6 +281,30 @@ public final class Social {
 			}
 			refresh();
 		}, error -> Notifications.warning(Component.translatable("orbit_cosmetic.party.failed"), Component.literal(error)));
+	}
+
+	/** Whether the conversation's last message is already a party invitation. */
+	private boolean lastIsPartyInvite(UUID chat) {
+		List<Entry> entries = chat(chat);
+		return !entries.isEmpty() && entries.getLast().content() != null && entries.getLast().content().has("party") && !entries.getLast().deleted();
+	}
+
+	/** Tells Orbit Cloud what the player does, when it changes (friends see it under their name). */
+	private String[] sharedActivity;
+	private long activitySentAt;
+
+	private void shareActivity(long now) {
+		String[] activity = dev.orbit.cosmetic.client.DiscordPresence.activity(Minecraft.getInstance());
+		if (java.util.Arrays.equals(activity, sharedActivity) || now - activitySentAt < 5_000) {
+			return;
+		}
+		sharedActivity = activity;
+		activitySentAt = now;
+		JsonObject body = new JsonObject();
+		body.addProperty("key", activity[0]);
+		body.addProperty("argument", activity[1]);
+		OrbitClient.get().backend().socialCall("PUT", "/activity", body, result -> {
+		}, error -> OrbitClient.LOGGER.debug("Friends: activity not shared: {}", error));
 	}
 
 	private java.util.Optional<String> partyName(UUID player) {
@@ -570,6 +600,9 @@ public final class Social {
 		PartyLink.get().tick(this);
 		ServerParty.tick(this);
 		PartyVote.tick(this);
+		if (loaded) {
+			shareActivity(System.currentTimeMillis());
+		}
 		if (!waiting && device != null && now >= waitAgainAt) {
 			waitForNews(account);
 		}
@@ -762,7 +795,8 @@ public final class Social {
 			double lastSeen = json.has("last_seen") && !json.get("last_seen").isJsonNull() ? json.get("last_seen").getAsDouble() : 0;
 			boolean online = json.has("online") && json.get("online").getAsBoolean();
 			JsonObject hosting = json.get("hosting") instanceof JsonObject world && world.has("address") ? world : null;
-			list.add(new Person(UUID.fromString(json.get("uuid").getAsString()), json.get("name").getAsString(), lastSeen, online, hosting));
+			list.add(new Person(UUID.fromString(json.get("uuid").getAsString()), json.get("name").getAsString(), lastSeen, online, hosting,
+				json.get("activity") instanceof JsonObject activity && activity.has("key") ? activity : null));
 		}
 		return list;
 	}

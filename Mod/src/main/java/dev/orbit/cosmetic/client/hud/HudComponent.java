@@ -108,6 +108,9 @@ public final class HudComponent {
 	public static final int DOCK_OPPOSITE = 1;
 	public static final int DOCK_BESIDE = 2;
 	private static final Identifier HOTBAR = Identifier.withDefaultNamespace("hud/hotbar");
+	private static final Identifier HOTBAR_OFFHAND = Identifier.withDefaultNamespace("hud/hotbar_offhand_left");
+	/** A row of the held item or armour component with the game's slots: as tall as the off hand's slot. */
+	private static final int SLOT_ROW = 24;
 	private static final EquipmentSlot[] ARMOR_SLOTS = {EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET};
 	/** The full armour component's text where there are no items to show (no world yet). */
 	private static final String[] SAMPLE_ARMOR = {"327/363", "290/528", "180/225", "39/195"};
@@ -141,6 +144,8 @@ public final class HudComponent {
 	public boolean hideEmptySlots;
 	/** What the party component shows of each member (see PartyBars: health, hunger, experience, armour...). */
 	public int partyParts = PartyBars.DEFAULT_PARTS;
+	/** The held item and full armour components: items in the game's hotbar slots (the off hand's own) instead of bare. */
+	public boolean vanillaSlots;
 	/** Moves down out of the way of the status effect icons ({@link #AVOID_EFFECTS}) and/or the boss bars ({@link #AVOID_BOSS_BARS}). */
 	public int avoid;
 	/** Linked: the member it is attached to, on which side, how far from it and how far along (in that member's pixels). */
@@ -169,6 +174,11 @@ public final class HudComponent {
 		return type.variants.length == 0 ? "" : type.variants[Math.floorMod(variant, type.variants.length)];
 	}
 
+	/** Whether the component is drawn in that variant ("hotbar", "vanilla"...). */
+	public boolean isVariant(String variantId) {
+		return is(variantId);
+	}
+
 	private boolean is(String variantId) {
 		return variantId().equals(variantId);
 	}
@@ -183,7 +193,7 @@ public final class HudComponent {
 
 	/** Whether the full armour or item component's text setting applies. */
 	public boolean hasDetail() {
-		return type == Type.ITEM || type == Type.ARMOR && is("full");
+		return type == Type.ITEM || type == Type.ARMOR && is("full") || type == Type.PARTY && (partyParts & PartyBars.DURABILITY_PART) != 0;
 	}
 
 	private @Nullable LocalPlayer player() {
@@ -224,9 +234,9 @@ public final class HudComponent {
 				for (int slot : armorSlots()) {
 					widest = Math.max(widest, font.width(texts[slot]));
 				}
-				yield Math.max(60, steady(widest + 28));
+				yield Math.max(60, steady(widest + (vanillaSlots ? 36 : 28)));
 			}
-			case ITEM -> Math.max(60, steady(font.width(itemText()) + 28));
+			case ITEM -> Math.max(60, steady(font.width(itemText()) + (vanillaSlots ? 36 : 28)));
 			case TIME -> steady(lineWidth(timeParts()));
 			case LOOKING_AT -> {
 				Look look = look();
@@ -239,7 +249,8 @@ public final class HudComponent {
 				int widest = Math.max(first, font.width(look.mod()));
 				yield Math.max(80, steady(widest + 34 + (look.tool() != null ? 20 : 0)));
 			}
-			case PARTY -> is("compact") ? 76 : Math.max(Math.max(is("vanilla") ? 198 : 140, 30 + PartyBars.slotsWidth(partyParts, is("vanilla"))), steady(partyTextWidth(font)));
+			case PARTY -> is("compact") ? Math.max(76, 19 + partySlotsWidth(font) + 5)
+				: Math.max(Math.max(is("vanilla") ? 198 : 140, 25 + partySlotsWidth(font) + 5), steady(partyTextWidth(font)));
 			case LAST_HIT -> {
 				LivingEntity target = lastHit();
 				int name = font.width(target != null ? target.getDisplayName() : Component.translatable("orbit_cosmetic.hud.sample.zombie"));
@@ -258,8 +269,8 @@ public final class HudComponent {
 			case PAPERDOLL -> 72;
 			case INVENTORY -> inventoryRows().length * 18 + 4;
 			case COMPASS -> is("long") ? 16 : 20;
-			case ARMOR -> is("hotbar") ? 22 : Math.max(1, armorSlots().size()) * 18 + 4;
-			case ITEM -> 20;
+			case ARMOR -> is("hotbar") ? 22 : Math.max(1, armorSlots().size()) * (vanillaSlots ? SLOT_ROW : 18) + 4;
+			case ITEM -> vanillaSlots ? SLOT_ROW + 2 : 20;
 			case LOOKING_AT -> 24;
 			case LAST_HIT -> 42;
 			case PARTY -> partyHeight();
@@ -504,14 +515,22 @@ public final class HudComponent {
 					for (int row = 0; row < slots.size(); row++) {
 						int i = slots.get(row);
 						boolean low = armor[i] == null ? i == 3 : isLow(armor[i]);
-						drawItemRow(graphics, font, armor[i], texts[i], low, 5, 2 + row * 18);
+						if (vanillaSlots) {
+							drawSlotRow(graphics, font, armor[i], texts[i], low, 3, 2 + row * SLOT_ROW, false);
+						} else {
+							drawItemRow(graphics, font, armor[i], texts[i], low, 5, 2 + row * 18);
+						}
 					}
 				}
 			}
 			case ITEM -> {
 				drawFrame(graphics, 0, 0, w, h, 1);
 				ItemStack stack = heldItem();
-				drawItemRow(graphics, font, stack, itemText(), stack != null && isLow(stack), 5, 2);
+				if (vanillaSlots) {
+					drawSlotRow(graphics, font, stack, itemText(), stack != null && isLow(stack), 3, 1, is("off_hand"));
+				} else {
+					drawItemRow(graphics, font, stack, itemText(), stack != null && isLow(stack), 5, 2);
+				}
 			}
 			case LOOKING_AT -> drawLookingAt(graphics, font, preview, screenX, screenY, scale);
 			case LAST_HIT -> drawLastHit(graphics, font, screenX, screenY, scale);
@@ -911,6 +930,26 @@ public final class HudComponent {
 		graphics.text(font, text, x + 21, y + 4, low ? accentColor() : text(), false);
 	}
 
+	/**
+	 * An item in one of the game's slots (a hotbar slot, or the off hand's own), and its text: a row of the held item
+	 * or armour component with the vanilla slots, or of the party component's items with durability.
+	 */
+	private void drawSlotRow(GuiGraphicsExtractor graphics, Font font, @Nullable ItemStack stack, String text, boolean low, int x, int y, boolean offhand) {
+		if (offhand) {
+			graphics.blitSprite(RenderPipelines.GUI_TEXTURED, HOTBAR_OFFHAND, x, y, 29, 24);
+		} else {
+			graphics.blitSprite(RenderPipelines.GUI_TEXTURED, HOTBAR, 182, 22, 0, 0, x, y + 1, 21, 22);
+			graphics.blitSprite(RenderPipelines.GUI_TEXTURED, HOTBAR, 182, 22, 181, 0, x + 21, y + 1, 1, 22);
+		}
+		if (stack != null && !stack.isEmpty()) {
+			graphics.item(stack, x + 3, y + 4);
+			graphics.itemDecorations(font, stack, x + 3, y + 4);
+		}
+		if (stack != null) {
+			graphics.text(font, stack.isEmpty() ? "-" : text, x + 31, y + 8, stack.isEmpty() ? Theme.FAINT : low ? accentColor() : text(), false);
+		}
+	}
+
 	/** Armour in a small hotbar, like Minecraft's own (with durability bars). */
 	private void drawArmorHotbar(GuiGraphicsExtractor graphics, Font font) {
 		if (background) {
@@ -1162,6 +1201,12 @@ public final class HudComponent {
 			JsonObject item = new JsonObject();
 			item.addProperty("id", slot[1]);
 			item.addProperty("glint", slot[0].equals("mainhand"));
+			if (!slot[0].equals("offhand")) {
+				var made = BuiltInRegistries.ITEM.getValue(Identifier.parse(slot[1]));
+				int max = new ItemStack(made).getMaxDamage();
+				item.addProperty("max_damage", max);
+				item.addProperty("damage", max * (slot[0].equals("mainhand") ? 3 : 1) / 10);
+			}
 			items.put(slot[0], item);
 		}
 		return items;
@@ -1253,10 +1298,10 @@ public final class HudComponent {
 				below = y + 22;
 			} else {
 				PartyBars.drawBars(graphics, member.uuid(), status, partyParts, barX, compact ? y + 2 : y + 11, barW);
-				below = y + 11 + PartyBars.barsHeight(partyParts) + 2;
+				below = (compact ? y + 2 : y + 11) + PartyBars.barsHeight(partyParts) + 2;
 			}
-			if (!compact && PartyBars.slotsHeight(partyParts, vanilla) > 0) {
-				PartyBars.drawSlots(graphics, font, status, partyParts, barX, below, itemsReady(), vanilla);
+			if (partySlotsHeight() > 0) {
+				drawPartySlots(graphics, font, status, barX, compact ? Math.max(y + 13, below) : below);
 			}
 			y += memberHeight(member);
 		}
@@ -1265,7 +1310,8 @@ public final class HudComponent {
 	/** One member's height: their name, what the toggles show (in the vanilla style, as tall as the game's), their items. */
 	private int memberHeight(Member member) {
 		if (is("compact")) {
-			return Math.max(14, 2 + PartyBars.barsHeight(partyParts) + 4);
+			int top = Math.max(14, 2 + PartyBars.barsHeight(partyParts) + 4);
+			return partySlotsHeight() > 0 ? Math.max(13, 2 + PartyBars.barsHeight(partyParts) + 2) + partySlotsHeight() + 2 : top;
 		}
 		var status = member.status();
 		int shown;
@@ -1276,7 +1322,7 @@ public final class HudComponent {
 		} else {
 			shown = Math.max(6, PartyBars.barsHeight(partyParts)) + 2;
 		}
-		return 11 + shown + PartyBars.slotsHeight(partyParts, is("vanilla")) + 3;
+		return 11 + shown + partySlotsHeight() + 3;
 	}
 
 	private int partyHeight() {
@@ -1289,6 +1335,104 @@ public final class HudComponent {
 			height += memberHeight(member);
 		}
 		return height;
+	}
+
+	/** The member's slots shown (off hand, main hand, then the armour from head to feet), as the toggles have them. */
+	private List<String> partySlots() {
+		List<String> slots = new java.util.ArrayList<>();
+		if ((partyParts & PartyBars.OFFHAND_PART) != 0) {
+			slots.add("offhand");
+		}
+		if ((partyParts & PartyBars.HELD_PART) != 0) {
+			slots.add("mainhand");
+		}
+		if ((partyParts & PartyBars.ARMOR_SLOTS_PART) != 0) {
+			slots.addAll(List.of("head", "chest", "legs", "feet"));
+		}
+		return slots;
+	}
+
+	private boolean partyDurability() {
+		return (partyParts & PartyBars.DURABILITY_PART) != 0;
+	}
+
+	/** How tall the member's items are: one row of slots, or (with durability) one row per item. */
+	private int partySlotsHeight() {
+		List<String> slots = partySlots();
+		if (slots.isEmpty()) {
+			return 0;
+		}
+		boolean vanilla = is("vanilla");
+		if (partyDurability()) {
+			return slots.size() * (vanilla ? SLOT_ROW : 18) + 1;
+		}
+		return vanilla ? 25 : 19;
+	}
+
+	private int partySlotsWidth(Font font) {
+		List<String> slots = partySlots();
+		if (slots.isEmpty()) {
+			return 0;
+		}
+		boolean vanilla = is("vanilla");
+		if (partyDurability()) {
+			return (vanilla ? 31 : 21) + font.width("0000/0000");
+		}
+		if (vanilla) {
+			return PartyBars.slotsWidth(partyParts, true);
+		}
+		int groups = (int) java.util.stream.Stream.of(PartyBars.OFFHAND_PART, PartyBars.HELD_PART, PartyBars.ARMOR_SLOTS_PART).filter(part -> (partyParts & part) != 0).count();
+		return slots.size() * 18 + (groups - 1) * 4;
+	}
+
+	/**
+	 * The member's items: in a row (bare, as the held item component draws them; the game's hotbar in the vanilla
+	 * style), or with durability one per row (off hand, main hand, armour), as the armour component shows them.
+	 */
+	private void drawPartySlots(GuiGraphicsExtractor graphics, Font font, dev.orbit.cosmetic.client.social.PartyLink.@Nullable Status status, int x, int y) {
+		boolean known = itemsReady() && status != null && status.playing();
+		boolean vanilla = is("vanilla");
+		List<String> slots = partySlots();
+		if (partyDurability()) {
+			for (String slot : slots) {
+				ItemStack stack = known ? itemOrEmpty(status.extra().items().get(slot)) : null;
+				String text = stack == null ? "" : detailText(stack);
+				boolean low = stack != null && isLow(stack);
+				if (vanilla) {
+					drawSlotRow(graphics, font, stack, text, low, x, y, slot.equals("offhand"));
+					y += SLOT_ROW;
+				} else {
+					drawItemRow(graphics, font, stack, text, low, x, y);
+					y += 18;
+				}
+			}
+			return;
+		}
+		if (vanilla) {
+			PartyBars.drawSlots(graphics, font, status, partyParts, x, y, itemsReady(), true);
+			return;
+		}
+		String previous = null;
+		for (String slot : slots) {
+			if (previous != null && (previous.equals("offhand") || previous.equals("mainhand"))) {
+				x += 4; // a gap between the hands and the armour
+			}
+			ItemStack stack = known ? itemOrEmpty(status.extra().items().get(slot)) : null;
+			if (stack == null || stack.isEmpty()) {
+				graphics.fill(x, y, x + 16, y + 16, 0x30000000);
+			} else {
+				graphics.item(stack, x, y);
+				graphics.itemDecorations(font, stack, x, y);
+			}
+			x += 18;
+			previous = slot;
+		}
+	}
+
+	/** The item a member's game sent for a slot, or an empty stack (nothing there). */
+	private static ItemStack itemOrEmpty(@Nullable JsonObject item) {
+		ItemStack stack = PartyBars.stack(item);
+		return stack == null ? ItemStack.EMPTY : stack;
 	}
 
 	/** The widest member line (head, name as the server shows it, leader mark, and where they play), to fit long ranks. */
@@ -1396,6 +1540,7 @@ public final class HudComponent {
 		json.addProperty("hideEmpty", hideEmpty);
 		json.addProperty("hideEmptySlots", hideEmptySlots);
 		json.addProperty("partyParts", partyParts);
+		json.addProperty("vanillaSlots", vanillaSlots);
 		json.addProperty("dock", dock);
 		json.addProperty("avoid", avoid);
 		if (parent != null) {
@@ -1434,6 +1579,7 @@ public final class HudComponent {
 			component.hideEmpty = json.has("hideEmpty") && json.get("hideEmpty").getAsBoolean();
 			component.hideEmptySlots = json.has("hideEmptySlots") && json.get("hideEmptySlots").getAsBoolean();
 			component.partyParts = json.has("partyParts") ? json.get("partyParts").getAsInt() : PartyBars.DEFAULT_PARTS;
+			component.vanillaSlots = json.has("vanillaSlots") && json.get("vanillaSlots").getAsBoolean();
 			component.avoid = json.has("avoid") ? json.get("avoid").getAsInt() & 3 : 0;
 			component.dock = json.has("dock") ? Mth.clamp(json.get("dock").getAsInt(), DOCK_NONE, DOCK_BESIDE) : DOCK_NONE;
 			if (json.has("parent")) {

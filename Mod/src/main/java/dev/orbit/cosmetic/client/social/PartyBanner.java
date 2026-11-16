@@ -37,7 +37,10 @@ public final class PartyBanner {
 			Component line = line();
 			if (line != null) {
 				graphics.nextStratum();
-				draw(graphics, Minecraft.getInstance().font, current.width, line, mouseX, mouseY);
+				Social.Party party = OrbitClient.get().social().party();
+				// Alone in it: grey ("No one in party").
+				int color = party != null && party.members().size() < 2 ? 0xA0A0A0 : GREEN;
+				draw(graphics, Minecraft.getInstance().font, current.width, line, mouseX, mouseY, color);
 			}
 		}));
 	}
@@ -49,6 +52,9 @@ public final class PartyBanner {
 		UUID me = social.me();
 		if (party == null || me == null) {
 			return null;
+		}
+		if (party.members().size() < 2) {
+			return Component.translatable("orbit_cosmetic.party.banner.alone");
 		}
 		if (party.group()) {
 			Social.Group group = social.group(party.chat());
@@ -62,7 +68,7 @@ public final class PartyBanner {
 	}
 
 	/** Drawn as a HUD component is: dark, with a green line on its left; gone while the mouse is on it. */
-	private static void draw(GuiGraphicsExtractor graphics, Font font, int width, Component line, int mouseX, int mouseY) {
+	private static void draw(GuiGraphicsExtractor graphics, Font font, int width, Component line, int mouseX, int mouseY, int color) {
 		int textWidth = Math.min(font.width(line), width - 24);
 		int w = textWidth + 12;
 		int h = 14;
@@ -80,8 +86,8 @@ public final class PartyBanner {
 		float pulse = FAINTEST + (1 - FAINTEST) * (float) (0.5 + 0.5 * Math.cos(phase * Math.PI * 2));
 		graphics.fill(x, y, x + w, y + h, alpha(0xB01C1C20, shown));
 		graphics.outline(x, y, w, h, alpha(0xC02E2E35, shown));
-		graphics.fill(x, y, x + 2, y + h, alpha(0xFF000000 | GREEN, shown));
-		graphics.text(font, Theme.clip(font, line, textWidth), x + 7, y + 3, alpha(0xFF000000 | GREEN, shown * pulse), false);
+		graphics.fill(x, y, x + 2, y + h, alpha(0xFF000000 | color, shown));
+		graphics.text(font, Theme.clip(font, line, textWidth), x + 7, y + 3, alpha(0xFF000000 | color, shown * pulse), false);
 	}
 
 	private static int alpha(int color, float factor) {
