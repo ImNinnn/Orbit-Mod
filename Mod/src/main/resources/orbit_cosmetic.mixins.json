@@ -11,18 +11,21 @@
 		"CameraMixin",
 		"CapeLayerMixin",
 		"ChatComponentMixin",
+		"ConnectScreenMixin",
 		"ClientLevelMixin",
 		"GameRendererMixin",
 		"GuiGraphicsExtractorAccessor",
 		"InventoryScreenMixin",
 		"JoinMultiplayerScreenAccessor",
+		"KeyMappingMixin",
 		"LivingEntityRendererMixin",
 		"MouseHandlerMixin",
 		"MultiPlayerGameModeAccessor",
 		"ModelPartAccessor",
 		"PlayerInfoMixin",
 		"PlayerModelMixin",
-		"ScreenshotMixin"
+		"ScreenshotMixin",
+		"WorldOpenFlowsMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

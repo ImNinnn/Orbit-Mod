@@ -239,7 +239,7 @@ public final class HudComponent {
 				int widest = Math.max(first, font.width(look.mod()));
 				yield Math.max(80, steady(widest + 34 + (look.tool() != null ? 20 : 0)));
 			}
-			case PARTY -> is("compact") ? 76 : Math.max(Math.max(is("vanilla") ? 198 : 140, 30 + PartyBars.slotsWidth(partyParts)), steady(partyTextWidth(font)));
+			case PARTY -> is("compact") ? 76 : Math.max(Math.max(is("vanilla") ? 198 : 140, 30 + PartyBars.slotsWidth(partyParts, is("vanilla"))), steady(partyTextWidth(font)));
 			case LAST_HIT -> {
 				LivingEntity target = lastHit();
 				int name = font.width(target != null ? target.getDisplayName() : Component.translatable("orbit_cosmetic.hud.sample.zombie"));
@@ -1127,7 +1127,7 @@ public final class HudComponent {
 	// ---------------------------------------------------------------- party
 
 	/** A party member as the component shows them (a sample in the editor when not in a party). */
-	private record Member(UUID uuid, String name, boolean leader, dev.orbit.cosmetic.client.social.PartyLink.@Nullable Status status) {
+	private record Member(UUID uuid, String name, dev.orbit.cosmetic.client.social.PartyLink.@Nullable Status status) {
 	}
 
 	/** The other members of the player's party (or samples, for the add menu and the editor out of a party). */
@@ -1138,16 +1138,16 @@ public final class HudComponent {
 			if (!sample && !(dev.orbit.cosmetic.client.compat.Compat.screen() instanceof HudEditorScreen)) {
 				return List.of();
 			}
-			return List.of(new Member(new UUID(0, 1), "Alex", true, new dev.orbit.cosmetic.client.social.PartyLink.Status(16, 20, 4, 18, 5, 0, 0, "survival", 0, 0,
-				new dev.orbit.cosmetic.client.social.PartyLink.Extra(23, 0.6F, 15, 300, 300, false, false, "", sampleItems()), true, "play.example.net", "", 0)),
-				new Member(new UUID(0, 2), "Steve", false, new dev.orbit.cosmetic.client.social.PartyLink.Status(7, 20, 0, 9, 0, 0, dev.orbit.cosmetic.client.social.PartyLink.POISON, "survival", 0, 0,
-					new dev.orbit.cosmetic.client.social.PartyLink.Extra(4, 0.2F, 6, 120, 300, true, true, "", java.util.Map.of()), true,
+			return List.of(new Member(new UUID(0, 1), "Alex", new dev.orbit.cosmetic.client.social.PartyLink.Status(16, 20, 4, 18, 5, 0, 0, "survival", 0, 0,
+				new dev.orbit.cosmetic.client.social.PartyLink.Extra(23, 0.6F, 15, 300, 300, false, false, "", sampleItems(), ""), true, "play.example.net", "", 0)),
+				new Member(new UUID(0, 2), "Steve", new dev.orbit.cosmetic.client.social.PartyLink.Status(7, 20, 0, 9, 0, 0, dev.orbit.cosmetic.client.social.PartyLink.POISON, "survival", 0, 0,
+					new dev.orbit.cosmetic.client.social.PartyLink.Extra(4, 0.2F, 6, 120, 300, true, true, "", java.util.Map.of(), ""), true,
 					ownPlace(), "", 0)));
 		}
 		List<Member> members = new java.util.ArrayList<>();
 		for (var person : party.members()) {
 			if (!person.uuid().equals(social.me())) {
-				members.add(new Member(person.uuid(), person.name(), person.uuid().equals(party.leader()), dev.orbit.cosmetic.client.social.PartyLink.get().status(person.uuid())));
+				members.add(new Member(person.uuid(), person.name(), dev.orbit.cosmetic.client.social.PartyLink.get().status(person.uuid())));
 			}
 		}
 		return members;
@@ -1181,6 +1181,25 @@ public final class HudComponent {
 		return name;
 	}
 
+	/**
+	 * What shows beside a member's name: the server (or world) they play on when it is not this one, or, on the same
+	 * network but another of its servers (another lobby or game), the top of their sidebar, which often names it.
+	 */
+	private static String shownPlace(Member member, boolean elsewhere) {
+		var status = member.status();
+		if (status == null || !status.playing()) {
+			return "";
+		}
+		if (elsewhere) {
+			return status.place();
+		}
+		boolean sample = member.uuid().getMostSignificantBits() == 0;
+		if (!sample && dev.orbit.cosmetic.client.social.PartyLink.tabEntry(member.uuid()) == null && !status.server().isEmpty()) {
+			return status.extra().scoreboard();
+		}
+		return "";
+	}
+
 	/** Invisible and spectating members' names are drawn faded. */
 	private static boolean faded(Member member) {
 		var status = member.status();
@@ -1210,8 +1229,8 @@ public final class HudComponent {
 			int barX = 5 + size + 4;
 			int barW = w - barX - 5;
 			if (!compact) {
-				int room = barW - 12;
-				String place = elsewhere ? status.place() : "";
+				int room = barW;
+				String place = shownPlace(member, elsewhere);
 				String shownPlace = place.isEmpty() ? "" : font.plainSubstrByWidth(place, Math.min(90, Math.max(0, barW / 2)));
 				if (!shownPlace.isEmpty()) {
 					room -= font.width(shownPlace) + 4;
@@ -1223,11 +1242,6 @@ public final class HudComponent {
 					color = (color & 0xFFFFFF) | 0x80000000;
 				}
 				graphics.text(font, clipStyled(font, name, room), barX, y + 1, color, false);
-				if (member.leader()) {
-					Theme.icon(graphics, "party", barX + Math.min(font.width(name), room) + 3, y, Theme.GOLD);
-				}
-			} else if (member.leader()) {
-				graphics.fill(5, y + 1, 7, y + 3, Theme.GOLD);
 			}
 			int below;
 			if (vanilla) {
@@ -1241,8 +1255,8 @@ public final class HudComponent {
 				PartyBars.drawBars(graphics, member.uuid(), status, partyParts, barX, compact ? y + 2 : y + 11, barW);
 				below = y + 11 + PartyBars.barsHeight(partyParts) + 2;
 			}
-			if (!compact && PartyBars.slotsHeight(partyParts) > 0) {
-				PartyBars.drawSlots(graphics, font, status, partyParts, barX, below, itemsReady());
+			if (!compact && PartyBars.slotsHeight(partyParts, vanilla) > 0) {
+				PartyBars.drawSlots(graphics, font, status, partyParts, barX, below, itemsReady(), vanilla);
 			}
 			y += memberHeight(member);
 		}
@@ -1262,7 +1276,7 @@ public final class HudComponent {
 		} else {
 			shown = Math.max(6, PartyBars.barsHeight(partyParts)) + 2;
 		}
-		return 11 + shown + PartyBars.slotsHeight(partyParts) + 2;
+		return 11 + shown + PartyBars.slotsHeight(partyParts, is("vanilla")) + 3;
 	}
 
 	private int partyHeight() {
@@ -1284,9 +1298,11 @@ public final class HudComponent {
 			var status = member.status();
 			boolean sample = member.uuid().getMostSignificantBits() == 0;
 			Component name = sample ? Component.literal(member.name()) : dev.orbit.cosmetic.client.social.PartyLink.displayName(member.uuid(), member.name());
-			int line = 25 + font.width(name) + 12 + 5;
-			if (!sample && status != null && status.playing() && !dev.orbit.cosmetic.client.social.PartyLink.playsHere(member.uuid(), status)) {
-				line += Math.min(90, font.width(status.place())) + 4;
+			int line = 25 + font.width(name) + 5;
+			boolean elsewhere = !sample && status != null && status.playing() && !dev.orbit.cosmetic.client.social.PartyLink.playsHere(member.uuid(), status);
+			String place = sample ? "" : shownPlace(member, elsewhere);
+			if (!place.isEmpty()) {
+				line += Math.min(90, font.width(place)) + 4;
 			}
 			widest = Math.max(widest, line);
 		}
@@ -1308,7 +1324,7 @@ public final class HudComponent {
 	 */
 	private static void drawPartyHead(GuiGraphicsExtractor graphics, Member member, int x, int y, int size, boolean away, boolean elsewhere) {
 		if (member.uuid().getMostSignificantBits() == 0) {
-			graphics.fill(x, y, x + size, y + size, member.leader() ? 0xFFB07A4A : 0xFF4A6FB0);
+			graphics.fill(x, y, x + size, y + size, member.uuid().getLeastSignificantBits() == 1 ? 0xFFB07A4A : 0xFF4A6FB0);
 		} else {
 			dev.orbit.cosmetic.client.social.SocialPopups.face(graphics, member.uuid(), member.name(), x, y, size);
 		}

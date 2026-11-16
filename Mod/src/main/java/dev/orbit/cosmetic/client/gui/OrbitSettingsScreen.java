@@ -387,6 +387,23 @@ public final class OrbitSettingsScreen extends OrbitScreen {
 				rows.add(new Action("clear_cache", () -> cacheBytes < 0 ? Component.translatable("orbit_cosmetic.settings.clear_cache.button")
 					: Component.translatable("orbit_cosmetic.settings.cache_usage", cacheBytes / 1024), this::clearCache));
 				rows.add(new Action("folder", () -> Component.translatable("orbit_cosmetic.settings.folder.open"), () -> Compat.openPath(OrbitClient.get().paths().root())));
+				// Risky: party commands sent without a click (servers may take it for a macro).
+				rows.add(new Heading(Component.translatable("orbit_cosmetic.settings.risky").withStyle(net.minecraft.ChatFormatting.RED)));
+				rows.add(new Toggle("auto_server_party", () -> dev.orbit.cosmetic.client.OrbitData.settings().autoServerParty, v -> {
+					if (!v) {
+						dev.orbit.cosmetic.client.OrbitData.settings().autoServerParty = false;
+						dev.orbit.cosmetic.client.OrbitData.settings().save();
+						return;
+					}
+					Compat.setScreen(new net.minecraft.client.gui.screens.ConfirmScreen(yes -> {
+						if (yes) {
+							dev.orbit.cosmetic.client.OrbitData.settings().autoServerParty = true;
+							dev.orbit.cosmetic.client.OrbitData.settings().save();
+						}
+						Compat.setScreen(this);
+					}, Component.translatable("orbit_cosmetic.settings.auto_server_party.confirm.title").withStyle(net.minecraft.ChatFormatting.RED),
+						Component.translatable("orbit_cosmetic.settings.auto_server_party.confirm.text")));
+				}));
 				// Hidden at the very bottom, as promised.
 				rows.add(new Heading(Component.translatable("orbit_cosmetic.settings.just_for_fun")));
 				rows.add(new Toggle("joke_coins", () -> dev.orbit.cosmetic.client.OrbitData.settings().jokeCoins, v -> {

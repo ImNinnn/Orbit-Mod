@@ -405,7 +405,8 @@ times as you like:
   on loss and gain, shaking when low, the regeneration wave, hungry shanks with the hunger effect and jittering with
   no saturation left, and their mount's hearts while they ride. The other styles colour the bars by the same states
   (absorption in gold) and flash them when a member loses health or hunger; creative and spectator players show
-  their game mode. A mark on a head says when a member is dead (red cross), away from the game or in its menus
+  their game mode. Beside a member on the same network but another of its servers (another lobby or game), the top
+  of their sidebar shows, which often names it. A mark on a head says when a member is dead (red cross), away from the game or in its menus
   (grey), or on another server (yellow); players of the same network (alpha.hypixel.net and mc.hypixel.net) count
   as on the same server. With [AppleSkin](https://modrinth.com/mod/appleskin) installed, their saturation shows on
   their hunger as AppleSkin shows yours, and their exhaustion under it (known in singleplayer, or on servers with
@@ -523,32 +524,42 @@ message or until you click it: over the pause menu, hidden windows show see-thro
 
 **Parties.** In a conversation (with a friend, or a group chat), the party button starts a party, or joins the
 one someone started there (it shows green, and you get a notification when one starts). Starting one sends an
-invitation in the chat, with **Join** while the party is on. You are in one party at a time; when the leader leaves,
-the lead goes to the member there the longest (one on the leader's server first). A member whose game has been
-closed for two minutes leaves the party (they join again themselves when they come back). Party members have a party icon beside their name (gold for the leader), conversations with a party going have the party icon
-in the list (green for yours) and stars rising behind their messages, in the conversation's colour. While you are
-in a party, a line at the top of every menu says who with ("You are the party leader in Builders - Alex, Steve");
-it steps aside while the mouse is on it. In a group, the party icon marks who is in its party even when you are
-not. **Following the leader:** when the party's leader opens a singleplayer world, it is hosted at once (with
-[e4mc](https://modrinth.com/mod/e4mc)), and when they join a server or their world goes online, the other members
-get an invitation to follow (**Join**). A member who is not with the leader joins them from the leader's menu in
-the group's member list, or with the play button beside the party button in a friend's chat. The quick menu's
-**Warp party** invites everyone again (on Hypixel, it is `/p warp`). **Shift + the social key** (J) presses the
-newest social popup's button (Join, Accept...) without freeing the mouse. In a
-friend's chat, the party's leader hands the lead over with the star beside the party button; in a group, from the
-member's menu. While in a party, your game shares your health, hunger and server with the other members only (the
-party button's tooltip lists them, and the **Party** HUD component shows them).
+invitation in the chat, with **Join** while the party is on. You are in one party at a time, and parties have no
+leader: everyone leaves by themselves, and a member whose game has been closed for two minutes leaves too (they
+join again when they come back). Party members have a party icon beside their name (in a group, even for a party
+you are not in), conversations with a party going have the party icon in the list (green for yours) and stars
+rising behind their messages, in the conversation's colour. While you are in a party, a line at the top of every
+menu says who with ("In a party in Builders - Alex, Steve"); it steps aside while the mouse is on it. While in a
+party, your game shares your health, hunger, server and so on with the other members only (the party button's
+tooltip lists them, and the **Party** HUD component shows them).
 
-**Parties on Hypixel.** Hypixel has its own parties; Orbit drives them for you, only when you click:
-when party members are on Hypixel with you and you lead, a popup offers **Invite** (`/p invite` for each of them),
-and their games offer **Accept** (`/p accept`). Leaving the Orbit party leaves Hypixel's (`/p leave`; its leader
-first hands Hypixel's party to the next leader with `/p promote`, or ends it with `/p disband` when alone), removing a member removes them there too (`/p kick`), and handing the lead over
-promotes them (`/p promote`). The quick menu's **Warp party** brings them to you (`/p warp`). Popups are clicked
-with a screen open (press T for the chat). Commands go one at a time, a little over a second apart.
+**Playing together: votes.** In a party, joining a server or opening a singleplayer world asks first: **Join
+alone**, or **With party**. With the party, the other members get a notification ("Ninnn would like to join
+Hypixel - 13s remaining") with **Join - 1/3** and **Opt out**, while you wait. Each Join counts one more; Opt out
+leaves the member out of the count. When everyone still counted has joined, or after 15 seconds, everyone who
+pressed Join goes there at the same time (members who did not answer stay where they are). A singleplayer world
+is opened and put online first (with [e4mc](https://modrinth.com/mod/e4mc); without it, only **Join alone** is
+possible), and the others join once it is online. To join a member who plays elsewhere, use **Join** in their
+menu in the group's member list, or the play button beside the party button in a friend's chat. The quick menu's
+**Warp party** starts a vote to bring the party where you are. **Shift + the social key** (J) presses the newest
+notification's button (Join, Accept...) without freeing the mouse.
 
-**Group members.** The **⋯** beside a member in a group's member list opens what can be done with them: see their
-page, make them party leader or remove them from the party (when you lead it), make them group leader or remove
-them from the group (when you lead it), add or remove them as a friend, block or unblock them.
+**Parties on Hypixel.** Hypixel has its own parties; Orbit drives them for you. Whoever started the vote that
+brought the party leads Hypixel's party: once the others are there, a popup offers them **Invite** (`/p invite`
+for each), and the others' games offer **Accept** (`/p accept`). Leaving the Orbit party leaves Hypixel's
+(`/p leave`; its leader first hands it to another member with `/p promote`, or ends it with `/p disband` when
+alone). **Warp party** is `/p warp` for its leader. Popups are clicked with a screen open (press T for the chat),
+or with Shift + J. Commands go one at a time, a little over a second apart. In Settings → Advanced, **Automatic
+server party commands** (risky, with a warning) sends the invites and accepts without a click; around each
+command Orbit sends by itself, the game ignores your actions (moving, attacking, using...) for 0.1 seconds
+before and after.
+
+**Group members.** The **⋯** beside a member in a group's member list opens what can be done with them: join
+them (a party member playing elsewhere), see their page, make them group leader or remove them from the group
+(when you lead it), add or remove them as a friend, block or unblock them.
+
+**Social notifications** are coloured by what they are about: messages and friend requests in red, the party in
+green, a friend coming online in gold, and invitations to a world in blue; each is as wide as its text needs.
 
 **Messages from Orbit.** The Orbit team can send a message to every player (text, and a picture). It shows as a
 conversation with **Orbit**, with the Orbit icon, and pops up when it is new. You cannot answer it, and it

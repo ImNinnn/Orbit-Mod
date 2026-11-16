@@ -58,6 +58,8 @@ public final class OrbitData {
 		public boolean discordPresence = true;
 		public boolean jokeCoins = false;
 		public long jokeCoinBalance = 375;
+		/** Risky: party commands on servers with their own parties (Hypixel) sent on their own, not on a click. */
+		public boolean autoServerParty = false;
 
 		/** Orbit Cloud may be used: the current terms were accepted. */
 		public boolean hasAcceptedTerms() {

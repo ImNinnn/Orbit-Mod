@@ -1,7 +1,10 @@
 package dev.orbit.cosmetic.client.social;
 
 import dev.orbit.cosmetic.client.OrbitClient;
+import dev.orbit.cosmetic.client.OrbitData;
+import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.Options;
 import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.network.chat.Component;
 import org.jspecify.annotations.Nullable;
@@ -15,24 +18,36 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * The Orbit party on servers with their own party system (Hypixel): its commands, sent only when the player asks
- * (a click on Invite or Accept, or an Orbit party action of theirs: leave, remove, hand over the lead), one at a
- * time with the server's chat cooldown in mind. Nothing is sent on its own.
+ * The Orbit party on servers with their own party system (Hypixel). Its leader there is whoever started the vote
+ * that brought the party: they invite the members who came with them (Invite), the members accept (Accept). Leaving
+ * the Orbit party leaves the server's (its leader hands it to another member first, or ends it when alone).
+ * <p>
+ * By default every command is sent only when the player clicks. With the risky setting (Advanced), invites and
+ * accepts are sent on their own; around each command Orbit sends by itself, the game takes no actions (moving,
+ * attacking, using...) for a moment, so nothing done right then is taken for part of a macro.
  */
 public final class ServerParty {
 	/** A server's party commands ({@code %s} is a player's name). */
-	private record Commands(String invite, String accept, String leave, String kick, String warp, String promote, String disband) {
+	private record Commands(String invite, String accept, String leave, String warp, String promote, String disband) {
 	}
 
-	private static final Commands HYPIXEL = new Commands("p invite %s", "p accept %s", "p leave", "p kick %s", "p warp", "p promote %s", "p disband");
+	private static final Commands HYPIXEL = new Commands("p invite %s", "p accept %s", "p leave", "p warp", "p promote %s", "p disband");
 	/** Between two commands: Hypixel refuses commands sent faster. */
 	private static final long SPACING_MS = 1200;
+	/** No actions this long before and after a command sent on its own. */
+	private static final long FREEZE_MS = 100;
 
 	private static final Deque<String> QUEUE = new ArrayDeque<>();
 	private static long nextAt;
-	/** The members already offered to invite (not offered again until they leave the server or the party changes). */
+	/** A command about to go (on its own): when it goes, and until when actions are not taken. */
+	private static long sendAt;
+	private static volatile long frozenUntil;
+	private static @Nullable Set<KeyMapping> frozenKeys;
+	/** The server's party: who leads it (who started the vote), who came, on which network; and who was invited. */
+	private static @Nullable UUID leader;
+	private static List<UUID> members = List.of();
+	private static @Nullable String network;
 	private static final Set<UUID> OFFERED = new HashSet<>();
-	private static @Nullable String offeredFor;
 
 	private ServerParty() {
 	}
@@ -61,42 +76,81 @@ public final class ServerParty {
 		return commands() != null;
 	}
 
+	/** Whether the risky setting is on: party commands sent on their own. */
+	private static boolean automatic() {
+		return OrbitData.settings().autoServerParty;
+	}
+
 	private static void send(String command) {
 		QUEUE.addLast(command);
 	}
 
-	/** Called every tick: sends the next command when it is time, and offers to invite members who came on. */
+	/** A key the game is not to act on now (around a command sent on its own): the gameplay keys, not the chat. */
+	public static boolean blocks(KeyMapping key) {
+		if (System.currentTimeMillis() >= frozenUntil) {
+			return false;
+		}
+		if (frozenKeys == null) {
+			Options options = Minecraft.getInstance().options;
+			Set<KeyMapping> keys = new HashSet<>(List.of(options.keyUp, options.keyDown, options.keyLeft, options.keyRight, options.keyJump, options.keyShift,
+				options.keySprint, options.keyAttack, options.keyUse, options.keyPickItem, options.keyDrop, options.keySwapOffhand, options.keyInventory));
+			keys.addAll(List.of(options.keyHotbarSlots));
+			frozenKeys = keys;
+		}
+		return frozenKeys.contains(key);
+	}
+
+	/** A vote brought players to a place: on a server with a party of its own, the one who asked leads it there. */
+	static void voteWon(UUID from, List<UUID> players, String address) {
+		if (commandsFor(address) == null || players.size() < 2) {
+			return;
+		}
+		leader = from;
+		members = List.copyOf(players);
+		network = PartyLink.network(address);
+		OFFERED.clear();
+	}
+
+	/** Called every tick: sends the next command when it is time, and lets the leader invite who came. */
 	static void tick(Social social) {
 		Minecraft minecraft = Minecraft.getInstance();
 		long now = System.currentTimeMillis();
+		Commands commands = commands();
 		if (!QUEUE.isEmpty() && now >= nextAt) {
-			if (minecraft.player == null || commands() == null) {
+			if (minecraft.player == null || commands == null) {
 				QUEUE.clear();
-			} else {
+				sendAt = 0;
+			} else if (!automatic()) {
 				minecraft.player.connection.sendCommand(QUEUE.pollFirst());
+				nextAt = now + SPACING_MS;
+			} else if (sendAt == 0) {
+				// On its own: no actions from now until a moment after it went.
+				sendAt = now + FREEZE_MS;
+				frozenUntil = sendAt + FREEZE_MS + 50;
+			} else if (now >= sendAt) {
+				minecraft.player.connection.sendCommand(QUEUE.pollFirst());
+				frozenUntil = System.currentTimeMillis() + FREEZE_MS;
+				sendAt = 0;
 				nextAt = now + SPACING_MS;
 			}
 		}
 		Social.Party party = social.party();
-		Commands commands = commands();
-		String key = party == null || commands == null ? null : party.chat() + "@" + currentServer();
-		if (key == null || !key.equals(offeredFor)) {
-			OFFERED.clear();
-			offeredFor = key;
-		}
-		if (key == null || !party.leader().equals(social.me())) {
+		UUID me = social.me();
+		if (party == null || commands == null || leader == null || !leader.equals(me) || network == null
+			|| !network.equals(PartyLink.network(currentServer() == null ? "" : currentServer()))) {
 			return;
 		}
-		// The leader: members on this server not offered yet.
-		List<Social.Person> here = party.members().stream().filter(member -> !member.uuid().equals(social.me()) && !OFFERED.contains(member.uuid()))
-			.filter(member -> {
-				PartyLink.Status status = PartyLink.get().status(member.uuid());
-				return status != null && commandsFor(status.server()) == commands;
-			}).toList();
+		// The leader: who came with the vote and plays here now, not invited yet.
+		List<Social.Person> here = party.members().stream().filter(member -> !member.uuid().equals(me) && members.contains(member.uuid()) && !OFFERED.contains(member.uuid()))
+			.filter(member -> PartyLink.playsHere(member.uuid(), PartyLink.get().status(member.uuid()))).toList();
 		if (here.isEmpty()) {
 			return;
 		}
 		here.forEach(member -> OFFERED.add(member.uuid()));
+		if (automatic()) {
+			invite(here);
+			return;
+		}
 		Social.Person first = here.getFirst();
 		Component detail = here.size() == 1 ? Component.translatable("orbit_cosmetic.server_party.offer.one", first.name())
 			: Component.translatable("orbit_cosmetic.server_party.offer.many", here.size());
@@ -104,21 +158,25 @@ public final class ServerParty {
 			Component.translatable("orbit_cosmetic.server_party.invite"), () -> invite(here));
 	}
 
-	/** Invites the members on this server to the server's party, and tells their games (they offer to accept). */
-	private static void invite(List<Social.Person> members) {
+	/** Invites the members here to the server's party, and tells their games (they accept). */
+	private static void invite(List<Social.Person> invited) {
 		Commands commands = commands();
 		if (commands == null) {
 			return;
 		}
-		members.forEach(member -> send(commands.invite().formatted(member.name())));
+		invited.forEach(member -> send(commands.invite().formatted(member.name())));
 		PartyLink.get().signal("server_party_invite");
 	}
 
-	/** Another member's game says it invited this player in the server's party: offered to accept, if they lead. */
+	/** The server party's leader says they invited this player: accepted (on its own, or with a click). */
 	static void signal(Social social, UUID from, String name, String signal) {
 		Social.Party party = social.party();
 		Commands commands = commands();
-		if (!signal.equals("server_party_invite") || commands == null || party == null || !party.leader().equals(from) || !name.matches("[A-Za-z0-9_]{1,16}")) {
+		if (!signal.equals("server_party_invite") || commands == null || party == null || !from.equals(leader) || !name.matches("[A-Za-z0-9_]{1,16}")) {
+			return;
+		}
+		if (automatic()) {
+			send(commands.accept().formatted(name));
 			return;
 		}
 		SocialPopups.action(from, name, Component.translatable("orbit_cosmetic.server_party.invited", name), Component.translatable("orbit_cosmetic.server_party.invited.detail"),
@@ -126,39 +184,23 @@ public final class ServerParty {
 	}
 
 	/**
-	 * Who leads once the leader leaves: the member there the longest who plays on the leader's server (so the
-	 * server's party keeps a leader in it), else the member there the longest. Null when nobody else is in it.
+	 * The player left the Orbit party: they leave the server's too. Its leader first hands it to a member who came
+	 * and plays here (or ends it when there is none).
 	 */
-	static Social.@Nullable Person successor(Social.Party party, UUID me) {
-		String server = currentServer();
-		Social.Person first = null;
-		for (Social.Person member : party.members()) {
-			if (member.uuid().equals(me)) {
-				continue;
-			}
-			if (first == null) {
-				first = member;
-			}
-			PartyLink.Status status = PartyLink.get().status(member.uuid());
-			if (server != null && PartyLink.playsHere(member.uuid(), status)) {
-				return member;
-			}
-		}
-		return first;
-	}
-
-	/**
-	 * The player left the Orbit party: they leave the server's too. Its leader first hands it to the next leader
-	 * (it ends only when nobody is left to lead it).
-	 */
-	static void left(boolean wasLeader, Social.@Nullable Person next) {
+	static void left(Social.Party party, @Nullable UUID me) {
 		Commands commands = commands();
-		if (commands == null) {
+		UUID was = leader;
+		leader = null;
+		if (commands == null || was == null || network == null || !network.equals(PartyLink.network(currentServer() == null ? "" : currentServer()))) {
 			return;
 		}
-		if (!wasLeader) {
+		if (!was.equals(me)) {
 			send(commands.leave());
-		} else if (next == null) {
+			return;
+		}
+		Social.Person next = party.members().stream().filter(member -> !member.uuid().equals(me) && members.contains(member.uuid()))
+			.filter(member -> PartyLink.playsHere(member.uuid(), PartyLink.get().status(member.uuid()))).findFirst().orElse(null);
+		if (next == null) {
 			send(commands.disband());
 		} else {
 			send(commands.promote().formatted(next.name()));
@@ -166,33 +208,18 @@ public final class ServerParty {
 		}
 	}
 
-	/** The leader removed a member from the Orbit party: from the server's too. */
-	static void removed(String name) {
-		Commands commands = commands();
-		if (commands != null) {
-			send(commands.kick().formatted(name));
-		}
-	}
-
-	/** The leader handed the Orbit party over: the server's too. */
-	static void promoted(String name) {
-		Commands commands = commands();
-		if (commands != null) {
-			send(commands.promote().formatted(name));
-		}
-	}
-
 	/**
-	 * The leader brings the party's players to them (the quick menu's Warp party): the server's warp where it has
-	 * one (Hypixel), else the members are invited to follow again.
+	 * Brings the party here (the quick menu's Warp party): the server's own warp for its party's leader, else a vote
+	 * to come here.
 	 */
 	public static void warp() {
 		Commands commands = commands();
-		if (commands != null) {
+		UUID me = OrbitClient.get().social().me();
+		if (commands != null && me != null && me.equals(leader)) {
 			send(commands.warp());
 			OrbitClient.LOGGER.info("Party: warping the server's party");
 		} else {
-			PartyFollow.inviteAgain();
+			PartyVote.warp();
 		}
 	}
 }

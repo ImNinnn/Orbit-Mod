@@ -15,8 +15,8 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * While the player is in a party, a green line at the top of every menu says so: "In a party with Steve", or "You
- * are the party leader in Builders - Alex, Steve" (a group's party lists its other members). It fades in and out a
+ * While the player is in a party, a green line at the top of every menu says so: "In a party with Steve", or "In a
+ * party in Builders - Alex, Steve" (a group's party lists its other members). It fades in and out a
  * little. Also the stars rising behind a conversation that has a party going.
  */
 public final class PartyBanner {
@@ -50,17 +50,15 @@ public final class PartyBanner {
 		if (party == null || me == null) {
 			return null;
 		}
-		boolean leader = party.leader().equals(me);
 		if (party.group()) {
 			Social.Group group = social.group(party.chat());
 			String name = group != null ? group.name() : "?";
 			String others = party.members().stream().filter(member -> !member.uuid().equals(me)).map(Social.Person::name).collect(Collectors.joining(", "));
-			String key = leader ? "orbit_cosmetic.party.banner.leader_group" : "orbit_cosmetic.party.banner.group";
-			return others.isEmpty() ? Component.translatable(key + ".alone", name) : Component.translatable(key, name, others);
+			return others.isEmpty() ? Component.translatable("orbit_cosmetic.party.banner.group.alone", name) : Component.translatable("orbit_cosmetic.party.banner.group", name, others);
 		}
 		Social.Person friend = social.friend(party.chat());
 		String name = friend != null ? friend.name() : party.members().stream().filter(member -> !member.uuid().equals(me)).map(Social.Person::name).findFirst().orElse("?");
-		return Component.translatable(leader ? "orbit_cosmetic.party.banner.leader_friend" : "orbit_cosmetic.party.banner.friend", name);
+		return Component.translatable("orbit_cosmetic.party.banner.friend", name);
 	}
 
 	/** Drawn as a HUD component is: dark, with a green line on its left; gone while the mouse is on it. */

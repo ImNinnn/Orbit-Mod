@@ -130,7 +130,7 @@ public final class QuickMenuLayout {
 				case HUD_PROFILE -> profile() != null;
 				case PARTY_WARP -> {
 					var party = orbit.social().party();
-					yield party != null && party.leader().equals(orbit.social().me()) && minecraft.level != null;
+					yield party != null && party.members().size() > 1 && minecraft.level != null;
 				}
 				case PERSPECTIVE, HIDE_GUI -> minecraft.level != null;
 				default -> true;

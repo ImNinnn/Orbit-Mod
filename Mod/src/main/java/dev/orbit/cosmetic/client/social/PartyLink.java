@@ -56,8 +56,9 @@ public final class PartyLink implements WebSocket.Listener {
 	 * they are invisible, the online address of the world they host (e4mc), and their armour and held items (by
 	 * slot: head, chest, legs, feet, mainhand, offhand; each its item's ID, count, damage and glint).
 	 */
-	public record Extra(int xpLevel, float xpProgress, int armor, int air, int maxAir, boolean underwater, boolean invisible, String host, Map<String, JsonObject> items) {
-		public static final Extra NONE = new Extra(0, 0, 0, 300, 300, false, false, "", Map.of());
+	public record Extra(int xpLevel, float xpProgress, int armor, int air, int maxAir, boolean underwater, boolean invisible, String host, Map<String, JsonObject> items,
+		String scoreboard) {
+		public static final Extra NONE = new Extra(0, 0, 0, 300, 300, false, false, "", Map.of(), "");
 	}
 
 	public static final int POISON = 1;
@@ -192,6 +193,13 @@ public final class PartyLink implements WebSocket.Listener {
 			}
 			json.add("items", items);
 		}
+		if (minecraft.level != null) {
+			var objective = minecraft.level.getScoreboard().getDisplayObjective(net.minecraft.world.scores.DisplaySlot.SIDEBAR);
+			if (objective != null) {
+				String title = net.minecraft.ChatFormatting.stripFormatting(objective.getDisplayName().getString()).strip();
+				json.addProperty("scoreboard", title.length() > 48 ? title.substring(0, 48) : title);
+			}
+		}
 		String hosted = dev.orbit.cosmetic.client.host.Hosting.address();
 		json.addProperty("host", hosted == null ? "" : hosted);
 		json.addProperty("playing", player != null);
@@ -281,20 +289,16 @@ public final class PartyLink implements WebSocket.Listener {
 
 	/** Tells the other members' games something (see ServerParty): sent at once if the link is open. */
 	void signal(String signal) {
-		signal(signal, null, null);
+		signal(signal, new JsonObject());
 	}
 
-	/** A signal carrying a place: "follow" (the leader's server or hosted world, and its name). */
-	void signal(String signal, @Nullable String address, @Nullable String world) {
+	/** A signal with what it carries (a vote's fields). */
+	void signal(String signal, JsonObject fields) {
 		WebSocket open = socket;
 		if (open != null) {
-			JsonObject json = new JsonObject();
+			JsonObject json = fields.deepCopy();
 			json.addProperty("type", "signal");
 			json.addProperty("signal", signal);
-			if (address != null) {
-				json.addProperty("address", address);
-				json.addProperty("world", world == null ? address : world);
-			}
 			open.sendText(json.toString(), true);
 		}
 	}
@@ -321,10 +325,8 @@ public final class PartyLink implements WebSocket.Listener {
 				if (type.equals("signal")) {
 					String signal = message.get("signal").getAsString();
 					String name = message.get("name").getAsString();
-					if (signal.equals("follow")) {
-						String address = message.get("address").getAsString();
-						String world = message.get("world").getAsString();
-						Minecraft.getInstance().execute(() -> PartyFollow.followSignal(OrbitClient.get().social(), player, name, address, world));
+					if (signal.startsWith("vote")) {
+						Minecraft.getInstance().execute(() -> PartyVote.signal(OrbitClient.get().social(), player, name, signal, message));
 					} else {
 						Minecraft.getInstance().execute(() -> ServerParty.signal(OrbitClient.get().social(), player, name, signal));
 					}
@@ -371,7 +373,7 @@ public final class PartyLink implements WebSocket.Listener {
 		return new Extra((int) number(message, "xp_level"), number(message, "xp_progress"), (int) number(message, "armor"),
 			message.has("air") ? message.get("air").getAsInt() : 300, message.has("max_air") ? message.get("max_air").getAsInt() : 300,
 			message.has("underwater") && message.get("underwater").getAsBoolean(), message.has("invisible") && message.get("invisible").getAsBoolean(),
-			message.has("host") ? message.get("host").getAsString() : "", Map.copyOf(items));
+			message.has("host") ? message.get("host").getAsString() : "", Map.copyOf(items), message.has("scoreboard") ? message.get("scoreboard").getAsString() : "");
 	}
 
 	private static float number(JsonObject message, String key) {

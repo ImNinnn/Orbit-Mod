@@ -523,37 +523,65 @@ final class PartyBars {
 	/** Items made from what members' games sent (by what was sent), so they are not made again every frame. */
 	private static final Map<String, net.minecraft.world.item.ItemStack> STACKS = new HashMap<>();
 
-	static int slotsWidth(int parts) {
+	private static final Identifier HOTBAR = Identifier.withDefaultNamespace("hud/hotbar");
+	private static final Identifier HOTBAR_OFFHAND = Identifier.withDefaultNamespace("hud/hotbar_offhand_left");
+
+	/** How wide the slots are: flat squares, or the game's hotbar slots (the off hand's own) in the vanilla style. */
+	static int slotsWidth(int parts, boolean vanilla) {
 		int width = 0;
 		for (int group = 0; group < SLOT_GROUPS.length; group++) {
 			if ((parts & SLOT_GROUP_PARTS[group]) != 0) {
-				width += SLOT_GROUPS[group].length * 19 + 3;
+				int slots = SLOT_GROUPS[group].length;
+				width += vanilla ? (group == 0 ? 29 : slots * 20 + 2) + 3 : slots * 19 + 3;
 			}
 		}
 		return width;
 	}
 
-	static int slotsHeight(int parts) {
-		return (parts & SLOT_PARTS) != 0 ? 19 : 0;
+	static int slotsHeight(int parts, boolean vanilla) {
+		return (parts & SLOT_PARTS) == 0 ? 0 : vanilla ? 25 : 19;
 	}
 
-	/** The member's items in slots as the hotbar's, as the toggles have them (empty slots while not known). */
-	static void drawSlots(GuiGraphicsExtractor graphics, Font font, PartyLink.@Nullable Status status, int parts, int x, int y, boolean itemsReady) {
+	/** The member's items in slots, as the toggles have them (empty slots while not known). */
+	static void drawSlots(GuiGraphicsExtractor graphics, Font font, PartyLink.@Nullable Status status, int parts, int x, int y, boolean itemsReady, boolean vanilla) {
+		boolean known = itemsReady && status != null && status.playing();
 		for (int group = 0; group < SLOT_GROUPS.length; group++) {
 			if ((parts & SLOT_GROUP_PARTS[group]) == 0) {
 				continue;
 			}
-			for (String slot : SLOT_GROUPS[group]) {
+			String[] slots = SLOT_GROUPS[group];
+			if (vanilla && group == 0) {
+				// The off hand's own slot, as the game draws it left of the hotbar.
+				graphics.blitSprite(RenderPipelines.GUI_TEXTURED, HOTBAR_OFFHAND, x, y, 29, 24);
+				drawItem(graphics, font, known ? stack(status.extra().items().get(slots[0])) : null, x + 3, y + 4);
+				x += 29 + 3;
+				continue;
+			}
+			if (vanilla) {
+				// A piece of the game's hotbar, as many slots long, with its right edge.
+				int width = 1 + slots.length * 20;
+				graphics.blitSprite(RenderPipelines.GUI_TEXTURED, HOTBAR, 182, 22, 0, 0, x, y + 1, width, 22);
+				graphics.blitSprite(RenderPipelines.GUI_TEXTURED, HOTBAR, 182, 22, 181, 0, x + width, y + 1, 1, 22);
+				for (int i = 0; i < slots.length; i++) {
+					drawItem(graphics, font, known ? stack(status.extra().items().get(slots[i])) : null, x + 3 + i * 20, y + 4);
+				}
+				x += width + 1 + 3;
+				continue;
+			}
+			for (String slot : slots) {
 				graphics.fill(x, y, x + 18, y + 18, 0x60000000);
 				graphics.outline(x, y, 18, 18, 0x60FFFFFF);
-				var stack = itemsReady && status != null && status.playing() ? stack(status.extra().items().get(slot)) : null;
-				if (stack != null) {
-					graphics.item(stack, x + 1, y + 1);
-					graphics.itemDecorations(font, stack, x + 1, y + 1);
-				}
+				drawItem(graphics, font, known ? stack(status.extra().items().get(slot)) : null, x + 1, y + 1);
 				x += 19;
 			}
 			x += 3;
+		}
+	}
+
+	private static void drawItem(GuiGraphicsExtractor graphics, Font font, net.minecraft.world.item.@Nullable ItemStack stack, int x, int y) {
+		if (stack != null) {
+			graphics.item(stack, x, y);
+			graphics.itemDecorations(font, stack, x, y);
 		}
 	}
 

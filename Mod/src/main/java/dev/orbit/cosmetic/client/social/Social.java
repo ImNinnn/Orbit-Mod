@@ -230,12 +230,12 @@ public final class Social {
 	// ---------------------------------------------------------------- group chats
 
 	/** A group chat: its leader, colour, picture (0: the members' heads), members and unread messages. */
-	/** The party the player is in: its conversation (a group, or the friend), its leader and members. */
-	public record Party(UUID chat, boolean group, UUID leader, List<Person> members) {
+	/** The party the player is in: its conversation (a group, or the friend) and members (it has no leader). */
+	public record Party(UUID chat, boolean group, List<Person> members) {
 	}
 
 	/** A party the player could join: in one of their conversations, started by someone else. */
-	public record OpenParty(UUID chat, UUID leader, String leaderName, int members, java.util.Set<UUID> memberIds) {
+	public record OpenParty(UUID chat, UUID startedBy, String startedByName, int members, java.util.Set<UUID> memberIds) {
 	}
 
 	private @Nullable Party party;
@@ -287,38 +287,20 @@ public final class Social {
 	}
 
 	public void leaveParty() {
-		JsonObject body = new JsonObject();
 		if (party != null) {
-			Person next = party.leader().equals(me) ? ServerParty.successor(party, me) : null;
-			if (next != null) {
-				// The leader leaves: the lead goes to the member picked here (on Orbit and the server's party alike).
-				body.addProperty("next", next.uuid().toString());
-			}
-			ServerParty.left(party.leader().equals(me), next);
+			ServerParty.left(party, me);
+			PartyVote.left();
 		}
 		party = null;
 		version++;
-		OrbitClient.get().backend().socialCall("POST", "/party/leave", body, result -> refresh(), error -> OrbitClient.LOGGER.warn("Party: {}", error));
-	}
-
-	public void kickFromParty(UUID player) {
-		partyName(player).ifPresent(ServerParty::removed);
-		OrbitClient.get().backend().socialCall("DELETE", "/party/members/" + player, null, result -> refresh(), error -> OrbitClient.LOGGER.warn("Party: {}", error));
-	}
-
-	public void makePartyLeader(UUID player) {
-		partyName(player).ifPresent(ServerParty::promoted);
-		JsonObject body = new JsonObject();
-		body.addProperty("player", player.toString());
-		OrbitClient.get().backend().socialCall("POST", "/party/leader", body, result -> refresh(), error -> OrbitClient.LOGGER.warn("Party: {}", error));
+		OrbitClient.get().backend().socialCall("POST", "/party/leave", new JsonObject(), result -> refresh(), error -> OrbitClient.LOGGER.warn("Party: {}", error));
 	}
 
 	/** The party and the parties to join, from the state. */
 	private void applyParty(JsonObject state, boolean first) {
 		Party now = null;
 		if (state.get("party") instanceof JsonObject json) {
-			now = new Party(UUID.fromString(json.get("chat").getAsString()), json.get("group").getAsBoolean(), UUID.fromString(json.get("leader").getAsString()),
-				people(json.getAsJsonArray("members")));
+			now = new Party(UUID.fromString(json.get("chat").getAsString()), json.get("group").getAsBoolean(), people(json.getAsJsonArray("members")));
 		}
 		Map<UUID, OpenParty> open = new LinkedHashMap<>();
 		if (state.get("open_parties") instanceof JsonArray list) {
@@ -329,7 +311,7 @@ public final class Social {
 				if (json.get("member_ids") instanceof JsonArray memberIds) {
 					memberIds.forEach(id -> ids.add(UUID.fromString(id.getAsString())));
 				}
-				open.put(chat, new OpenParty(chat, UUID.fromString(json.get("leader").getAsString()), json.get("leader_name").getAsString(), json.get("members").getAsInt(),
+				open.put(chat, new OpenParty(chat, UUID.fromString(json.get("started_by").getAsString()), json.get("started_by_name").getAsString(), json.get("members").getAsInt(),
 					java.util.Set.copyOf(ids)));
 			}
 		}
@@ -339,7 +321,9 @@ public final class Social {
 				if (!openParties.containsKey(started.chat())) {
 					Group group = group(started.chat());
 					Component where = group != null ? Component.literal(group.name()) : Component.translatable("orbit_cosmetic.party.with_you");
-					Notifications.info(Component.translatable("orbit_cosmetic.party.started", started.leaderName()), Component.translatable("orbit_cosmetic.party.join_hint", where));
+					UUID chat = started.chat();
+					SocialPopups.action(started.startedBy(), started.startedByName(), Component.translatable("orbit_cosmetic.party.started", started.startedByName()),
+						Component.translatable("orbit_cosmetic.party.join_hint", where), Component.translatable("orbit_cosmetic.party.join.short"), () -> startParty(chat));
 				}
 			}
 		}
@@ -585,7 +569,7 @@ public final class Social {
 		long now = System.currentTimeMillis();
 		PartyLink.get().tick(this);
 		ServerParty.tick(this);
-		PartyFollow.tick(this);
+		PartyVote.tick(this);
 		if (!waiting && device != null && now >= waitAgainAt) {
 			waitForNews(account);
 		}
@@ -720,7 +704,7 @@ public final class Social {
 				boolean knownBefore = before.stream().anyMatch(p -> p.uuid().equals(person.uuid()));
 				if (person.online() && knownBefore && !wasOnline.contains(person.uuid())) {
 					OrbitClient.LOGGER.info("Friends: {} is online", person.name());
-					Notifications.info(Component.translatable("orbit_cosmetic.social.friend_online", person.name()), Component.empty());
+					SocialPopups.online(person.uuid(), person.name());
 				}
 			}
 		}
