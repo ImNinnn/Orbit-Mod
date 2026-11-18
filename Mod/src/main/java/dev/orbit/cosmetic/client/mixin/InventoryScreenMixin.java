@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.mixin;
 
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;

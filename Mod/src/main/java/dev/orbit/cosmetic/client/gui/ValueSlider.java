@@ -1,9 +1,9 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.client.gui.ui.OrbitWidget;
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.gui.ui.Theme;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.narration.NarratedElementType;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -14,7 +14,7 @@ import java.util.function.DoubleConsumer;
 import java.util.function.DoubleFunction;
 
 /** A flat slider over a numeric range, snapped to {@code step}, with its label inside. */
-final class ValueSlider extends AbstractWidget {
+final class ValueSlider extends OrbitWidget {
 	private final double min;
 	private final double max;
 	private final double step;
@@ -58,7 +58,7 @@ final class ValueSlider extends AbstractWidget {
 	}
 
 	@Override
-	protected void extractWidgetRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+	protected void draw(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
 		graphics.fill(getX(), getY(), getRight(), getBottom(), isHoveredOrFocused() ? Theme.PANEL_HOVER : Theme.PANEL_2);
 		graphics.outline(getX(), getY(), getWidth(), getHeight(), Theme.BORDER);
 		double fraction = (value - min) / (max - min);

@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.hud;
 
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.compat.Compat;
@@ -13,7 +14,6 @@ import dev.orbit.cosmetic.client.social.FloatingChats;
 import dev.orbit.cosmetic.client.social.Social;
 import dev.orbit.cosmetic.client.social.SocialPopups;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.Tooltip;
@@ -1156,7 +1156,7 @@ public final class HudEditorScreen extends OrbitScreen {
 	// ---------------------------------------------------------------- drawing
 
 	@Override
-	public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+	protected void drawBackground(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
 		if (inWorld()) {
 			// The game shows through, a little darker.
 			graphics.fill(0, 0, width, height, 0x40000000);
@@ -1166,7 +1166,7 @@ public final class HudEditorScreen extends OrbitScreen {
 	}
 
 	@Override
-	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+	protected void draw(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
 		HudInput.frame();
 		this.mouseX = mouseX;
 		this.mouseY = mouseY;
@@ -1179,7 +1179,7 @@ public final class HudEditorScreen extends OrbitScreen {
 		if (FloatingChats.available()) {
 			FloatingChats.drawPlaced(graphics);
 		}
-		graphics.nextStratum();
+		graphics.layer();
 		List<Object> hoveredGroup = hovered != null ? withGroup(hovered) : List.of();
 		for (Object item : items()) {
 			if (!visible(item)) {
@@ -1249,17 +1249,17 @@ public final class HudEditorScreen extends OrbitScreen {
 			graphics.centeredText(font, Component.translatable("orbit_cosmetic.hud.hint").withStyle(ChatFormatting.GRAY), width / 2, top ? 28 : height - 36,
 				Theme.TEXT);
 		}
-		graphics.nextStratum();
+		graphics.layer();
 		if (mode != Mode.EDIT) {
 			drawMenu(graphics);
 		} else if (!selection.isEmpty() && drag == Drag.NONE) {
 			drawSettings(graphics);
 		}
-		super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+		drawWidgets(graphics, mouseX, mouseY, partialTick);
 	}
 
 	/** A link button: two chain links, filled in the accent red when linked, faint when not (a click links). */
-	private static void drawLink(GuiGraphicsExtractor graphics, LinkSpot spot, boolean hot) {
+	private static void drawLink(OrbitGraphics graphics, LinkSpot spot, boolean hot) {
 		int x = spot.x() - LINK / 2;
 		int y = spot.y() - LINK / 2;
 		graphics.fill(x, y, x + LINK, y + LINK, spot.linked() ? 0xFFB81B1B : hot ? Theme.PANEL_HOVER : 0xE01C1C20);
@@ -1270,7 +1270,7 @@ public final class HudEditorScreen extends OrbitScreen {
 		graphics.outline(x + 4, y + 4, 4, 3, color);
 	}
 
-	private void drawSettings(GuiGraphicsExtractor graphics) {
+	private void drawSettings(OrbitGraphics graphics) {
 		int[] panel = currentSettingsPanel();
 		Theme.panel(graphics, panel[0], panel[1], panel[2], panel[3]);
 		graphics.fill(panel[0], panel[1], panel[0] + 2, panel[1] + panel[3], Theme.RED);
@@ -1306,7 +1306,7 @@ public final class HudEditorScreen extends OrbitScreen {
 		}
 	}
 
-	private void drawMenu(GuiGraphicsExtractor graphics) {
+	private void drawMenu(OrbitGraphics graphics) {
 		int[] panel = menuPanel();
 		Theme.panel(graphics, panel[0], panel[1], panel[2], panel[3]);
 		graphics.fill(panel[0], panel[1], panel[0] + 2, panel[1] + panel[3], Theme.RED);
@@ -1395,7 +1395,7 @@ public final class HudEditorScreen extends OrbitScreen {
 	}
 
 	/** A card of the add menu: a small live preview of the component, its name under it. */
-	private void drawCard(GuiGraphicsExtractor graphics, Card card) {
+	private void drawCard(OrbitGraphics graphics, Card card) {
 		Hotspot spot = card.spot();
 		int x = spot.getX();
 		int y = spot.getY();
@@ -1423,7 +1423,7 @@ public final class HudEditorScreen extends OrbitScreen {
 	}
 
 	/** A tiny chat window, for the chat window card. */
-	private static void drawChatSample(GuiGraphicsExtractor graphics, int x, int y, boolean on) {
+	private static void drawChatSample(OrbitGraphics graphics, int x, int y, boolean on) {
 		int w = 50;
 		int h = 36;
 		int alpha = on ? 0xFF000000 : 0x80000000;

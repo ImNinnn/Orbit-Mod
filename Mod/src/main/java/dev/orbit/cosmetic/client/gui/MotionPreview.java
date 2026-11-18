@@ -1,11 +1,11 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.gui.preview.PreviewBatch;
 import dev.orbit.cosmetic.client.gui.preview.PreviewModel;
 import dev.orbit.cosmetic.client.gui.ui.Theme;
 import dev.orbit.cosmetic.client.library.LocalCosmetic;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.network.chat.Component;
 
@@ -66,7 +66,7 @@ final class MotionPreview {
 		return List.of(sliders);
 	}
 
-	void extract(GuiGraphicsExtractor graphics, float partialTick) {
+	void extract(OrbitGraphics graphics, float partialTick) {
 		Theme.panel(graphics, x, y, width, height);
 		model.setWorn(cosmetic.isUsable() ? List.of(cosmetic.toEquipped()) : List.of());
 		model.setMoving(speeds[0], speeds[1], speeds[2]);
@@ -86,7 +86,7 @@ final class MotionPreview {
 	}
 
 	/** Lines a block apart, shifted by the scroll, inside the box. */
-	private void grid(GuiGraphicsExtractor graphics, float block) {
+	private void grid(OrbitGraphics graphics, float block) {
 		if (block < 4) {
 			return;
 		}

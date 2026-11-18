@@ -1,11 +1,12 @@
 package dev.orbit.cosmetic.client.social;
 
+import dev.orbit.cosmetic.client.gui.ui.OrbitBaseScreen;
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import com.google.gson.JsonObject;
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.compat.Compat;
 import dev.orbit.cosmetic.client.gui.ui.Theme;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
@@ -19,7 +20,7 @@ import java.util.List;
  * Typing in a floating chat window: a see-through screen with a text field over the window's message box. Enter
  * sends, Escape (or a click outside the windows) goes back to the game.
  */
-final class FloatingChatInput extends Screen {
+final class FloatingChatInput extends OrbitBaseScreen {
 	private final FloatingChats.Window window;
 	private final @Nullable Screen parent;
 	private EditBox box;
@@ -92,18 +93,18 @@ final class FloatingChatInput extends Screen {
 	}
 
 	@Override
-	public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+	protected void drawBackground(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
 	}
 
 	@Override
-	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+	protected void draw(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
 		// The windows first, then the text field on top of its window's message box (which may have moved).
 		FloatingChats.draw(graphics, mouseX, mouseY, true);
 		box.setX(window.inputX() + 4);
 		box.setY(window.inputY() + 3);
 		box.setWidth(window.inputW() - 8);
-		graphics.nextStratum();
-		super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+		graphics.layer();
+		drawWidgets(graphics, mouseX, mouseY, partialTick);
 	}
 
 	@Override

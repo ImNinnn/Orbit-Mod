@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.gui.preview.PreviewBatch;
 import dev.orbit.cosmetic.client.gui.preview.PreviewModel;
 import dev.orbit.cosmetic.client.gui.ui.FlatButton;
@@ -8,7 +9,6 @@ import dev.orbit.cosmetic.client.gui.ui.OrbitScreen;
 import dev.orbit.cosmetic.client.gui.ui.Theme;
 import dev.orbit.cosmetic.common.anim.ParticleSettings;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -244,8 +244,8 @@ final class ParticleEditScreen extends OrbitScreen {
 	}
 
 	@Override
-	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-		super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+	protected void draw(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		drawWidgets(graphics, mouseX, mouseY, partialTick);
 		graphics.centeredText(font, title, width / 2, 6, Theme.TEXT);
 
 		int previewX = 10;

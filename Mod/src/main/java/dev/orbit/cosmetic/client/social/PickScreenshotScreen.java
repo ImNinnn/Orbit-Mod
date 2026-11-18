@@ -1,11 +1,11 @@
 package dev.orbit.cosmetic.client.social;
 
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.gui.ui.OrbitScreen;
 import dev.orbit.cosmetic.client.gui.ui.Theme;
 import dev.orbit.cosmetic.client.screenshot.ScreenshotLibrary;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
@@ -34,7 +34,7 @@ final class PickScreenshotScreen extends OrbitScreen {
 	}
 
 	@Override
-	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+	protected void draw(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
 		graphics.centeredText(font, title, width / 2, 10, Theme.TEXT);
 		int columns = Math.max(1, (width - 40) / 130);
 		int tileW = (width - 40 - (columns - 1) * 6) / columns;
@@ -51,7 +51,7 @@ final class PickScreenshotScreen extends OrbitScreen {
 			graphics.fill(x, y, x + tileW, y + tileH, Theme.PANEL_2);
 			ScreenshotLibrary.Thumbnail thumbnail = OrbitClient.get().screenshots().thumbnail(shots.get(i).path(), 256);
 			if (thumbnail != null) {
-				graphics.blit(thumbnail.id(), x, y, x + tileW, y + tileH, 0, 1, 0, 1);
+				graphics.image(thumbnail.id(), x, y, x + tileW, y + tileH, 0, 1, 0, 1);
 			}
 			if (Theme.inside(mouseX, mouseY, x, y, tileW, tileH)) {
 				graphics.outline(x - 1, y - 1, tileW + 2, tileH + 2, Theme.EDGE_HOT);
@@ -61,7 +61,7 @@ final class PickScreenshotScreen extends OrbitScreen {
 		if (shots.isEmpty()) {
 			graphics.centeredText(font, Component.translatable("orbit_cosmetic.screenshots.empty").withStyle(ChatFormatting.GRAY), width / 2, height / 2, Theme.TEXT);
 		}
-		super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+		drawWidgets(graphics, mouseX, mouseY, partialTick);
 	}
 
 	@Override

@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.Updates;
 import dev.orbit.cosmetic.client.compat.Compat;
@@ -11,7 +12,6 @@ import dev.orbit.cosmetic.client.gui.ui.Theme;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.network.chat.Component;
@@ -132,7 +132,7 @@ public final class UpdatePromptScreen extends OrbitScreen {
 	}
 
 	@Override
-	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+	protected void draw(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
 		int x = width / 2 - WIDTH / 2;
 		int y = top();
 		Theme.panel(graphics, x, y, WIDTH, height());
@@ -154,6 +154,6 @@ public final class UpdatePromptScreen extends OrbitScreen {
 			}
 			graphics.text(font, Component.translatable("orbit_cosmetic.update.dont_show").withStyle(ChatFormatting.GRAY), cx + 15, cy + 2, Theme.TEXT, false);
 		}
-		super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+		drawWidgets(graphics, mouseX, mouseY, partialTick);
 	}
 }

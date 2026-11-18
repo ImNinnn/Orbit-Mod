@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.social;
 
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.compat.Compat;
@@ -8,7 +9,6 @@ import dev.orbit.cosmetic.client.gui.ui.Hotspot;
 import dev.orbit.cosmetic.client.gui.ui.OrbitScreen;
 import dev.orbit.cosmetic.client.gui.ui.Theme;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
@@ -146,7 +146,7 @@ final class GroupPickScreen extends OrbitScreen {
 	}
 
 	@Override
-	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+	protected void draw(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
 		int x = width / 2 - WIDTH / 2;
 		int y = top();
 		Theme.panel(graphics, x, y, WIDTH, panelHeight());
@@ -179,6 +179,6 @@ final class GroupPickScreen extends OrbitScreen {
 			}
 			row.drawFocus(graphics);
 		}
-		super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+		drawWidgets(graphics, mouseX, mouseY, partialTick);
 	}
 }

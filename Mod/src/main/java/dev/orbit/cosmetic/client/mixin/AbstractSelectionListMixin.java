@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class AbstractSelectionListMixin {
 	@Inject(method = "extractListSeparators", at = @At("HEAD"), cancellable = true)
 	private void orbit$openUnderTabs(GuiGraphicsExtractor graphics, CallbackInfo info) {
-		if (ServerTabs.drawSeparators((AbstractSelectionList<?>) (Object) this, graphics)) {
+		if (ServerTabs.drawSeparators((AbstractSelectionList<?>) (Object) this, dev.orbit.cosmetic.client.gfx.OrbitGraphics.of(graphics))) {
 			info.cancel();
 		}
 	}

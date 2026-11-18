@@ -1,6 +1,6 @@
 package dev.orbit.cosmetic.client.hud;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
@@ -35,7 +35,7 @@ public final class HudDoll {
 	 * Draws the entity fitted in the box: {@code body} turns it from facing the viewer (degrees), {@code head} turns
 	 * its head from its body, {@code headPitch} tilts it.
 	 */
-	static void draw(GuiGraphicsExtractor graphics, LivingEntity entity, int x0, int y0, int x1, int y1, float body, float head, float headPitch) {
+	static void draw(OrbitGraphics graphics, LivingEntity entity, int x0, int y0, int x1, int y1, float body, float head, float headPitch) {
 		float height = Math.max(0.3F, entity.getBbHeight());
 		float width = Math.max(0.3F, entity.getBbWidth());
 		int size = Math.max(1, Math.round(Math.min((y1 - y0) / (height + 0.3F), (x1 - x0) / (width + 0.7F))));
@@ -44,7 +44,7 @@ public final class HudDoll {
 		headRot = head;
 		pitch = headPitch;
 		try {
-			InventoryScreen.extractEntityInInventoryFollowsMouse(graphics, x0, y0, x1, y1, size, 0.0625F, (x0 + x1) / 2F, (y0 + y1) / 2F, entity);
+			InventoryScreen.extractEntityInInventoryFollowsMouse(graphics.raw(), x0, y0, x1, y1, size, 0.0625F, (x0 + x1) / 2F, (y0 + y1) / 2F, entity);
 		} catch (RuntimeException e) {
 			// An entity that cannot be drawn here (another mod's renderer, an entity not in the world yet): left out,
 			// rather than stopping the game.

@@ -1,11 +1,11 @@
 package dev.orbit.cosmetic.client.social;
 
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.gui.ui.Theme;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
@@ -33,10 +33,11 @@ public final class PartyBanner {
 	private static long lastFrame;
 
 	public static void register() {
-		ScreenEvents.AFTER_INIT.register((client, screen, width, height) -> ScreenEvents.afterExtract(screen).register((current, graphics, mouseX, mouseY, partialTick) -> {
+		ScreenEvents.AFTER_INIT.register((client, screen, width, height) -> ScreenEvents.afterExtract(screen).register((current, extractor, mouseX, mouseY, partialTick) -> {
 			Component line = line();
 			if (line != null) {
-				graphics.nextStratum();
+				OrbitGraphics graphics = OrbitGraphics.of(extractor);
+				graphics.layer();
 				Social.Party party = OrbitClient.get().social().party();
 				// Alone in it: grey ("No one in party").
 				int color = party != null && party.members().size() < 2 ? 0xA0A0A0 : GREEN;
@@ -68,7 +69,7 @@ public final class PartyBanner {
 	}
 
 	/** Drawn as a HUD component is: dark, with a green line on its left; gone while the mouse is on it. */
-	private static void draw(GuiGraphicsExtractor graphics, Font font, int width, Component line, int mouseX, int mouseY, int color) {
+	private static void draw(OrbitGraphics graphics, Font font, int width, Component line, int mouseX, int mouseY, int color) {
 		int textWidth = Math.min(font.width(line), width - 24);
 		int w = textWidth + 12;
 		int h = 14;
@@ -100,7 +101,7 @@ public final class PartyBanner {
 	 * Stars rising from the bottom of an area to its top, slowly, fading out as they go (worked out from the time:
 	 * the same star is in the same place every frame).
 	 */
-	public static void stars(GuiGraphicsExtractor graphics, int left, int top, int right, int bottom, int color) {
+	public static void stars(OrbitGraphics graphics, int left, int top, int right, int bottom, int color) {
 		int w = right - left;
 		int h = bottom - top;
 		if (w <= 0 || h <= 0) {
@@ -124,7 +125,7 @@ public final class PartyBanner {
 			if (alpha <= 0.02F) {
 				continue;
 			}
-			graphics.blitSprite(RenderPipelines.GUI_TEXTURED, Theme.icon("star"), x, y, size, size, Math.round(alpha * 255) << 24 | (color & 0xFFFFFF));
+			graphics.sprite(Theme.icon("star"), x, y, size, size, Math.round(alpha * 255) << 24 | (color & 0xFFFFFF));
 		}
 	}
 

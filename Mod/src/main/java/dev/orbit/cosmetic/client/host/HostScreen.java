@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.host;
 
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.Notifications;
 import dev.orbit.cosmetic.client.compat.Compat;
 import dev.orbit.cosmetic.client.gui.ui.FlatButton;
@@ -10,8 +11,6 @@ import dev.orbit.cosmetic.client.screenshot.ScreenshotLibrary;
 import dev.orbit.cosmetic.client.social.ShareScreen;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.components.PlayerFaceExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.server.IntegratedServer;
@@ -184,7 +183,7 @@ public final class HostScreen extends OrbitScreen {
 	}
 
 	@Override
-	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+	protected void draw(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
 		int x = left();
 		int y = top();
 		int panelHeight = Math.min(height - 16, 240);
@@ -198,10 +197,10 @@ public final class HostScreen extends OrbitScreen {
 		} else {
 			hostPanel(graphics, server, x, y, panelHeight);
 		}
-		super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+		drawWidgets(graphics, mouseX, mouseY, partialTick);
 	}
 
-	private void hostPanel(GuiGraphicsExtractor graphics, IntegratedServer server, int x, int y, int panelHeight) {
+	private void hostPanel(OrbitGraphics graphics, IntegratedServer server, int x, int y, int panelHeight) {
 		graphics.text(font, Theme.clip(font, Component.literal(server.getWorldData().getLevelName()), WIDTH - 40), x + 8, y + 26, Theme.MUTED, false);
 		int statusY = y + 42;
 		graphics.fill(x + 8, statusY, x + WIDTH - 8, statusY + 24, Theme.PANEL_2);
@@ -235,7 +234,7 @@ public final class HostScreen extends OrbitScreen {
 				break;
 			}
 			graphics.fill(x + 8, listY, x + WIDTH - 8, listY + 20, Theme.PANEL_2);
-			PlayerFaceExtractor.extractRenderState(graphics, orbit().social().skin(player.getUUID(), player.getName().getString()), x + 12, listY + 2, 16);
+			graphics.face(orbit().social().skin(player.getUUID(), player.getName().getString()), x + 12, listY + 2, 16);
 			graphics.text(font, player.getName(), x + 34, listY + 6, Theme.TEXT, false);
 			if (player.getUUID().equals(minecraft.player == null ? null : minecraft.player.getUUID())) {
 				Component you = Component.translatable("orbit_cosmetic.host.you").withStyle(ChatFormatting.GRAY);
@@ -245,7 +244,7 @@ public final class HostScreen extends OrbitScreen {
 		}
 	}
 
-	private void worldList(GuiGraphicsExtractor graphics, int mouseX, int mouseY, int x, int y, int listHeight) {
+	private void worldList(OrbitGraphics graphics, int mouseX, int mouseY, int x, int y, int listHeight) {
 		graphics.text(font, Component.translatable("orbit_cosmetic.host.pick_world").withStyle(ChatFormatting.GRAY), x + 8, y, Theme.TEXT, false);
 		y += 14;
 		listHeight -= 14;
@@ -271,7 +270,7 @@ public final class HostScreen extends OrbitScreen {
 			graphics.fill(x + 8, rowY, x + WIDTH - 8, rowY + ROW - 2, hot ? Theme.PANEL_HOVER : Theme.PANEL_2);
 			ScreenshotLibrary.Thumbnail icon = orbit().screenshots().thumbnail(world.getIcon(), 64);
 			if (icon != null) {
-				graphics.blit(icon.id(), x + 11, rowY + 2, x + 35, rowY + 26, 0, 1, 0, 1);
+				graphics.image(icon.id(), x + 11, rowY + 2, x + 35, rowY + 26, 0, 1, 0, 1);
 			} else {
 				graphics.fill(x + 11, rowY + 2, x + 35, rowY + 26, Theme.PANEL);
 				Theme.icon(graphics, "image", x + 19, rowY + 10, Theme.FAINT);
@@ -286,7 +285,7 @@ public final class HostScreen extends OrbitScreen {
 		graphics.disableScissor();
 	}
 
-	private void paragraph(GuiGraphicsExtractor graphics, Component text, int x, int y) {
+	private void paragraph(OrbitGraphics graphics, Component text, int x, int y) {
 		for (var line : font.split(text.copy().withStyle(ChatFormatting.GRAY), WIDTH - 16)) {
 			graphics.text(font, line, x, y, Theme.TEXT, false);
 			y += 10;

@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.social;
 
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import com.google.gson.JsonObject;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.compat.Compat;
@@ -10,8 +11,6 @@ import net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.components.PlayerFaceExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -133,11 +132,11 @@ public final class SocialPopups {
 	public static void register() {
 		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(OrbitClient.MOD_ID, "social_popups"), (graphics, tick) -> {
 			if (Compat.screen() == null && !Compat.hudHidden()) {
-				draw(graphics, -1, -1);
+				draw(OrbitGraphics.of(graphics), -1, -1);
 			}
 		});
 		ScreenEvents.AFTER_INIT.register((client, screen, width, height) -> {
-			ScreenEvents.afterExtract(screen).register((current, graphics, mouseX, mouseY, partialTick) -> draw(graphics, mouseX, mouseY));
+			ScreenEvents.afterExtract(screen).register((current, graphics, mouseX, mouseY, partialTick) -> draw(OrbitGraphics.of(graphics), mouseX, mouseY));
 			ScreenMouseEvents.allowMouseClick(screen).register((current, event) -> !click(current, event.x(), event.y()));
 		});
 	}
@@ -260,7 +259,7 @@ public final class SocialPopups {
 		return Math.clamp(wanted, MIN_WIDTH, Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, screenWidth - 2 * MARGIN)));
 	}
 
-	private static void draw(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+	private static void draw(OrbitGraphics graphics, int mouseX, int mouseY) {
 		if (links != null) {
 			if (POPUPS.stream().noneMatch(popup -> popup.kind == Kind.INVITE)) {
 				links.close();
@@ -308,7 +307,7 @@ public final class SocialPopups {
 			} else {
 				if (popup.kind == Kind.INVITE) {
 					Identifier icon = links == null ? null : links.icon(popup.address, popup.icon);
-					graphics.blit(icon != null ? icon : NO_ICON, x + 7, y + 5, x + 31, y + 29, 0, 1, 0, 1);
+					graphics.image(icon != null ? icon : NO_ICON, x + 7, y + 5, x + 31, y + 29, 0, 1, 0, 1);
 				} else {
 					face(graphics, popup.player, popup.name, x + 7, y + 5, 24);
 				}
@@ -409,7 +408,7 @@ public final class SocialPopups {
 	private static final Identifier ORBIT_ICON = Identifier.fromNamespaceAndPath(OrbitClient.MOD_ID, "icon.png");
 
 	/** A player's face, or Orbit's icon for Orbit's messages to every player. */
-	public static void face(GuiGraphicsExtractor graphics, UUID player, String name, int x, int y, int size) {
+	public static void face(OrbitGraphics graphics, UUID player, String name, int x, int y, int size) {
 		Social social = OrbitClient.get().social();
 		Social.Group group = social.group(player);
 		if (group != null) {
@@ -417,17 +416,17 @@ public final class SocialPopups {
 			return;
 		}
 		if (Social.isOrbit(player)) {
-			graphics.blit(ORBIT_ICON, x, y, x + size, y + size, 0, 1, 0, 1);
+			graphics.image(ORBIT_ICON, x, y, x + size, y + size, 0, 1, 0, 1);
 		} else {
-			PlayerFaceExtractor.extractRenderState(graphics, OrbitClient.get().social().skin(player, name), x, y, size);
+			graphics.face(OrbitClient.get().social().skin(player, name), x, y, size);
 		}
 	}
 
 	/** A group's picture, or up to four of its other members' heads. */
-	private static void groupFace(GuiGraphicsExtractor graphics, Social social, Social.Group group, int x, int y, int size) {
+	private static void groupFace(OrbitGraphics graphics, Social social, Social.Group group, int x, int y, int size) {
 		Identifier picture = social.groupPicture(group);
 		if (picture != null) {
-			graphics.blit(picture, x, y, x + size, y + size, 0, 1, 0, 1);
+			graphics.image(picture, x, y, x + size, y + size, 0, 1, 0, 1);
 			return;
 		}
 		List<Social.Person> others = group.others(social.me());
@@ -436,7 +435,7 @@ public final class SocialPopups {
 			return;
 		}
 		if (others.size() == 1) {
-			PlayerFaceExtractor.extractRenderState(graphics, social.skin(others.getFirst().uuid(), others.getFirst().name()), x, y, size);
+			graphics.face(social.skin(others.getFirst().uuid(), others.getFirst().name()), x, y, size);
 			return;
 		}
 		int half = size / 2;
@@ -444,7 +443,7 @@ public final class SocialPopups {
 			: new int[][] {{0, 0}, {half, 0}, {0, half}, {half, half}};
 		for (int i = 0; i < spots.length; i++) {
 			Social.Person person = others.get(i);
-			PlayerFaceExtractor.extractRenderState(graphics, social.skin(person.uuid(), person.name()), x + spots[i][0], y + spots[i][1], half);
+			graphics.face(social.skin(person.uuid(), person.name()), x + spots[i][0], y + spots[i][1], half);
 		}
 	}
 }

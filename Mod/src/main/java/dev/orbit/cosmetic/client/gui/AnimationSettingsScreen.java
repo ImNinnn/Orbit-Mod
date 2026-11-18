@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.gui.ui.FlatButton;
 import dev.orbit.cosmetic.client.gui.ui.FlatCycle;
 import dev.orbit.cosmetic.client.gui.ui.OrbitScreen;
@@ -13,7 +14,6 @@ import dev.orbit.cosmetic.common.anim.AnimationTrigger;
 import dev.orbit.cosmetic.common.anim.LoopMode;
 import dev.orbit.cosmetic.common.anim.TextureAnimation;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
@@ -195,8 +195,8 @@ public final class AnimationSettingsScreen extends OrbitScreen {
 	}
 
 	@Override
-	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-		super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+	protected void draw(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		drawWidgets(graphics, mouseX, mouseY, partialTick);
 		graphics.centeredText(font, title, width / 2, SettingsTabs.HEIGHT + 8, Theme.TEXT);
 		graphics.centeredText(font, Component.translatable("orbit_cosmetic.animations.subtitle").withStyle(ChatFormatting.GRAY), width / 2, SettingsTabs.HEIGHT + 20, Theme.TEXT);
 		List<AnimationClip> clips = cosmetic.model() == null ? List.of() : cosmetic.model().animations();

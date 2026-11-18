@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.screenshot;
 
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.compat.Compat;
 import dev.orbit.cosmetic.client.gui.ui.Theme;
@@ -7,7 +8,6 @@ import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -58,11 +58,11 @@ public final class ScreenshotToasts {
 	public static void register() {
 		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(OrbitClient.MOD_ID, "screenshots"), (graphics, tick) -> {
 			if (Compat.screen() == null && !Compat.hudHidden()) {
-				draw(graphics, -1, -1);
+				draw(OrbitGraphics.of(graphics), -1, -1);
 			}
 		});
 		ScreenEvents.AFTER_INIT.register((client, screen, width, height) -> {
-			ScreenEvents.afterExtract(screen).register((current, graphics, mouseX, mouseY, partialTick) -> draw(graphics, mouseX, mouseY));
+			ScreenEvents.afterExtract(screen).register((current, graphics, mouseX, mouseY, partialTick) -> draw(OrbitGraphics.of(graphics), mouseX, mouseY));
 			ScreenMouseEvents.allowMouseClick(screen).register((current, event) -> !click(current, event.x(), event.y()));
 		});
 	}
@@ -76,7 +76,7 @@ public final class ScreenshotToasts {
 		}
 	}
 
-	private static void draw(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+	private static void draw(OrbitGraphics graphics, int mouseX, int mouseY) {
 		if (TOASTS.isEmpty()) {
 			return;
 		}
@@ -109,7 +109,7 @@ public final class ScreenshotToasts {
 			toast.lastFrame = now;
 			Theme.panel(graphics, x, y, WIDTH + 2, height);
 			if (thumbnail != null) {
-				graphics.blit(thumbnail.id(), x + 1, y + 1, x + 1 + WIDTH, y + 1 + imageHeight, 0, 1, 0, 1);
+				graphics.image(thumbnail.id(), x + 1, y + 1, x + 1 + WIDTH, y + 1 + imageHeight, 0, 1, 0, 1);
 			}
 			if (hovered) {
 				graphics.fill(x + 1, y + 1, x + 1 + WIDTH, y + 1 + imageHeight, 0x80000000);

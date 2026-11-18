@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.mixin;
 
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import dev.orbit.cosmetic.client.OrbitKeys;
 import dev.orbit.cosmetic.client.host.Hosting;
 import net.minecraft.client.Minecraft;

@@ -2,13 +2,16 @@ package dev.orbit.cosmetic.client.gui.ui;
 
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.compat.Compat;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import org.jspecify.annotations.Nullable;
 
-/** A screen in Orbit's style: the grid background, and Escape returns to the screen it was opened from. */
-public abstract class OrbitScreen extends Screen {
+/**
+ * A screen in Orbit's style: the grid background, and Escape returns to the screen it was opened from. It draws in
+ * {@link #draw} and {@link #drawBackground} (see {@link OrbitBaseScreen}).
+ */
+public abstract class OrbitScreen extends OrbitBaseScreen {
 	protected final @Nullable Screen parent;
 
 	protected OrbitScreen(Component title, @Nullable Screen parent) {
@@ -39,10 +42,11 @@ public abstract class OrbitScreen extends Screen {
 		return false;
 	}
 
+	/** The screen's background: Orbit's grid, or Minecraft's own behind small windows. */
 	@Override
-	public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+	protected void drawBackground(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
 		if (isSmallWindow() || !orbit().config().gridBackground) {
-			super.extractBackground(graphics, mouseX, mouseY, partialTick);
+			drawMinecraftBackground(graphics, mouseX, mouseY, partialTick);
 		} else {
 			Theme.background(graphics, width, height);
 		}

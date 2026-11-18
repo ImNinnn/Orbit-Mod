@@ -1,10 +1,10 @@
 package dev.orbit.cosmetic.client.hud;
 
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.gui.ui.Theme;
 import dev.orbit.cosmetic.client.social.PartyLink;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -231,7 +231,7 @@ final class PartyBars {
 	 * from {@code left} and shanks (or the mount's hearts) ending at {@code right}, then the experience bar with
 	 * its level; each as the toggles have it.
 	 */
-	static void drawVanilla(GuiGraphicsExtractor graphics, Font font, UUID member, PartyLink.@Nullable Status status, int parts, int left, int top, int right) {
+	static void drawVanilla(OrbitGraphics graphics, Font font, UUID member, PartyLink.@Nullable Status status, int parts, int left, int top, int right) {
 		long now = System.currentTimeMillis();
 		Track track = track(member, status, now);
 		if (status != null && status.playing() && !status.showsHealth()) {
@@ -272,19 +272,19 @@ final class PartyBars {
 	}
 
 	/** Armour points, as the game draws them over the hearts (only when there are any). */
-	private static void drawArmor(GuiGraphicsExtractor graphics, int armor, int left, int y) {
+	private static void drawArmor(OrbitGraphics graphics, int armor, int left, int y) {
 		if (armor <= 0) {
 			return;
 		}
 		for (int i = 0; i < 10; i++) {
 			int x = left + i * 8;
 			Identifier sprite = i * 2 + 1 < armor ? ARMOR_FULL : i * 2 + 1 == armor ? ARMOR_HALF : ARMOR_EMPTY;
-			graphics.blitSprite(RenderPipelines.GUI_TEXTURED, sprite, x, y, 9, 9);
+			graphics.sprite(sprite, x, y, 9, 9);
 		}
 	}
 
 	/** Air, as the game draws it over the shanks: full bubbles, the one bursting, and the empty ones wobbling. */
-	private static void drawAir(GuiGraphicsExtractor graphics, PartyLink.Status status, int right, int y, long tick, Random random) {
+	private static void drawAir(OrbitGraphics graphics, PartyLink.Status status, int right, int y, long tick, Random random) {
 		int max = Math.max(1, status.extra().maxAir());
 		int air = Math.clamp(status.extra().air(), 0, max);
 		boolean underwater = status.extra().underwater();
@@ -294,23 +294,23 @@ final class PartyBars {
 		for (int bubble = 1; bubble <= 10; bubble++) {
 			int x = right - (bubble - 1) * 8 - 9;
 			if (bubble <= full) {
-				graphics.blitSprite(RenderPipelines.GUI_TEXTURED, AIR, x, y, 9, 9);
+				graphics.sprite(AIR, x, y, 9, 9);
 			} else if (full != bursting && bubble == bursting && underwater) {
-				graphics.blitSprite(RenderPipelines.GUI_TEXTURED, AIR_BURSTING, x, y, 9, 9);
+				graphics.sprite(AIR_BURSTING, x, y, 9, 9);
 			} else if (bubble > 10 - empty) {
 				int wobble = empty == 10 && tick % 2 == 0 ? random.nextInt(2) : 0;
-				graphics.blitSprite(RenderPipelines.GUI_TEXTURED, AIR_EMPTY, x, y + wobble, 9, 9);
+				graphics.sprite(AIR_EMPTY, x, y + wobble, 9, 9);
 			}
 		}
 	}
 
 	/** The experience bar across the hearts and shanks, its level in green over it, as the game's. */
-	private static void drawExperience(GuiGraphicsExtractor graphics, Font font, PartyLink.@Nullable Status status, int left, int y, int width) {
+	private static void drawExperience(OrbitGraphics graphics, Font font, PartyLink.@Nullable Status status, int left, int y, int width) {
 		boolean known = shown(status);
-		graphics.blitSprite(RenderPipelines.GUI_TEXTURED, XP_BACKGROUND, left, y, width, 5);
+		graphics.sprite(XP_BACKGROUND, left, y, width, 5);
 		int progress = known ? (int) (Mth.clamp(status.extra().xpProgress(), 0, 1) * (width + 1)) : 0;
 		if (progress > 0) {
-			graphics.blitSprite(RenderPipelines.GUI_TEXTURED, XP_PROGRESS, width, 5, 0, 0, left, y, Math.min(progress, width), 5);
+			graphics.spritePart(XP_PROGRESS, width, 5, 0, 0, left, y, Math.min(progress, width), 5);
 		}
 		if (known && status.extra().xpLevel() > 0) {
 			Component level = Component.translatable("gui.experience.level", status.extra().xpLevel());
@@ -324,12 +324,12 @@ final class PartyBars {
 		}
 	}
 
-	private static void drawHearts(GuiGraphicsExtractor graphics, @Nullable Track track, PartyLink.@Nullable Status status, Layout layout, int left, int base, long now,
+	private static void drawHearts(OrbitGraphics graphics, @Nullable Track track, PartyLink.@Nullable Status status, Layout layout, int left, int base, long now,
 		long tick, Random random) {
 		if (track == null) {
 			// Not heard from, or out of a world: empty hearts.
 			for (int i = 0; i < 10; i++) {
-				graphics.blitSprite(RenderPipelines.GUI_TEXTURED, container(false, false), left + i * 8, base, 9, 9);
+				graphics.sprite(container(false, false), left + i * 8, base, 9, 9);
 			}
 			return;
 		}
@@ -353,26 +353,26 @@ final class PartyBars {
 			if (i < containers && i == lifted) {
 				y -= 2;
 			}
-			graphics.blitSprite(RenderPipelines.GUI_TEXTURED, container(hardcore, blinking), x, y, 9, 9);
+			graphics.sprite(container(hardcore, blinking), x, y, 9, 9);
 			int halves = i * 2;
 			if (i >= containers) {
 				int absorptionHalves = halves - maxHalves;
 				if (absorptionHalves < absorption) {
 					Heart shown = type == Heart.WITHERED ? type : Heart.ABSORBING;
-					graphics.blitSprite(RenderPipelines.GUI_TEXTURED, shown.sprite(hardcore, absorptionHalves + 1 == absorption, false), x, y, 9, 9);
+					graphics.sprite(shown.sprite(hardcore, absorptionHalves + 1 == absorption, false), x, y, 9, 9);
 				}
 			}
 			if (blinking && halves < old) {
-				graphics.blitSprite(RenderPipelines.GUI_TEXTURED, type.sprite(hardcore, halves + 1 == old, true), x, y, 9, 9);
+				graphics.sprite(type.sprite(hardcore, halves + 1 == old, true), x, y, 9, 9);
 			}
 			if (halves < current) {
-				graphics.blitSprite(RenderPipelines.GUI_TEXTURED, type.sprite(hardcore, halves + 1 == current, false), x, y, 9, 9);
+				graphics.sprite(type.sprite(hardcore, halves + 1 == current, false), x, y, 9, 9);
 			}
 		}
 	}
 
 	/** Shanks from the right, hungry ones with the hunger effect; AppleSkin's exhaustion under them, saturation over. */
-	private static void drawFood(GuiGraphicsExtractor graphics, PartyLink.@Nullable Status status, boolean known, int y, int right, long tick, Random random) {
+	private static void drawFood(OrbitGraphics graphics, PartyLink.@Nullable Status status, boolean known, int y, int right, long tick, Random random) {
 		int food = known ? Mth.clamp(status.hunger(), 0, 20) : 0;
 		boolean hungry = known && status.has(PartyLink.HUNGER);
 		if (known && appleSkin && status.exhaustion() > 0) {
@@ -384,12 +384,12 @@ final class PartyBars {
 		for (int i = 0; i < 10; i++) {
 			int foodY = jitter ? y + random.nextInt(3) - 1 : y;
 			int x = right - i * 8 - 9;
-			graphics.blitSprite(RenderPipelines.GUI_TEXTURED, hungry ? FOOD_EMPTY_HUNGER : FOOD_EMPTY, x, foodY, 9, 9);
+			graphics.sprite(hungry ? FOOD_EMPTY_HUNGER : FOOD_EMPTY, x, foodY, 9, 9);
 			if (i * 2 + 1 < food) {
-				graphics.blitSprite(RenderPipelines.GUI_TEXTURED, hungry ? FOOD_FULL_HUNGER : FOOD_FULL, x, foodY, 9, 9);
+				graphics.sprite(hungry ? FOOD_FULL_HUNGER : FOOD_FULL, x, foodY, 9, 9);
 			}
 			if (i * 2 + 1 == food) {
-				graphics.blitSprite(RenderPipelines.GUI_TEXTURED, hungry ? FOOD_HALF_HUNGER : FOOD_HALF, x, foodY, 9, 9);
+				graphics.sprite(hungry ? FOOD_HALF_HUNGER : FOOD_HALF, x, foodY, 9, 9);
 			}
 			if (known && appleSkin) {
 				// AppleSkin: each shank's saturation outlined, in quarters.
@@ -403,7 +403,7 @@ final class PartyBars {
 	}
 
 	/** While riding something with hearts, the game shows its hearts in place of the shanks: rows of ten going up. */
-	private static void drawMount(GuiGraphicsExtractor graphics, PartyLink.Status status, int hearts, int base, int right) {
+	private static void drawMount(OrbitGraphics graphics, PartyLink.Status status, int hearts, int base, int right) {
 		int current = (int) Math.ceil(status.mountHealth());
 		int y = base;
 		for (int from = 0; hearts > 0; from += 20) {
@@ -411,12 +411,12 @@ final class PartyBars {
 			hearts -= row;
 			for (int i = 0; i < row; i++) {
 				int x = right - i * 8 - 9;
-				graphics.blitSprite(RenderPipelines.GUI_TEXTURED, MOUNT_CONTAINER, x, y, 9, 9);
+				graphics.sprite(MOUNT_CONTAINER, x, y, 9, 9);
 				if (i * 2 + 1 + from < current) {
-					graphics.blitSprite(RenderPipelines.GUI_TEXTURED, MOUNT_FULL, x, y, 9, 9);
+					graphics.sprite(MOUNT_FULL, x, y, 9, 9);
 				}
 				if (i * 2 + 1 + from == current) {
-					graphics.blitSprite(RenderPipelines.GUI_TEXTURED, MOUNT_HALF, x, y, 9, 9);
+					graphics.sprite(MOUNT_HALF, x, y, 9, 9);
 				}
 			}
 			y -= 10;
@@ -452,7 +452,7 @@ final class PartyBars {
 	 * not full), as the toggles have them; health and hunger lost flash white. Creative and spectator players have
 	 * none.
 	 */
-	static void drawBars(GuiGraphicsExtractor graphics, UUID member, PartyLink.@Nullable Status status, int parts, int x, int y, int width) {
+	static void drawBars(OrbitGraphics graphics, UUID member, PartyLink.@Nullable Status status, int parts, int x, int y, int width) {
 		long now = System.currentTimeMillis();
 		Track track = track(member, status, now);
 		if (status != null && status.playing() && !status.showsHealth()) {
@@ -483,7 +483,7 @@ final class PartyBars {
 		}
 	}
 
-	private static void drawHealthBar(GuiGraphicsExtractor graphics, PartyLink.Status status, Track track, long now, int x, int y, int width) {
+	private static void drawHealthBar(OrbitGraphics graphics, PartyLink.Status status, Track track, long now, int x, int y, int width) {
 		// Health and absorption share the bar as hearts share the rows: the absorption after the health's room.
 		float room = Math.max(status.maxHealth(), track.health);
 		float total = room + Mth.ceil(status.absorption());
@@ -503,7 +503,7 @@ final class PartyBars {
 		}
 	}
 
-	private static void drawHungerBar(GuiGraphicsExtractor graphics, PartyLink.Status status, Track track, long now, int x, int y, int width) {
+	private static void drawHungerBar(OrbitGraphics graphics, PartyLink.Status status, Track track, long now, int x, int y, int width) {
 		int hunger = Math.round(width * Mth.clamp(status.hunger() / 20F, 0, 1));
 		int hungerColor = status.has(PartyLink.HUNGER) ? HUNGRY : HUNGER;
 		boolean hungerFlash = blinkOn(track.hungerFlashUntil, now);
@@ -545,7 +545,7 @@ final class PartyBars {
 	}
 
 	/** The member's items in slots, as the toggles have them (empty slots while not known). */
-	static void drawSlots(GuiGraphicsExtractor graphics, Font font, PartyLink.@Nullable Status status, int parts, int x, int y, boolean itemsReady, boolean vanilla) {
+	static void drawSlots(OrbitGraphics graphics, Font font, PartyLink.@Nullable Status status, int parts, int x, int y, boolean itemsReady, boolean vanilla) {
 		boolean known = itemsReady && status != null && status.playing();
 		for (int group = 0; group < SLOT_GROUPS.length; group++) {
 			if ((parts & SLOT_GROUP_PARTS[group]) == 0) {
@@ -554,7 +554,7 @@ final class PartyBars {
 			String[] slots = SLOT_GROUPS[group];
 			if (vanilla && group == 0) {
 				// The off hand's own slot, as the game draws it left of the hotbar.
-				graphics.blitSprite(RenderPipelines.GUI_TEXTURED, HOTBAR_OFFHAND, x, y, 29, 24);
+				graphics.sprite(HOTBAR_OFFHAND, x, y, 29, 24);
 				drawItem(graphics, font, known ? stack(status.extra().items().get(slots[0])) : null, x + 3, y + 4);
 				x += 29 + 3;
 				continue;
@@ -562,8 +562,8 @@ final class PartyBars {
 			if (vanilla) {
 				// A piece of the game's hotbar, as many slots long, with its right edge.
 				int width = 1 + slots.length * 20;
-				graphics.blitSprite(RenderPipelines.GUI_TEXTURED, HOTBAR, 182, 22, 0, 0, x, y + 1, width, 22);
-				graphics.blitSprite(RenderPipelines.GUI_TEXTURED, HOTBAR, 182, 22, 181, 0, x + width, y + 1, 1, 22);
+				graphics.spritePart(HOTBAR, 182, 22, 0, 0, x, y + 1, width, 22);
+				graphics.spritePart(HOTBAR, 182, 22, 181, 0, x + width, y + 1, 1, 22);
 				for (int i = 0; i < slots.length; i++) {
 					drawItem(graphics, font, known ? stack(status.extra().items().get(slots[i])) : null, x + 3 + i * 20, y + 4);
 				}
@@ -580,7 +580,7 @@ final class PartyBars {
 		}
 	}
 
-	private static void drawItem(GuiGraphicsExtractor graphics, Font font, net.minecraft.world.item.@Nullable ItemStack stack, int x, int y) {
+	private static void drawItem(OrbitGraphics graphics, Font font, net.minecraft.world.item.@Nullable ItemStack stack, int x, int y) {
 		if (stack != null) {
 			graphics.item(stack, x, y);
 			graphics.itemDecorations(font, stack, x, y);

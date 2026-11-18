@@ -1,9 +1,9 @@
 package dev.orbit.cosmetic.client.social;
 
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.gui.ui.FlatButton;
 import dev.orbit.cosmetic.client.gui.ui.OrbitScreen;
 import dev.orbit.cosmetic.client.gui.ui.Theme;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
@@ -53,12 +53,12 @@ public final class PartyJoinScreen extends OrbitScreen {
 	}
 
 	@Override
-	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+	protected void draw(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
 		int[] panel = panel();
 		Theme.panel(graphics, panel[0], panel[1], panel[2], panel[3]);
 		graphics.fill(panel[0], panel[1], panel[0] + 2, panel[1] + panel[3], Theme.GREEN);
 		graphics.text(font, title, panel[0] + 10, panel[1] + 9, Theme.TEXT, false);
 		graphics.text(font, Theme.clip(font, place, panel[2] - 20), panel[0] + 10, panel[1] + 25, Theme.GOLD, false);
-		super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+		drawWidgets(graphics, mouseX, mouseY, partialTick);
 	}
 }

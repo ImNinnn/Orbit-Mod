@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.anim.Wearer;
 import dev.orbit.cosmetic.client.compat.Compat;
@@ -7,7 +8,6 @@ import dev.orbit.cosmetic.client.gui.ui.FlatButton;
 import dev.orbit.cosmetic.client.gui.ui.OrbitScreen;
 import dev.orbit.cosmetic.client.gui.ui.Theme;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -187,8 +187,8 @@ public final class PlayersScreen extends OrbitScreen {
 	}
 
 	@Override
-	public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-		super.extractBackground(graphics, mouseX, mouseY, partialTick);
+	protected void drawBackground(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		super.drawBackground(graphics, mouseX, mouseY, partialTick);
 		Theme.panel(graphics, panelX, panelY, panelW, panelH, Theme.PANEL);
 		graphics.fill(panelX + 1, panelY + 1, panelX + panelW - 1, panelY + 22, Theme.PANEL_2);
 		graphics.text(font, title, panelX + 8, panelY + 7, Theme.TEXT, false);
@@ -197,8 +197,8 @@ public final class PlayersScreen extends OrbitScreen {
 	}
 
 	@Override
-	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-		super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+	protected void draw(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		drawWidgets(graphics, mouseX, mouseY, partialTick);
 		int top = listTop();
 		int bottom = listBottom();
 		graphics.enableScissor(panelX + 8, top, panelX + panelW - 8, bottom);

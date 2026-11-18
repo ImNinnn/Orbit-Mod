@@ -1,5 +1,7 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.client.gui.ui.OrbitBaseScreen;
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.anim.Wearer;
 import dev.orbit.cosmetic.client.compat.Compat;
@@ -10,7 +12,6 @@ import dev.orbit.cosmetic.client.gui.ui.Theme;
 import dev.orbit.cosmetic.client.library.EmoteLibrary;
 import dev.orbit.cosmetic.client.library.OrbitState;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -24,7 +25,7 @@ import java.util.List;
  * last emote pointed at stays chosen, so the key can be released anywhere. Clicking an emote plays it too; the
  * arrows (or the mouse wheel) switch between wheels, and Edit opens the Orbit menu's emote section.
  */
-public final class EmoteWheelScreen extends Screen {
+public final class EmoteWheelScreen extends OrbitBaseScreen {
 	/** Slot positions on the 3x3 grid, clockwise from the top; the middle cell is not a slot. */
 	private static final int[][] CELLS = {{1, 0}, {2, 0}, {2, 1}, {2, 2}, {1, 2}, {0, 2}, {0, 1}, {0, 0}};
 
@@ -129,13 +130,13 @@ public final class EmoteWheelScreen extends Screen {
 	}
 
 	@Override
-	public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+	protected void drawBackground(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
 		graphics.fillGradient(0, 0, width, height, 0x60000000, 0x90000000);
 	}
 
 	@Override
-	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-		super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+	protected void draw(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		drawWidgets(graphics, mouseX, mouseY, partialTick);
 		int wheel = emotes().selectedWheel();
 		Component name = Component.literal(emotes().wheels().get(wheel).name);
 		int nameWidth = font.width(name) + 12;

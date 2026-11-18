@@ -1,5 +1,7 @@
 package dev.orbit.cosmetic.client.gui.servers;
 
+import dev.orbit.cosmetic.client.gui.ui.OrbitWidget;
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.compat.Compat;
@@ -8,7 +10,6 @@ import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.Screens;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractSelectionList;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.StringWidget;
@@ -95,7 +96,7 @@ public final class ServerTabs {
 	 * Draws a list's top and bottom lines when it is under the tabs (the top one beside the tabs only, as Minecraft's
 	 * tab bar does); false for any other list.
 	 */
-	public static boolean drawSeparators(AbstractSelectionList<?> list, GuiGraphicsExtractor graphics) {
+	public static boolean drawSeparators(AbstractSelectionList<?> list, OrbitGraphics graphics) {
 		int[] tabs = UNDER_TABS.get(list);
 		if (tabs == null) {
 			return false;
@@ -104,9 +105,9 @@ public final class ServerTabs {
 		Identifier header = inWorld ? Screen.INWORLD_HEADER_SEPARATOR : Screen.HEADER_SEPARATOR;
 		Identifier footer = inWorld ? Screen.INWORLD_FOOTER_SEPARATOR : Screen.FOOTER_SEPARATOR;
 		int y = list.getY() - 2;
-		graphics.blit(RenderPipelines.GUI_TEXTURED, header, list.getX(), y, 0, 0, Math.max(0, tabs[0] - list.getX()), 2, 32, 2);
-		graphics.blit(RenderPipelines.GUI_TEXTURED, header, tabs[1], y, 0, 0, Math.max(0, list.getRight() - tabs[1]), 2, 32, 2);
-		graphics.blit(RenderPipelines.GUI_TEXTURED, footer, list.getX(), list.getBottom(), 0, 0, list.getWidth(), 2, 32, 2);
+		graphics.texture(header, list.getX(), y, 0, 0, Math.max(0, tabs[0] - list.getX()), 2, 32, 2);
+		graphics.texture(header, tabs[1], y, 0, 0, Math.max(0, list.getRight() - tabs[1]), 2, 32, 2);
+		graphics.texture(footer, list.getX(), list.getBottom(), 0, 0, list.getWidth(), 2, 32, 2);
 		return true;
 	}
 
@@ -119,7 +120,7 @@ public final class ServerTabs {
 	}
 
 	/** One tab, with Minecraft's tab textures. */
-	private static final class Tab extends AbstractWidget {
+	private static final class Tab extends OrbitWidget {
 		private static final Identifier SELECTED = Identifier.withDefaultNamespace("widget/tab_selected");
 		private static final Identifier SELECTED_HOT = Identifier.withDefaultNamespace("widget/tab_selected_highlighted");
 		private static final Identifier NORMAL = Identifier.withDefaultNamespace("widget/tab");
@@ -140,15 +141,15 @@ public final class ServerTabs {
 		}
 
 		@Override
-		protected void extractWidgetRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+		protected void draw(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
 			boolean hot = isHoveredOrFocused();
 			Identifier sprite = selected ? hot ? SELECTED_HOT : SELECTED : hot ? NORMAL_HOT : NORMAL;
-			graphics.blitSprite(RenderPipelines.GUI_TEXTURED, sprite, getX(), getY(), getWidth(), getHeight());
+			graphics.sprite(sprite, getX(), getY(), getWidth(), getHeight());
 			Font font = Minecraft.getInstance().font;
 			if (selected) {
 				// Filled like the server list under it (over its top line), so the tab opens onto it.
 				Identifier background = Minecraft.getInstance().level == null ? LIST_BACKGROUND : INWORLD_LIST_BACKGROUND;
-				Screen.extractMenuBackgroundTexture(graphics, background, getX() + 2, getY() + 2, getX() + 2, getY() + 2, getWidth() - 4, getHeight() - 2);
+				Screen.extractMenuBackgroundTexture(graphics.raw(), background, getX() + 2, getY() + 2, getX() + 2, getY() + 2, getWidth() - 4, getHeight() - 2);
 				int w = Math.min(font.width(getMessage()), getWidth() - 4);
 				int left = getX() + (getWidth() - w) / 2;
 				graphics.fill(left, getBottom() - 2, left + w, getBottom() - 1, -1);

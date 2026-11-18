@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.compat.Compat;
 import dev.orbit.cosmetic.client.gui.ui.FlatButton;
@@ -11,7 +12,6 @@ import dev.orbit.cosmetic.client.library.LocalCosmetic;
 import dev.orbit.cosmetic.common.anim.ParticleSettings;
 import dev.orbit.cosmetic.common.emote.EmoteMode;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
@@ -132,8 +132,8 @@ public final class ParticlesScreen extends OrbitScreen {
 	}
 
 	@Override
-	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-		super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+	protected void draw(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		drawWidgets(graphics, mouseX, mouseY, partialTick);
 		int titleY = (cosmetic != null ? SettingsTabs.HEIGHT : 0) + 8;
 		graphics.centeredText(font, title, width / 2, titleY, Theme.TEXT);
 		graphics.centeredText(font, Component.translatable("orbit_cosmetic.particles.subtitle", ParticleSettings.MAX_PER_PLAYER).withStyle(ChatFormatting.GRAY), width / 2, titleY + 14, Theme.TEXT);

@@ -1,7 +1,7 @@
 package dev.orbit.cosmetic.client.gui.preview;
 
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.mixin.GuiGraphicsExtractorAccessor;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.client.renderer.state.gui.pip.PictureInPictureRenderState;
@@ -45,7 +45,7 @@ public sealed interface PreviewBatch extends PictureInPictureRenderState permits
 	}
 
 	/** Adds a third batch (for a screen that already shows a grid and a panel). */
-	static void extra(GuiGraphicsExtractor graphics, int x0, int y0, int x1, int y1, List<Entry> entries) {
+	static void extra(OrbitGraphics graphics, int x0, int y0, int x1, int y1, List<Entry> entries) {
 		if (!entries.isEmpty() && x1 > x0 && y1 > y0) {
 			ScreenRectangle area = new ScreenRectangle(x0, y0, x1 - x0, y1 - y0);
 			submit(graphics, new Extra(x0, y0, x1, y1, area, area, List.copyOf(entries)));
@@ -53,7 +53,7 @@ public sealed interface PreviewBatch extends PictureInPictureRenderState permits
 	}
 
 	/** Adds a grid batch covering the rectangle, clipped to it. */
-	static void grid(GuiGraphicsExtractor graphics, int x0, int y0, int x1, int y1, List<Entry> entries) {
+	static void grid(OrbitGraphics graphics, int x0, int y0, int x1, int y1, List<Entry> entries) {
 		if (!entries.isEmpty() && x1 > x0 && y1 > y0) {
 			ScreenRectangle area = new ScreenRectangle(x0, y0, x1 - x0, y1 - y0);
 			submit(graphics, new Grid(x0, y0, x1, y1, area, area, List.copyOf(entries)));
@@ -61,14 +61,14 @@ public sealed interface PreviewBatch extends PictureInPictureRenderState permits
 	}
 
 	/** Adds a panel batch covering the rectangle, clipped to it. */
-	static void panel(GuiGraphicsExtractor graphics, int x0, int y0, int x1, int y1, List<Entry> entries) {
+	static void panel(OrbitGraphics graphics, int x0, int y0, int x1, int y1, List<Entry> entries) {
 		if (!entries.isEmpty() && x1 > x0 && y1 > y0) {
 			ScreenRectangle area = new ScreenRectangle(x0, y0, x1 - x0, y1 - y0);
 			submit(graphics, new Panel(x0, y0, x1, y1, area, area, List.copyOf(entries)));
 		}
 	}
 
-	private static void submit(GuiGraphicsExtractor graphics, PreviewBatch batch) {
-		((GuiGraphicsExtractorAccessor) graphics).orbit$guiRenderState().addPicturesInPictureState(batch);
+	private static void submit(OrbitGraphics graphics, PreviewBatch batch) {
+		((GuiGraphicsExtractorAccessor) graphics.raw()).orbit$guiRenderState().addPicturesInPictureState(batch);
 	}
 }

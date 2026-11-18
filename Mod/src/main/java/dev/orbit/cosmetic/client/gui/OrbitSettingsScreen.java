@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.compat.Compat;
 import dev.orbit.cosmetic.client.config.ClientConfig;
@@ -8,7 +9,6 @@ import dev.orbit.cosmetic.client.gui.ui.OrbitScreen;
 import dev.orbit.cosmetic.client.gui.ui.Theme;
 import dev.orbit.cosmetic.common.model.ModelLimits;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
@@ -64,7 +64,7 @@ public final class OrbitSettingsScreen extends OrbitScreen {
 			return 30;
 		}
 
-		void draw(OrbitSettingsScreen screen, GuiGraphicsExtractor graphics, int x, int y, int width, int height, int mouseX, int mouseY) {
+		void draw(OrbitSettingsScreen screen, OrbitGraphics graphics, int x, int y, int width, int height, int mouseX, int mouseY) {
 			Theme.panel(graphics, x, y, width, height, Theme.PANEL);
 			graphics.text(screen.font, title.copy().withStyle(ChatFormatting.BOLD), x + 8, y + 7, Theme.TEXT, false);
 			if (description != null) {
@@ -98,7 +98,7 @@ public final class OrbitSettingsScreen extends OrbitScreen {
 		}
 
 		@Override
-		void draw(OrbitSettingsScreen screen, GuiGraphicsExtractor graphics, int x, int y, int width, int height, int mouseX, int mouseY) {
+		void draw(OrbitSettingsScreen screen, OrbitGraphics graphics, int x, int y, int width, int height, int mouseX, int mouseY) {
 			Theme.separator(graphics, screen.font, x, y + 9, width, title);
 		}
 	}
@@ -114,7 +114,7 @@ public final class OrbitSettingsScreen extends OrbitScreen {
 		}
 
 		@Override
-		void draw(OrbitSettingsScreen screen, GuiGraphicsExtractor graphics, int x, int y, int width, int height, int mouseX, int mouseY) {
+		void draw(OrbitSettingsScreen screen, OrbitGraphics graphics, int x, int y, int width, int height, int mouseX, int mouseY) {
 			super.draw(screen, graphics, x, y, width, height, mouseX, mouseY);
 			boolean on = value.getAsBoolean();
 			int sx = x + width - 30;
@@ -153,7 +153,7 @@ public final class OrbitSettingsScreen extends OrbitScreen {
 		}
 
 		@Override
-		void draw(OrbitSettingsScreen screen, GuiGraphicsExtractor graphics, int x, int y, int width, int height, int mouseX, int mouseY) {
+		void draw(OrbitSettingsScreen screen, OrbitGraphics graphics, int x, int y, int width, int height, int mouseX, int mouseY) {
 			super.draw(screen, graphics, x, y, width, height, mouseX, mouseY);
 			int sx = x + width - 96;
 			int sy = y + height / 2 + 2;
@@ -198,7 +198,7 @@ public final class OrbitSettingsScreen extends OrbitScreen {
 		}
 
 		@Override
-		void draw(OrbitSettingsScreen screen, GuiGraphicsExtractor graphics, int x, int y, int width, int height, int mouseX, int mouseY) {
+		void draw(OrbitSettingsScreen screen, OrbitGraphics graphics, int x, int y, int width, int height, int mouseX, int mouseY) {
 			super.draw(screen, graphics, x, y, width, height, mouseX, mouseY);
 			int bx = x + width - 90;
 			int by = y + (height - 16) / 2;
@@ -237,7 +237,7 @@ public final class OrbitSettingsScreen extends OrbitScreen {
 		}
 
 		@Override
-		void draw(OrbitSettingsScreen screen, GuiGraphicsExtractor graphics, int x, int y, int width, int height, int mouseX, int mouseY) {
+		void draw(OrbitSettingsScreen screen, OrbitGraphics graphics, int x, int y, int width, int height, int mouseX, int mouseY) {
 			super.draw(screen, graphics, x, y, width, height, mouseX, mouseY);
 			int bx = x + width - 90;
 			int by = y + (height - 16) / 2;
@@ -478,8 +478,8 @@ public final class OrbitSettingsScreen extends OrbitScreen {
 	}
 
 	@Override
-	public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-		super.extractBackground(graphics, mouseX, mouseY, partialTick);
+	protected void drawBackground(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		super.drawBackground(graphics, mouseX, mouseY, partialTick);
 		Theme.panel(graphics, panelX, panelY, sideW, panelH, Theme.PANEL);
 		Theme.panel(graphics, panelX + sideW - 1, panelY, panelW - sideW + 1, panelH, Theme.BACKGROUND);
 		graphics.fill(panelX + 1, panelY + 1, panelX + panelW - 1, panelY + HEADER, Theme.PANEL_2);
@@ -492,8 +492,8 @@ public final class OrbitSettingsScreen extends OrbitScreen {
 	}
 
 	@Override
-	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-		super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+	protected void draw(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		drawWidgets(graphics, mouseX, mouseY, partialTick);
 		graphics.enableScissor(contentX, contentY, contentX + contentW, contentY + contentH);
 		int y = contentY - (int) scroll;
 		for (Row row : rows) {

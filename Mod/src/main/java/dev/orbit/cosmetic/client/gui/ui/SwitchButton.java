@@ -1,9 +1,8 @@
 package dev.orbit.cosmetic.client.gui.ui;
 
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.narration.NarratedElementType;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
@@ -17,7 +16,7 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
 /** A setting that is on or off: its icon, its name, and the settings menu's switch on the right (with a tooltip). */
-public final class SwitchButton extends AbstractWidget {
+public final class SwitchButton extends OrbitWidget {
 	private final String icon;
 	private final BooleanSupplier get;
 	private final Consumer<Boolean> set;
@@ -45,7 +44,7 @@ public final class SwitchButton extends AbstractWidget {
 	}
 
 	@Override
-	protected void extractWidgetRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+	protected void draw(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
 		boolean on = get.getAsBoolean();
 		boolean hot = isHoveredOrFocused();
 		int x = getX();
@@ -54,8 +53,7 @@ public final class SwitchButton extends AbstractWidget {
 		graphics.outline(x, y, getWidth(), getHeight(), hot ? Theme.BORDER_LIGHT : Theme.BORDER);
 		if (icon.contains(":")) {
 			// One of the game's own sprites (a heart, a shank...): kept in its colours, darker when off.
-			graphics.blitSprite(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, net.minecraft.resources.Identifier.parse(icon), x + 4, y + (getHeight() - 9) / 2, 9, 9,
-				on ? 0xFFFFFFFF : 0xFF707070);
+			graphics.sprite(net.minecraft.resources.Identifier.parse(icon), x + 4, y + (getHeight() - 9) / 2, 9, 9, on ? 0xFFFFFFFF : 0xFF707070);
 		} else {
 			Theme.icon(graphics, icon, x + 4, y + (getHeight() - 9) / 2, on ? Theme.TEXT : Theme.MUTED);
 		}

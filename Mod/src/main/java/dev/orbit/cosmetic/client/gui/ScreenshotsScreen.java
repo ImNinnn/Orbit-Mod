@@ -1,12 +1,12 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.compat.Compat;
 import dev.orbit.cosmetic.client.gui.ui.FlatButton;
 import dev.orbit.cosmetic.client.gui.ui.OrbitScreen;
 import dev.orbit.cosmetic.client.gui.ui.Theme;
 import dev.orbit.cosmetic.client.screenshot.ScreenshotLibrary;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -126,7 +126,7 @@ public final class ScreenshotsScreen extends OrbitScreen {
 	}
 
 	@Override
-	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+	protected void draw(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
 		int px = panelX();
 		int pw = panelWidth();
 		int py = panelY();
@@ -139,7 +139,7 @@ public final class ScreenshotsScreen extends OrbitScreen {
 			Theme.panel(graphics, boxX, searchBox.getY() - 4, searchBox.getWidth() + 14, 16, Theme.BACKGROUND);
 			Theme.icon(graphics, "search", boxX + 3, searchBox.getY(), Theme.FAINT);
 		}
-		super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+		drawWidgets(graphics, mouseX, mouseY, partialTick);
 
 		int gridTop = py + HEADER + TABS + 4;
 		int gridBottom = py + ph - PAD;
@@ -194,7 +194,7 @@ public final class ScreenshotsScreen extends OrbitScreen {
 					v0 = cut;
 					v1 = 1 - cut;
 				}
-				graphics.blit(thumbnail.id(), x, y, x + tileW, y + tileH, u0, u1, v0, v1);
+				graphics.image(thumbnail.id(), x, y, x + tileW, y + tileH, u0, u1, v0, v1);
 			}
 			boolean hot = mouseX >= x && mouseY >= y && mouseX < x + tileW && mouseY < y + tileH && mouseY >= gridTop && mouseY < gridBottom;
 			if (hot) {
@@ -212,7 +212,7 @@ public final class ScreenshotsScreen extends OrbitScreen {
 				.withStyle(ChatFormatting.GRAY), px + pw / 2, gridTop + 30, Theme.TEXT);
 		}
 		if (hovered != null) {
-			graphics.setTooltipForNextFrame(font, Component.literal(hovered.name()), mouseX, mouseY);
+			graphics.tooltip(font, Component.literal(hovered.name()), mouseX, mouseY);
 		}
 	}
 

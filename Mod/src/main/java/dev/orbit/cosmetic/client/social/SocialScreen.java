@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.social;
 
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import com.google.gson.JsonObject;
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.orbit.cosmetic.client.OrbitClient;
@@ -22,10 +23,8 @@ import dev.orbit.cosmetic.common.anim.ParticleSettings;
 import dev.orbit.cosmetic.common.protocol.AssetId;
 import dev.orbit.cosmetic.common.protocol.EquippedCosmetic;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.MultiLineEditBox;
-import net.minecraft.client.gui.components.PlayerFaceExtractor;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.ConfirmScreen;
@@ -315,7 +314,7 @@ public final class SocialScreen extends OrbitScreen {
 	}
 
 	/** The party icon beside a party member's name: green in the player's own party. */
-	private void partyMark(GuiGraphicsExtractor graphics, UUID player, int x, int y) {
+	private void partyMark(OrbitGraphics graphics, UUID player, int x, int y) {
 		Theme.icon(graphics, "party", x, y, social().inParty(player) ? Theme.GREEN : Theme.MUTED);
 	}
 
@@ -567,7 +566,7 @@ public final class SocialScreen extends OrbitScreen {
 	// ---------------------------------------------------------------- drawing
 
 	@Override
-	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+	protected void draw(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
 		this.mouseX = mouseX;
 		this.mouseY = mouseY;
 		drawn.clear();
@@ -596,11 +595,11 @@ public final class SocialScreen extends OrbitScreen {
 				spot.getValue().visible = false;
 			}
 		}
-		super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+		drawWidgets(graphics, mouseX, mouseY, partialTick);
 		drawMemberMenu(graphics, mouseX, mouseY);
 	}
 
-	private void face(GuiGraphicsExtractor graphics, UUID uuid, String name, int x, int y, int size) {
+	private void face(OrbitGraphics graphics, UUID uuid, String name, int x, int y, int size) {
 		SocialPopups.face(graphics, uuid, name, x, y, size);
 	}
 
@@ -634,7 +633,7 @@ public final class SocialScreen extends OrbitScreen {
 		return Component.translatable("orbit_cosmetic.social.last_online", ago).withStyle(ChatFormatting.GRAY);
 	}
 
-	private void drawConversations(GuiGraphicsExtractor graphics, int top) {
+	private void drawConversations(OrbitGraphics graphics, int top) {
 		int x = px() + PAD;
 		int bottom = py() + ph() - PAD;
 		graphics.fill(px() + LIST + PAD, top, px() + LIST + PAD + 1, bottom, Theme.BORDER);
@@ -704,7 +703,7 @@ public final class SocialScreen extends OrbitScreen {
 		}
 	}
 
-	private void drawChat(GuiGraphicsExtractor graphics, int top, float partialTick) {
+	private void drawChat(OrbitGraphics graphics, int top, float partialTick) {
 		int x = px() + LIST + PAD * 2;
 		int w = chatWidth();
 		Social.Person friend = open == null ? null : social().friend(open);
@@ -836,12 +835,12 @@ public final class SocialScreen extends OrbitScreen {
 		memberMenu = new MemberMenu(uuid, name, menuX, menuY, actions);
 	}
 
-	private void drawMemberMenu(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+	private void drawMemberMenu(OrbitGraphics graphics, int mouseX, int mouseY) {
 		MemberMenu menu = memberMenu;
 		if (menu == null) {
 			return;
 		}
-		graphics.nextStratum();
+		graphics.layer();
 		int h = menu.actions().size() * MENU_ROW + 6;
 		Theme.panel(graphics, menu.x(), menu.y(), MENU_W, h, Theme.PANEL);
 		graphics.fill(menu.x(), menu.y(), menu.x() + 2, menu.y() + h, Theme.RED);
@@ -873,7 +872,7 @@ public final class SocialScreen extends OrbitScreen {
 	 * A group's member list, right of the conversation: each member with their head, their colour on the right, a star
 	 * for the leader. The leader can add friends, remove members and pass the lead on.
 	 */
-	private void drawMembers(GuiGraphicsExtractor graphics, Social.Group group, int x, int top, int bottom) {
+	private void drawMembers(OrbitGraphics graphics, Social.Group group, int x, int top, int bottom) {
 		UUID me = social().me();
 		boolean leader = group.owner().equals(me);
 		Theme.panel(graphics, x, top, MEMBERS, bottom - top, Theme.PANEL);
@@ -935,7 +934,7 @@ public final class SocialScreen extends OrbitScreen {
 	 * Lays out (and with {@code draw}, draws) one message: its time, its text in a bubble, then its picture, shared
 	 * cosmetic or server cards. Returns its height.
 	 */
-	private int entry(GuiGraphicsExtractor graphics, Social.Entry entry, boolean mine, int x, int y, int w, int areaTop, int areaBottom, float partialTick, boolean draw) {
+	private int entry(OrbitGraphics graphics, Social.Entry entry, boolean mine, int x, int y, int w, int areaTop, int areaBottom, float partialTick, boolean draw) {
 		draw &= y < areaBottom && y + 400 > areaTop;
 		// In a group, someone else's messages have their head on the left and their name before the time.
 		Social.Group group = social().group(open);
@@ -1044,7 +1043,7 @@ public final class SocialScreen extends OrbitScreen {
 	 * An invitation to the conversation's party: who started it, and Join while it is on (or that the player is in
 	 * it, or that it ended).
 	 */
-	private void drawPartyInvite(GuiGraphicsExtractor graphics, Social.Entry entry, String leader, int x, int y, int w, int areaTop, int areaBottom) {
+	private void drawPartyInvite(OrbitGraphics graphics, Social.Entry entry, String leader, int x, int y, int w, int areaTop, int areaBottom) {
 		int h = 32;
 		Theme.panel(graphics, x, y, w, h, Theme.PANEL_2);
 		graphics.fill(x, y, x + 2, y + h, Theme.RED);
@@ -1068,7 +1067,7 @@ public final class SocialScreen extends OrbitScreen {
 	}
 
 	/** End-to-end encrypted messages have a dashed outline. */
-	private static void secured(GuiGraphicsExtractor graphics, Social.Entry entry, int x, int y, int w, int h) {
+	private static void secured(OrbitGraphics graphics, Social.Entry entry, int x, int y, int w, int h) {
 		if (entry.encrypted()) {
 			Theme.dashed(graphics, x - 2, y - 2, w + 4, h + 4, 0xFFB0B0BA);
 		}
@@ -1078,7 +1077,7 @@ public final class SocialScreen extends OrbitScreen {
 	 * Edit and Delete beside one of the player's own messages: shown while the mouse is on the message (or the
 	 * keyboard on one of them).
 	 */
-	private void messageActions(GuiGraphicsExtractor graphics, Social.Entry entry, int x, int y, int w, int height, int areaTop, int areaBottom) {
+	private void messageActions(OrbitGraphics graphics, Social.Entry entry, int x, int y, int w, int height, int areaTop, int areaBottom) {
 		UUID friend = open;
 		boolean text = entry.content() != null && entry.content().has("text") && !entry.content().get("text").getAsString().isBlank();
 		int bx = x + 6;
@@ -1118,7 +1117,7 @@ public final class SocialScreen extends OrbitScreen {
 		return json.get(key) != null && json.get(key).isJsonPrimitive() ? json.get(key).getAsString() : null;
 	}
 
-	private void drawPicture(GuiGraphicsExtractor graphics, Social.Entry entry, JsonObject image, int ix, int cy, int iw, int ih, int areaTop, int areaBottom) {
+	private void drawPicture(OrbitGraphics graphics, Social.Entry entry, JsonObject image, int ix, int cy, int iw, int ih, int areaTop, int areaBottom) {
 		String id = image.get("id").getAsString();
 		Path file = pictures.get(id);
 		if (file == null && !pictures.containsKey(id) && System.currentTimeMillis() >= pictureRetry.getOrDefault(id, 0L)) {
@@ -1140,7 +1139,7 @@ public final class SocialScreen extends OrbitScreen {
 		int th = Math.round(thumbnail.height() * scale);
 		int tx = ix + (iw - tw) / 2;
 		int ty = cy + (ih - th) / 2;
-		graphics.blit(thumbnail.id(), tx, ty, tx + tw, ty + th, 0, 1, 0, 1);
+		graphics.image(thumbnail.id(), tx, ty, tx + tw, ty + th, 0, 1, 0, 1);
 		Path shown = file;
 		Hotspot spot = spot("picture:" + entry.id(), Component.translatable("orbit_cosmetic.social.open_picture"), tx, ty, tw, th, areaTop, areaBottom,
 			h -> Compat.setScreen(new ScreenshotViewScreen(this, orbit().screenshots().shot(shown))));
@@ -1149,7 +1148,7 @@ public final class SocialScreen extends OrbitScreen {
 	}
 
 	/** A shared cosmetic, emote or body part: shown on a player (downloaded from Orbit Cloud), with Add to wardrobe. */
-	private void drawCosmetic(GuiGraphicsExtractor graphics, Social.Entry entry, JsonObject cosmetic, boolean mine, int x, int cy, int w, int areaTop, int areaBottom,
+	private void drawCosmetic(OrbitGraphics graphics, Social.Entry entry, JsonObject cosmetic, boolean mine, int x, int cy, int w, int areaTop, int areaBottom,
 		float partialTick) {
 		int cw = Math.min(bubbleWidth(w), 240);
 		int cx = mine ? x + w - 6 - cw : x + 6;
@@ -1194,7 +1193,7 @@ public final class SocialScreen extends OrbitScreen {
 	}
 
 	/** A raised button drawn by hand, for a hotspot. */
-	private void button(GuiGraphicsExtractor graphics, Hotspot spot, Component label, int fill, int hover) {
+	private void button(OrbitGraphics graphics, Hotspot spot, Component label, int fill, int hover) {
 		int bx = spot.getX();
 		int by = spot.getY();
 		boolean hot = spot.isHoveredOrFocused();
@@ -1230,14 +1229,14 @@ public final class SocialScreen extends OrbitScreen {
 	 * A server card: its icon, name, players and description (pinged; what the invite carried until then), and
 	 * Join.
 	 */
-	private void drawServer(GuiGraphicsExtractor graphics, String key, String address, @Nullable String name, @Nullable String sharedMotd, @Nullable String sharedIcon,
+	private void drawServer(OrbitGraphics graphics, String key, String address, @Nullable String name, @Nullable String sharedMotd, @Nullable String sharedIcon,
 		boolean mine, int x, int y, int w, int areaTop, int areaBottom) {
 		int cw = Math.min(bubbleWidth(w), 280);
 		int cx = mine ? x + w - 6 - cw : x + 6;
 		Theme.round(graphics, cx, y, cw, 44, Theme.PANEL_2, 2);
 		ServerData data = links.status(address, name);
 		Identifier icon = links.icon(address, sharedIcon);
-		graphics.blit(icon != null ? icon : NO_ICON, cx + 6, y + 6, cx + 38, y + 38, 0, 1, 0, 1);
+		graphics.image(icon != null ? icon : NO_ICON, cx + 6, y + 6, cx + 38, y + 38, 0, 1, 0, 1);
 		int textX = cx + 44;
 		int textW = cw - 44 - 54;
 		graphics.text(font, Theme.clip(font, Component.literal(name != null ? name : address), textW), textX, y + 6, Theme.TEXT, false);
@@ -1264,7 +1263,7 @@ public final class SocialScreen extends OrbitScreen {
 		button(graphics, join, Component.translatable("orbit_cosmetic.social.join"), 0xFF3A7D44, 0xFF4CA35A);
 	}
 
-	private void drawFriends(GuiGraphicsExtractor graphics, int top) {
+	private void drawFriends(OrbitGraphics graphics, int top) {
 		int columns = 3;
 		int columnW = (pw() - PAD * 2 - (columns - 1) * PAD) / columns;
 		int bottom = py() + ph() - PAD;

@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.social;
 
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.compat.Compat;
 import dev.orbit.cosmetic.client.gui.ui.ColorRow;
@@ -7,7 +8,6 @@ import dev.orbit.cosmetic.client.gui.ui.FlatButton;
 import dev.orbit.cosmetic.client.gui.ui.OrbitScreen;
 import dev.orbit.cosmetic.client.gui.ui.Theme;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
@@ -90,7 +90,7 @@ final class GroupEditScreen extends OrbitScreen {
 	}
 
 	@Override
-	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+	protected void draw(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
 		int x = left();
 		int y = top();
 		Theme.panel(graphics, x, y, WIDTH, HEIGHT);
@@ -110,6 +110,6 @@ final class GroupEditScreen extends OrbitScreen {
 		}
 		ly += 24;
 		graphics.text(font, Component.translatable("orbit_cosmetic.social.group.picture"), x + 8, ly + 5, Theme.TEXT, false);
-		super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+		drawWidgets(graphics, mouseX, mouseY, partialTick);
 	}
 }

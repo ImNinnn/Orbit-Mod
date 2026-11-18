@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import com.mojang.blaze3d.platform.NativeImage;
 import dev.orbit.cosmetic.client.Notifications;
 import dev.orbit.cosmetic.client.OrbitClient;
@@ -9,7 +10,6 @@ import dev.orbit.cosmetic.client.gui.ui.OrbitScreen;
 import dev.orbit.cosmetic.client.gui.ui.Theme;
 import dev.orbit.cosmetic.client.screenshot.ScreenshotLibrary;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
@@ -545,7 +545,7 @@ public final class ScreenshotEditScreen extends OrbitScreen {
 	// ---------------------------------------------------------------- drawing
 
 	@Override
-	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+	protected void draw(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
 		graphics.fill(0, 0, width, BAR, Theme.PANEL);
 		graphics.fill(0, BAR - 1, width, BAR, Theme.BORDER);
 		if (picked == null) {
@@ -559,7 +559,7 @@ public final class ScreenshotEditScreen extends OrbitScreen {
 			int y = Math.round(c[1]);
 			int w = Math.round(c[2]);
 			int h = Math.round(c[3]);
-			graphics.blit(textureId, x, y, x + w, y + h, 0, 1, 0, 1);
+			graphics.image(textureId, x, y, x + w, y + h, 0, 1, 0, 1);
 			// Outside the crop: darker.
 			float s = c[4];
 			int cx0 = Math.round(c[0] + crop[0] * s);
@@ -614,7 +614,7 @@ public final class ScreenshotEditScreen extends OrbitScreen {
 			graphics.fill(px + i * 16, py + PICKER + 18, px + i * 16 + 13, py + PICKER + 28, SWATCHES[i]);
 			graphics.outline(px + i * 16, py + PICKER + 18, 13, 10, Theme.BORDER_LIGHT);
 		}
-		super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+		drawWidgets(graphics, mouseX, mouseY, partialTick);
 		// The brush sizes, drawn over their buttons in the current colour.
 		int by = py + PICKER + 34;
 		for (int i = 0; i < BRUSHES.length; i++) {

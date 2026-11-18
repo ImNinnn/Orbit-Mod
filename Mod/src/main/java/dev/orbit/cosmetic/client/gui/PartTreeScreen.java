@@ -1,5 +1,7 @@
 package dev.orbit.cosmetic.client.gui;
 
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.gui.ui.FlatButton;
 import dev.orbit.cosmetic.client.gui.ui.FlatCycle;
 import dev.orbit.cosmetic.client.gui.ui.OrbitScreen;
@@ -10,7 +12,6 @@ import dev.orbit.cosmetic.common.model.Bone;
 import dev.orbit.cosmetic.common.model.CosmeticModel;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.ObjectSelectionList;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -82,8 +83,8 @@ public final class PartTreeScreen extends OrbitScreen {
 	}
 
 	@Override
-	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-		super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+	protected void draw(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		drawWidgets(graphics, mouseX, mouseY, partialTick);
 		graphics.centeredText(font, title, width / 2, 10, Theme.TEXT);
 		graphics.centeredText(font, Component.translatable("orbit_cosmetic.parts.subtitle").withStyle(ChatFormatting.GRAY), width / 2, 20, Theme.TEXT);
 	}
@@ -139,7 +140,8 @@ public final class PartTreeScreen extends OrbitScreen {
 			}
 
 			@Override
-			public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered, float a) {
+			public void extractContent(GuiGraphicsExtractor extractor, int mouseX, int mouseY, boolean hovered, float a) {
+				OrbitGraphics graphics = OrbitGraphics.of(extractor);
 				int x = getContentX() + 2 + depth * 12;
 				Component label = Component.literal((depth > 0 ? "└ " : "") + bone.name());
 				if (depth == 0) {

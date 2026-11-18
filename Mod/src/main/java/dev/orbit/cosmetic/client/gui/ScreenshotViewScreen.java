@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.orbit.cosmetic.client.compat.Compat;
 import dev.orbit.cosmetic.client.gui.ui.FlatButton;
@@ -7,7 +8,6 @@ import dev.orbit.cosmetic.client.gui.ui.OrbitScreen;
 import dev.orbit.cosmetic.client.gui.ui.Theme;
 import dev.orbit.cosmetic.client.screenshot.ImageClipboard;
 import dev.orbit.cosmetic.client.screenshot.ScreenshotLibrary;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.Screen;
@@ -134,7 +134,7 @@ public final class ScreenshotViewScreen extends OrbitScreen {
 	}
 
 	@Override
-	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+	protected void draw(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
 		graphics.fill(0, 0, width, BAR, Theme.PANEL);
 		graphics.fill(0, BAR - 1, width, BAR, Theme.BORDER);
 		graphics.fill(0, height - BAR, width, height, Theme.PANEL);
@@ -149,9 +149,9 @@ public final class ScreenshotViewScreen extends OrbitScreen {
 			int x = (width - w) / 2;
 			int y = BAR + 8 + (areaH - h) / 2;
 			graphics.fill(x - 1, y - 1, x + w + 1, y + h + 1, Theme.BORDER);
-			graphics.blit(image.id(), x, y, x + w, y + h, 0, 1, 0, 1);
+			graphics.image(image.id(), x, y, x + w, y + h, 0, 1, 0, 1);
 		}
 		graphics.outline(width / 2 - 94, 5, 188, 16, nameBox.isFocused() ? Theme.BORDER_LIGHT : Theme.BORDER);
-		super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+		drawWidgets(graphics, mouseX, mouseY, partialTick);
 	}
 }

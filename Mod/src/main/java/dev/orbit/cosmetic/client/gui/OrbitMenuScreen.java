@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.CosmeticStatus;
 import dev.orbit.cosmetic.client.Notifications;
 import dev.orbit.cosmetic.client.OrbitClient;
@@ -33,9 +34,7 @@ import dev.orbit.cosmetic.common.protocol.AssetId;
 import dev.orbit.cosmetic.common.emote.EmoteAnimation;
 import dev.orbit.cosmetic.common.protocol.EquippedCosmetic;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.components.PlayerFaceExtractor;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.Screen;
@@ -884,7 +883,7 @@ public final class OrbitMenuScreen extends OrbitScreen {
 	}
 
 	/** Outlines cosmetics of the big preview: the selected one in red, the hovered one in white (drawn over it). */
-	private void outline(GuiGraphicsExtractor graphics, int x, int y, int width, int height, @Nullable AssetId selectedAsset, @Nullable AssetId hovered) {
+	private void outline(OrbitGraphics graphics, int x, int y, int width, int height, @Nullable AssetId selectedAsset, @Nullable AssetId hovered) {
 		if (selectedAsset == null && hovered == null || width <= 0 || height <= 0) {
 			return;
 		}
@@ -1807,15 +1806,15 @@ public final class OrbitMenuScreen extends OrbitScreen {
 	// ---------------------------------------------------------------- drawing
 
 	@Override
-	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-		super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+	protected void draw(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		drawWidgets(graphics, mouseX, mouseY, partialTick);
 		drawGrid(graphics, mouseX, mouseY, partialTick);
 		drawRight(graphics, mouseX, mouseY, partialTick);
 	}
 
 	@Override
-	public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-		super.extractBackground(graphics, mouseX, mouseY, partialTick);
+	protected void drawBackground(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		super.drawBackground(graphics, mouseX, mouseY, partialTick);
 		// The three columns.
 		Theme.panel(graphics, panelX, panelY, sideW, panelH, Theme.PANEL);
 		Theme.panel(graphics, midX - 1, panelY, midW + 1, panelH, Theme.BACKGROUND);
@@ -1833,7 +1832,7 @@ public final class OrbitMenuScreen extends OrbitScreen {
 			graphics.text(font, Component.translatable("orbit_cosmetic.menu.group.wardrobe").withStyle(ChatFormatting.BOLD), panelX + 8, groupY, Theme.FAINT, false);
 		}
 		graphics.fill(panelX + 1, panelY + panelH - 24, panelX + sideW - 1, panelY + panelH - 23, Theme.BORDER);
-		PlayerFaceExtractor.extractRenderState(graphics, orbit().menuSkin(), panelX + 7, panelY + panelH - 17, 10);
+		graphics.face(orbit().menuSkin(), panelX + 7, panelY + panelH - 17, 10);
 		graphics.text(font, Theme.clip(font, Component.literal(minecraft.getGameProfile().name()), sideW - 44), panelX + 20, panelY + panelH - 15, Theme.TEXT, false);
 		// Middle header: section title and the search box frame.
 		int boxX = searchBox.getX() - 12;
@@ -1843,7 +1842,7 @@ public final class OrbitMenuScreen extends OrbitScreen {
 		Theme.icon(graphics, "search", boxX + 3, panelY + 7, Theme.FAINT);
 	}
 
-	private void drawGrid(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+	private void drawGrid(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
 		graphics.enableScissor(gridX, gridY, gridX + gridW, gridY + gridH);
 		int top = gridY - (int) scroll;
 		Placed hovered = tileAt(mouseX, mouseY);
@@ -1903,7 +1902,7 @@ public final class OrbitMenuScreen extends OrbitScreen {
 	 * The mark of a claimed featured item: a gold star while it is featured, a blue arrow when the catalog has another
 	 * version of it, a grey star once Orbit Cloud no longer features it. Returns the mark's tooltip when the mouse is on it.
 	 */
-	private @Nullable List<FormattedCharSequence> featuredMark(GuiGraphicsExtractor graphics, FeaturedCheck check, int x, int y, int mouseX, int mouseY) {
+	private @Nullable List<FormattedCharSequence> featuredMark(OrbitGraphics graphics, FeaturedCheck check, int x, int y, int mouseX, int mouseY) {
 		boolean outdated = check.state() == FeaturedCheck.State.OUTDATED;
 		boolean unfeatured = check.state() == FeaturedCheck.State.UNFEATURED;
 		// Grey: Orbit Cloud does not feature it any more.
@@ -1932,7 +1931,7 @@ public final class OrbitMenuScreen extends OrbitScreen {
 		return Math.min(p.w() / 2, p.h() + 20);
 	}
 
-	private void drawTileOverlay(GuiGraphicsExtractor graphics, Placed p, int x, int y, int mouseX, int mouseY) {
+	private void drawTileOverlay(OrbitGraphics graphics, Placed p, int x, int y, int mouseX, int mouseY) {
 		Item item = p.item();
 		if (item instanceof BundleEntry bundle) {
 			drawBundle(graphics, p, bundle, x, y);
@@ -2028,12 +2027,12 @@ public final class OrbitMenuScreen extends OrbitScreen {
 			}
 		}
 		if (tooltip != null) {
-			graphics.setTooltipForNextFrame(font, tooltip, mouseX, mouseY);
+			graphics.tooltip(font, tooltip, mouseX, mouseY);
 		}
 	}
 
 	/** A bundle tile: its name, item count and price over the player, and the list of its items on the right. */
-	private void drawBundle(GuiGraphicsExtractor graphics, Placed p, BundleEntry bundle, int x, int y) {
+	private void drawBundle(OrbitGraphics graphics, Placed p, BundleEntry bundle, int x, int y) {
 		int split = bundleSplit(p);
 		Theme.icon(graphics, "bundle", x + 3, y + 3, Theme.RED);
 		graphics.text(font, Theme.clip(font, Component.literal(bundle.name()), split - 18), x + 15, y + 4, Theme.TEXT, false);
@@ -2061,7 +2060,7 @@ public final class OrbitMenuScreen extends OrbitScreen {
 		}
 	}
 
-	private void drawPrice(GuiGraphicsExtractor graphics, int x, int y, String key, boolean emote, boolean plus, boolean bundle) {
+	private void drawPrice(OrbitGraphics graphics, int x, int y, String key, boolean emote, boolean plus, boolean bundle) {
 		if (!JokeCoins.enabled()) {
 			return;
 		}
@@ -2088,7 +2087,7 @@ public final class OrbitMenuScreen extends OrbitScreen {
 		return false;
 	}
 
-	private void drawScrollbar(GuiGraphicsExtractor graphics) {
+	private void drawScrollbar(OrbitGraphics graphics) {
 		if (contentHeight <= gridH) {
 			return;
 		}
@@ -2121,7 +2120,7 @@ public final class OrbitMenuScreen extends OrbitScreen {
 		return Component.translatable(shared ? "orbit_cosmetic.skins.status.shared" : "orbit_cosmetic.skins.status.waiting").withStyle(ChatFormatting.GRAY);
 	}
 
-	private void drawEmpty(GuiGraphicsExtractor graphics) {
+	private void drawEmpty(OrbitGraphics graphics) {
 		Component message;
 		if (section == Section.FEATURED) {
 			message = catalogError != null ? Component.translatable("orbit_cosmetic.menu.featured.error", catalogError)
@@ -2146,7 +2145,7 @@ public final class OrbitMenuScreen extends OrbitScreen {
 		}
 	}
 
-	private void drawRight(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+	private void drawRight(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
 		Component title = selected == null ? Component.translatable("orbit_cosmetic.menu.preview") : Component.literal(selected.name());
 		graphics.text(font, Theme.clip(font, title, rightW - PAD * 2), rightX + PAD, panelY + 7, Theme.TEXT, false);
 		updatePanelPreview();
@@ -2167,7 +2166,7 @@ public final class OrbitMenuScreen extends OrbitScreen {
 	}
 
 	/** One or two lines about the selection, above its buttons. */
-	private void drawDetails(GuiGraphicsExtractor graphics, int y) {
+	private void drawDetails(OrbitGraphics graphics, int y) {
 		if (section == Section.EMOTES || selected instanceof OutfitEntry) {
 			// No room: the wheel (the mode button's tooltip explains Standard and Mobile), or the outfit's name.
 			return;
@@ -2207,7 +2206,7 @@ public final class OrbitMenuScreen extends OrbitScreen {
 		}
 	}
 
-	private void drawWheel(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+	private void drawWheel(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
 		int top = wheelTop();
 		int wheel = orbit().emotes().selectedWheel();
 		Component name = Component.literal(orbit().emotes().wheels().get(wheel).name);
@@ -2234,7 +2233,7 @@ public final class OrbitMenuScreen extends OrbitScreen {
 			}
 			if (slot == hovered) {
 				Component tip = emote != null ? Component.literal(emote.displayName()) : Component.translatable("orbit_cosmetic.menu.wheel.slot.empty");
-				graphics.setTooltipForNextFrame(font, List.of(tip.getVisualOrderText(), Component.translatable("orbit_cosmetic.menu.wheel.hint").withStyle(ChatFormatting.GRAY).getVisualOrderText()), mouseX, mouseY);
+				graphics.tooltip(font, List.of(tip.getVisualOrderText(), Component.translatable("orbit_cosmetic.menu.wheel.hint").withStyle(ChatFormatting.GRAY).getVisualOrderText()), mouseX, mouseY);
 			}
 		}
 		Theme.icon(graphics, "wheel", left + cell + (cell - 9) / 2, gridTop + cell + (cell - 9) / 2, Theme.FAINT);

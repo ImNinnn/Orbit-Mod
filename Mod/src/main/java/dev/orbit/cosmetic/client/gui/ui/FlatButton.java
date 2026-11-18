@@ -1,9 +1,8 @@
 package dev.orbit.cosmetic.client.gui.ui;
 
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.input.KeyEvent;
@@ -19,7 +18,7 @@ import java.util.function.Consumer;
  * hovered, and text with a shadow. An optional 9x9 icon and a label; square when it has only an icon. Ghost buttons
  * (lists such as the sidebar) stay flat until hovered.
  */
-public class FlatButton extends AbstractWidget {
+public class FlatButton extends OrbitWidget {
 	public enum Style {
 		/** Orbit red: the main action of a screen. */
 		PRIMARY(0xFFC21E1E, 0xFFE02626, Theme.TEXT),
@@ -98,7 +97,7 @@ public class FlatButton extends AbstractWidget {
 	}
 
 	@Override
-	protected void extractWidgetRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+	protected void draw(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
 		boolean hot = active && (isHoveredOrFocused() || selected);
 		boolean raised = style != Style.GHOST;
 		// Raised buttons sink their content by one pixel above the bottom shadow, like vanilla's.

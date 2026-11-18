@@ -1,8 +1,8 @@
 package dev.orbit.cosmetic.client.gui.ui;
 
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.OrbitClient;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -46,12 +46,12 @@ public final class Theme {
 	}
 
 	/** The full-screen background: dark with a faint grid. */
-	public static void background(GuiGraphicsExtractor graphics, int width, int height) {
+	public static void background(OrbitGraphics graphics, int width, int height) {
 		graphics.fill(0, 0, width, height, BACKGROUND);
 		grid(graphics, 0, 0, width, height);
 	}
 
-	public static void grid(GuiGraphicsExtractor graphics, int x0, int y0, int x1, int y1) {
+	public static void grid(OrbitGraphics graphics, int x0, int y0, int x1, int y1) {
 		for (int x = x0 - Math.floorMod(x0, GRID_SIZE); x < x1; x += GRID_SIZE) {
 			if (x >= x0) {
 				graphics.fill(x, y0, x + 1, y1, GRID);
@@ -65,7 +65,7 @@ public final class Theme {
 	}
 
 	/** A panel with a one-pixel border, lit along its top inner edge and shaded along its bottom one. */
-	public static void panel(GuiGraphicsExtractor graphics, int x, int y, int width, int height, int fill) {
+	public static void panel(OrbitGraphics graphics, int x, int y, int width, int height, int fill) {
 		graphics.fill(x, y, x + width, y + height, fill);
 		graphics.outline(x, y, width, height, BORDER);
 		bevel(graphics, x + 1, y + 1, width - 2, height - 2, 1);
@@ -75,7 +75,7 @@ public final class Theme {
 	 * Vanilla-style shading inside a rectangle: a light line along the top and the left, and a dark band of
 	 * {@code shadow} pixels along the bottom.
 	 */
-	public static void bevel(GuiGraphicsExtractor graphics, int x, int y, int width, int height, int shadow) {
+	public static void bevel(OrbitGraphics graphics, int x, int y, int width, int height, int shadow) {
 		if (width <= 2 || height <= shadow + 1) {
 			return;
 		}
@@ -92,12 +92,12 @@ public final class Theme {
 		return color & 0xFF000000 | r << 16 | g << 8 | b;
 	}
 
-	public static void panel(GuiGraphicsExtractor graphics, int x, int y, int width, int height) {
+	public static void panel(OrbitGraphics graphics, int x, int y, int width, int height) {
 		panel(graphics, x, y, width, height, PANEL);
 	}
 
 	/** The settings' on/off switch, 20 by 10: Orbit red when on. */
-	public static void toggleSwitch(GuiGraphicsExtractor graphics, int x, int y, boolean on) {
+	public static void toggleSwitch(OrbitGraphics graphics, int x, int y, boolean on) {
 		graphics.fill(x, y, x + 20, y + 10, on ? RED_DARK : PANEL_2);
 		graphics.outline(x, y, 20, 10, on ? RED : BORDER_LIGHT);
 		graphics.fill(on ? x + 11 : x + 1, y + 1, on ? x + 19 : x + 9, y + 9, on ? TEXT : FAINT);
@@ -113,10 +113,10 @@ public final class Theme {
 	 * {@code tint}, white for none), or Orbit's flat one in {@code fill} with an edge. Returns whether it was
 	 * Minecraft's.
 	 */
-	public static boolean buttonFace(GuiGraphicsExtractor graphics, int x, int y, int width, int height, boolean active, boolean hot, int fill, int tint) {
+	public static boolean buttonFace(OrbitGraphics graphics, int x, int y, int width, int height, boolean active, boolean hot, int fill, int tint) {
 		if (OrbitClient.get().config().vanillaButtons) {
 			Identifier sprite = !active ? VANILLA_BUTTON_OFF : hot ? VANILLA_BUTTON_HOT : VANILLA_BUTTON;
-			graphics.blitSprite(RenderPipelines.GUI_TEXTURED, sprite, x, y, width, height, active ? tint : -1);
+			graphics.sprite(sprite, x, y, width, height, active ? tint : -1);
 			return true;
 		}
 		graphics.fill(x, y, x + width, y + height, active && hot ? EDGE_HOT : EDGE);
@@ -125,7 +125,7 @@ public final class Theme {
 	}
 
 	/** A dashed frame: two pixels drawn, two left out, all around. */
-	public static void dashed(GuiGraphicsExtractor graphics, int x, int y, int width, int height, int color) {
+	public static void dashed(OrbitGraphics graphics, int x, int y, int width, int height, int color) {
 		for (int i = 0; i < width; i += 4) {
 			int end = Math.min(i + 2, width);
 			graphics.fill(x + i, y, x + end, y + 1, color);
@@ -139,7 +139,7 @@ public final class Theme {
 	}
 
 	/** A box with its corners cut by one bubble pixel ({@code unit} GUI pixels): message cards. */
-	public static void round(GuiGraphicsExtractor graphics, int x, int y, int width, int height, int color, int unit) {
+	public static void round(OrbitGraphics graphics, int x, int y, int width, int height, int color, int unit) {
 		graphics.fill(x + unit, y, x + width - unit, y + height, color);
 		graphics.fill(x, y + unit, x + unit, y + height - unit, color);
 		graphics.fill(x + width - unit, y + unit, x + width, y + height - unit, color);
@@ -149,7 +149,7 @@ public final class Theme {
 	 * A speech bubble: a box with corners cut by one bubble pixel ({@code unit} GUI pixels), except at the bottom on
 	 * the speaker's side, where one more pixel points out (right for {@code right}, else left).
 	 */
-	public static void bubble(GuiGraphicsExtractor graphics, int x, int y, int width, int height, int color, int unit, boolean right) {
+	public static void bubble(OrbitGraphics graphics, int x, int y, int width, int height, int color, int unit, boolean right) {
 		graphics.fill(x + unit, y, x + width - unit, y + height - unit, color);
 		graphics.fill(x, y + unit, x + width, y + height - unit, color);
 		if (right) {
@@ -160,18 +160,18 @@ public final class Theme {
 	}
 
 	/** A filled box with its corner pixels cut off, such as a message bubble. */
-	public static void round(GuiGraphicsExtractor graphics, int x, int y, int width, int height, int color) {
+	public static void round(OrbitGraphics graphics, int x, int y, int width, int height, int color) {
 		graphics.fill(x + 1, y, x + width - 1, y + height, color);
 		graphics.fill(x, y + 1, x + 1, y + height - 1, color);
 		graphics.fill(x + width - 1, y + 1, x + width, y + height - 1, color);
 	}
 
-	public static void icon(GuiGraphicsExtractor graphics, String name, int x, int y, int color) {
-		graphics.blitSprite(RenderPipelines.GUI_TEXTURED, icon(name), x, y, 9, 9, color);
+	public static void icon(OrbitGraphics graphics, String name, int x, int y, int color) {
+		graphics.sprite(icon(name), x, y, 9, 9, color);
 	}
 
 	/** A gradient from left to right (Minecraft's own gradient goes from top to bottom), in 2-pixel strips. */
-	public static void hGradient(GuiGraphicsExtractor graphics, int x0, int y0, int x1, int y1, int left, int right) {
+	public static void hGradient(OrbitGraphics graphics, int x0, int y0, int x1, int y1, int left, int right) {
 		int width = x1 - x0;
 		for (int x = 0; x < width; x += 2) {
 			float t = width <= 2 ? 1 : x / (float) (width - 2);
@@ -180,7 +180,7 @@ public final class Theme {
 	}
 
 	/** A horizontal line with an optional label in its middle, like the website's section rules. */
-	public static void separator(GuiGraphicsExtractor graphics, Font font, int x, int y, int width, Component label) {
+	public static void separator(OrbitGraphics graphics, Font font, int x, int y, int width, Component label) {
 		if (label == null) {
 			graphics.fill(x, y, x + width, y + 1, BORDER);
 			return;

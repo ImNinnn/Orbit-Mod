@@ -1,10 +1,11 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.client.gui.ui.OrbitBaseScreen;
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.OrbitKeys;
 import dev.orbit.cosmetic.client.compat.Compat;
 import dev.orbit.cosmetic.client.gui.ui.Theme;
 import dev.orbit.cosmetic.client.gui.ui.FlatButton;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -17,7 +18,7 @@ import java.util.List;
  * The quick menu: open while its key is held, like the emote wheel. Up to nine squares the player sets up (see
  * {@link QuickMenuLayout}; Orbit's usual cross at first); point at one and let go of the key, or click it.
  */
-public final class QuickMenuScreen extends Screen {
+public final class QuickMenuScreen extends OrbitBaseScreen {
 	private int chosen = -1;
 	private int cell;
 	private int left;
@@ -88,13 +89,13 @@ public final class QuickMenuScreen extends Screen {
 	}
 
 	@Override
-	public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+	protected void drawBackground(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
 		graphics.fillGradient(0, 0, width, height, 0x60000000, 0x90000000);
 	}
 
 	@Override
-	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-		super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+	protected void draw(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		drawWidgets(graphics, mouseX, mouseY, partialTick);
 		int hovered = entryAt(mouseX, mouseY);
 		if (hovered >= 0) {
 			chosen = hovered;
@@ -111,7 +112,7 @@ public final class QuickMenuScreen extends Screen {
 	}
 
 	/** One square: its icon (Orbit's in red), its name under it on up to two lines. */
-	static void drawSquare(GuiGraphicsExtractor graphics, net.minecraft.client.gui.Font font, QuickMenuLayout.Action action, int x, int y, int cell, boolean chosen,
+	static void drawSquare(OrbitGraphics graphics, net.minecraft.client.gui.Font font, QuickMenuLayout.Action action, int x, int y, int cell, boolean chosen,
 		boolean on) {
 		graphics.fill(x + 2, y + 2, x + cell - 2, y + cell - 2, chosen ? 0xD0262A33 : 0xB01C1C20);
 		graphics.outline(x + 2, y + 2, cell - 4, cell - 4, chosen ? Theme.BLUE : Theme.BORDER);

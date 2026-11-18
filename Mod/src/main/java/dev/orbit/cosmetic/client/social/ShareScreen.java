@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.social;
 
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import com.google.gson.JsonObject;
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.orbit.cosmetic.client.Notifications;
@@ -13,9 +14,7 @@ import dev.orbit.cosmetic.client.library.EmoteLibrary;
 import dev.orbit.cosmetic.client.library.LocalCosmetic;
 import dev.orbit.cosmetic.client.screenshot.ScreenshotLibrary;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.components.PlayerFaceExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.multiplayer.ServerData;
@@ -192,7 +191,7 @@ public final class ShareScreen extends OrbitScreen {
 	}
 
 	@Override
-	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+	protected void draw(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
 		int x = width / 2 - 140;
 		Theme.panel(graphics, x - 6, 6, 292, height - 12);
 		graphics.text(font, title, x, 14, Theme.TEXT, false);
@@ -208,7 +207,7 @@ public final class ShareScreen extends OrbitScreen {
 			int y = row.getY();
 			boolean on = chosen.contains(friend.uuid());
 			graphics.fill(x, y, x + 280, y + 22, on ? Theme.PANEL_HOVER : row.isHovered() ? Theme.PANEL_2 : Theme.PANEL);
-			PlayerFaceExtractor.extractRenderState(graphics, social.skin(friend.uuid(), friend.name()), x + 4, y + 3, 16);
+			graphics.face(social.skin(friend.uuid(), friend.name()), x + 4, y + 3, 16);
 			graphics.text(font, friend.name(), x + 26, y + 7, Theme.TEXT, false);
 			graphics.outline(x + 262, y + 6, 10, 10, on ? Theme.TEXT : Theme.BORDER_LIGHT);
 			if (on) {
@@ -218,6 +217,6 @@ public final class ShareScreen extends OrbitScreen {
 		}
 		graphics.fill(x, height - 58, x + 280, height - 42, Theme.PANEL_2);
 		graphics.outline(x, height - 58, 280, 16, message.isFocused() ? Theme.BORDER_LIGHT : Theme.BORDER);
-		super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+		drawWidgets(graphics, mouseX, mouseY, partialTick);
 	}
 }

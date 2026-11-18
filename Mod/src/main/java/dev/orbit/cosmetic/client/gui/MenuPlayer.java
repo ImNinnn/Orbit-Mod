@@ -1,5 +1,7 @@
 package dev.orbit.cosmetic.client.gui;
 
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.compat.Compat;
 import dev.orbit.cosmetic.client.gui.preview.PreviewBatch;
@@ -15,7 +17,6 @@ import dev.orbit.cosmetic.common.protocol.AssetId;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.Screens;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.client.gui.screens.Screen;
@@ -62,7 +63,7 @@ public final class MenuPlayer {
 				OPTIONS.put(screen, optionsButton(screen));
 				addButtons(screen);
 				ScreenEvents.beforeExtract(screen).register((current, graphics, mouseX, mouseY, partialTick) -> placeButtons(current));
-				ScreenEvents.afterExtract(screen).register((current, graphics, mouseX, mouseY, partialTick) -> draw(current, graphics, mouseX, mouseY, partialTick));
+				ScreenEvents.afterExtract(screen).register((current, graphics, mouseX, mouseY, partialTick) -> draw(current, OrbitGraphics.of(graphics), mouseX, mouseY, partialTick));
 			}
 		});
 	}
@@ -262,7 +263,7 @@ public final class MenuPlayer {
 	}
 
 	/** Unread messages and friend requests, on the Social button. */
-	private static void badges(Screen screen, GuiGraphicsExtractor graphics) {
+	private static void badges(Screen screen, OrbitGraphics graphics) {
 		List<FlatButton> buttons = BUTTONS.get(screen);
 		if (buttons == null) {
 			return;
@@ -282,7 +283,7 @@ public final class MenuPlayer {
 		graphics.text(font, text, x + (w - font.width(text) + 1) / 2, y + 1, Theme.TEXT, false);
 	}
 
-	private static void draw(Screen screen, GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+	private static void draw(Screen screen, OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
 		badges(screen, graphics);
 		OrbitClient orbit = OrbitClient.get();
 		if (!orbit.config().menuPlayer) {
@@ -321,7 +322,8 @@ public final class MenuPlayer {
 		}
 
 		@Override
-		protected void extractWidgetRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+		protected void extractWidgetRenderState(GuiGraphicsExtractor extractor, int mouseX, int mouseY, float partialTick) {
+			OrbitGraphics graphics = OrbitGraphics.of(extractor);
 			announcement(screen, graphics);
 		}
 
@@ -334,7 +336,7 @@ public final class MenuPlayer {
 	 * The Orbit team's message ("Summer Cosmetics!") in a box under the Wardrobe button while there is one (in the top
 	 * left corner on small windows).
 	 */
-	private static void announcement(Screen screen, GuiGraphicsExtractor graphics) {
+	private static void announcement(Screen screen, OrbitGraphics graphics) {
 		String text = OrbitClient.get().backend().announcement();
 		List<FlatButton> under = UNDER.get(screen);
 		if (text == null || under == null || under.isEmpty()) {

@@ -1,7 +1,7 @@
 package dev.orbit.cosmetic.client.gui.ui;
 
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.Tooltip;
@@ -88,7 +88,7 @@ public final class ColorRow {
 	}
 
 	/** The swatches (the chosen one outlined) and the hex field's frame, with a dot of the colour typed. */
-	public void draw(GuiGraphicsExtractor graphics) {
+	public void draw(OrbitGraphics graphics) {
 		for (int i = 0; i < swatches.size(); i++) {
 			Hotspot swatch = swatches.get(i);
 			int sx = swatch.getX();

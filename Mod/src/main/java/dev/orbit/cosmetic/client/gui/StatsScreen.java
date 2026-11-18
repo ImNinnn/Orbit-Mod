@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -17,8 +18,6 @@ import dev.orbit.cosmetic.common.protocol.AssetId;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.components.PlayerFaceExtractor;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.Screen;
@@ -156,7 +155,7 @@ public final class StatsScreen extends OrbitScreen {
 	}
 
 	@Override
-	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+	protected void draw(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
 		int x = left();
 		int y = top();
 		int color = color();
@@ -167,7 +166,7 @@ public final class StatsScreen extends OrbitScreen {
 		Social social = orbit().social();
 		JsonObject stats = stats();
 		int contentW = pw() - side() - 16;
-		PlayerFaceExtractor.extractRenderState(graphics, social.skin(player, name), x + 8, y + 28, 32);
+		graphics.face(social.skin(player, name), x + 8, y + 28, 32);
 		graphics.text(font, name, x + 48, y + 30, Theme.TEXT, true);
 		String pronouns = own ? orbit().account().pronouns : text(stats, "pronouns");
 		if (!pronouns.isBlank()) {
@@ -240,10 +239,10 @@ public final class StatsScreen extends OrbitScreen {
 		}
 		float yaw = 25 + (float) Math.atan((sx + side() / 2.0 - mouseX) / 80.0) * 20;
 		PreviewBatch.panel(graphics, sx, sy, sx + side(), sy + sh, List.of(preview.entryIn(4, 6, side() - 8, sh - 12, yaw, 0, partialTick, true)));
-		super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+		drawWidgets(graphics, mouseX, mouseY, partialTick);
 	}
 
-	private void tile(GuiGraphicsExtractor graphics, int x, int y, int w, String icon, Component label, String value) {
+	private void tile(OrbitGraphics graphics, int x, int y, int w, String icon, Component label, String value) {
 		graphics.fill(x, y, x + w, y + TILE_H, 0x66000000);
 		Theme.icon(graphics, icon, x + 6, y + 6, Theme.MUTED);
 		graphics.text(font, Theme.clip(font, label.copy().withStyle(ChatFormatting.GRAY), w - 22), x + 18, y + 7, Theme.TEXT, false);

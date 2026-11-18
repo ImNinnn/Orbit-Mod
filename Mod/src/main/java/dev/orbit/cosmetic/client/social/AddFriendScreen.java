@@ -1,12 +1,12 @@
 package dev.orbit.cosmetic.client.social;
 
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.gui.ui.FlatButton;
 import dev.orbit.cosmetic.client.gui.ui.OrbitScreen;
 import dev.orbit.cosmetic.client.gui.ui.Theme;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
@@ -58,7 +58,7 @@ final class AddFriendScreen extends OrbitScreen {
 	}
 
 	@Override
-	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+	protected void draw(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
 		int x = width / 2 - 108;
 		int y = height / 2 - 40;
 		Theme.panel(graphics, x, y, 216, 88);
@@ -66,6 +66,6 @@ final class AddFriendScreen extends OrbitScreen {
 		graphics.text(font, Component.translatable("orbit_cosmetic.social.add_friend.text").withStyle(ChatFormatting.GRAY), x + 8, y + 20, Theme.TEXT, false);
 		graphics.fill(x + 8, y + 36, x + 208, y + 52, Theme.PANEL_2);
 		graphics.outline(x + 8, y + 36, 200, 16, name.isFocused() ? Theme.BORDER_LIGHT : Theme.BORDER);
-		super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+		drawWidgets(graphics, mouseX, mouseY, partialTick);
 	}
 }

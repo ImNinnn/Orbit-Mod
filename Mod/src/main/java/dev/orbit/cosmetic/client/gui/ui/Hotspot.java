@@ -1,9 +1,8 @@
 package dev.orbit.cosmetic.client.gui.ui;
 
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -18,7 +17,7 @@ import java.util.function.Consumer;
  * and draws its focus with {@link #drawFocus}. Outside its clip (a scrolled list's edges) the mouse cannot press it,
  * but the keyboard can still move to it, so a list can scroll to what is focused.
  */
-public final class Hotspot extends AbstractWidget {
+public final class Hotspot extends OrbitWidget {
 	private final Consumer<Hotspot> onPress;
 	private int clipTop = Integer.MIN_VALUE;
 	private int clipBottom = Integer.MAX_VALUE;
@@ -61,7 +60,7 @@ public final class Hotspot extends AbstractWidget {
 	}
 
 	/** The keyboard's mark: a light frame around it. */
-	public void drawFocus(GuiGraphicsExtractor graphics) {
+	public void drawFocus(OrbitGraphics graphics) {
 		if (keyboardFocused()) {
 			graphics.outline(getX() - 1, getY() - 1, getWidth() + 2, getHeight() + 2, Theme.TEXT);
 		}
@@ -104,7 +103,7 @@ public final class Hotspot extends AbstractWidget {
 	}
 
 	@Override
-	protected void extractWidgetRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+	protected void draw(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
 		// Drawn by its screen.
 	}
 

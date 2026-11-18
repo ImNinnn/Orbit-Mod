@@ -1,5 +1,8 @@
 package dev.orbit.cosmetic.client.gui.servers;
 
+import dev.orbit.cosmetic.client.gui.ui.OrbitBaseScreen;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -11,7 +14,6 @@ import dev.orbit.cosmetic.client.social.ServerLinks;
 import dev.orbit.cosmetic.client.social.Social;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.ObjectSelectionList;
 import net.minecraft.client.gui.layouts.HeaderAndFooterLayout;
@@ -37,7 +39,7 @@ import java.util.List;
  * pinged like Minecraft's own list; Join Server joins (as does a double click), and Add to Favorites puts a
  * recommended one into Minecraft's server list (the Favorites tab).
  */
-public final class OrbitServersScreen extends Screen {
+public final class OrbitServersScreen extends OrbitBaseScreen {
 	private static final Identifier NO_ICON = Identifier.withDefaultNamespace("textures/misc/unknown_server.png");
 	private static final Identifier UNREACHABLE = Identifier.withDefaultNamespace("server_list/unreachable");
 	private static final Identifier[] PING = {Identifier.withDefaultNamespace("server_list/ping_1"), Identifier.withDefaultNamespace("server_list/ping_2"),
@@ -187,8 +189,8 @@ public final class OrbitServersScreen extends Screen {
 	}
 
 	@Override
-	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-		super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+	protected void draw(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		drawWidgets(graphics, mouseX, mouseY, partialTick);
 		if (message != null) {
 			graphics.centeredText(font, message.copy().withStyle(ChatFormatting.GRAY), width / 2, layout.getHeaderHeight() + 30, -1);
 		}
@@ -223,12 +225,13 @@ public final class OrbitServersScreen extends Screen {
 		}
 
 		@Override
-		public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered, float partialTick) {
+		public void extractContent(GuiGraphicsExtractor extractor, int mouseX, int mouseY, boolean hovered, float partialTick) {
+			OrbitGraphics graphics = OrbitGraphics.of(extractor);
 			int x = getContentX();
 			int y = getContentY();
 			ServerData data = links.status(server.address(), server.name());
 			Identifier icon = links.icon(server.address(), null);
-			graphics.blit(icon != null ? icon : NO_ICON, x, y, x + 32, y + 32, 0, 1, 0, 1);
+			graphics.image(icon != null ? icon : NO_ICON, x, y, x + 32, y + 32, 0, 1, 0, 1);
 			graphics.text(font, server.name(), x + 35, y + 1, -1);
 			if (tab == ServerTabs.RECOMMENDED && isFavorite(server.address())) {
 				Theme.icon(graphics, "star", x + 38 + font.width(server.name()), y, Theme.GOLD);
@@ -250,7 +253,7 @@ public final class OrbitServersScreen extends Screen {
 				long ping = data.ping;
 				status = PING[ping < 0 ? 0 : ping < 150 ? 4 : ping < 300 ? 3 : ping < 600 ? 2 : ping < 1000 ? 1 : 0];
 			}
-			graphics.blitSprite(RenderPipelines.GUI_TEXTURED, status, statusX, y, 10, 8);
+			graphics.sprite(status, statusX, y, 10, 8);
 			if (data.state() == ServerData.State.SUCCESSFUL && data.status != null) {
 				graphics.text(font, data.status, statusX - font.width(data.status) - 5, y + 1, -8355712);
 			}

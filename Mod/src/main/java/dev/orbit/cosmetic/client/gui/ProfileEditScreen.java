@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.config.ClientConfig;
 import dev.orbit.cosmetic.client.gui.ui.FlatButton;
 import dev.orbit.cosmetic.client.gui.ui.FlatCycle;
@@ -9,7 +10,6 @@ import dev.orbit.cosmetic.client.gui.ui.Theme;
 import dev.orbit.cosmetic.client.library.OrbitState;
 import dev.orbit.cosmetic.client.social.Profile;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.MultiLineEditBox;
 import net.minecraft.client.gui.components.Tooltip;
@@ -134,7 +134,7 @@ public final class ProfileEditScreen extends OrbitScreen {
 	}
 
 	@Override
-	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+	protected void draw(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
 		int x = left();
 		int y = top();
 		Theme.panel(graphics, x, y, WIDTH, HEIGHT);
@@ -153,13 +153,13 @@ public final class ProfileEditScreen extends OrbitScreen {
 		String count = description.getValue().length() + " / " + Profile.MAX_DESCRIPTION;
 		graphics.text(font, count, x + WIDTH - 8 - font.width(count), ly, Theme.FAINT, false);
 		field(graphics, description.getX(), description.getY(), description.getWidth(), description.getHeight(), description.isFocused());
-		super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+		drawWidgets(graphics, mouseX, mouseY, partialTick);
 		if (!description.active) {
 			graphics.text(font, Component.translatable("orbit_cosmetic.profile.banned").withStyle(ChatFormatting.ITALIC), description.getX() + 4, description.getY() + 4, Theme.FAINT, false);
 		}
 	}
 
-	private static void field(GuiGraphicsExtractor graphics, int x, int y, int w, int h, boolean focused) {
+	private static void field(OrbitGraphics graphics, int x, int y, int w, int h, boolean focused) {
 		graphics.fill(x, y, x + w, y + h, 0x88000000);
 		graphics.outline(x, y, w, h, focused ? Theme.BORDER_LIGHT : Theme.BORDER);
 	}

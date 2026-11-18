@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.hud;
 
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import com.google.gson.JsonObject;
 import dev.orbit.cosmetic.client.gui.ui.Theme;
 import dev.orbit.cosmetic.client.mixin.MultiPlayerGameModeAccessor;
@@ -8,7 +9,6 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.core.BlockPos;
@@ -356,7 +356,7 @@ public final class HudComponent {
 	// ---------------------------------------------------------------- drawing
 
 	/** Draws it at its place; {@code preview} shows sample values where there is nothing to show (the editor). */
-	public void draw(GuiGraphicsExtractor graphics, int screenWidth, int screenHeight, boolean preview, float partialTick) {
+	public void draw(OrbitGraphics graphics, int screenWidth, int screenHeight, boolean preview, float partialTick) {
 		if (!preview && !hasContent()) {
 			return;
 		}
@@ -382,7 +382,7 @@ public final class HudComponent {
 	}
 
 	/** Draws it with its top left corner here, at this scale. */
-	public void drawAt(GuiGraphicsExtractor graphics, int x, int y, float scale, boolean preview) {
+	public void drawAt(OrbitGraphics graphics, int x, int y, float scale, boolean preview) {
 		if (type == Type.PAPERDOLL) {
 			// The player model is drawn into its own picture, in screen pixels: not scaled with the pose.
 			int w = Math.round(width() * scale);
@@ -398,15 +398,15 @@ public final class HudComponent {
 			}
 			return;
 		}
-		graphics.pose().pushMatrix();
-		graphics.pose().translate(x, y);
-		graphics.pose().scale(scale, scale);
+		graphics.push();
+		graphics.translate(x, y);
+		graphics.scale(scale, scale);
 		drawScaled(graphics, preview, x, y, scale);
-		graphics.pose().popMatrix();
+		graphics.pop();
 	}
 
 	/** A plain figure where there is no entity to show (the title screen, the add menu). */
-	private static void drawDollPlaceholder(GuiGraphicsExtractor graphics, int x, int y, int w, int h) {
+	private static void drawDollPlaceholder(OrbitGraphics graphics, int x, int y, int w, int h) {
 		int unit = Math.max(1, Math.min(h / 36, w / 18));
 		int cx = x + w / 2;
 		int top = y + (h - 32 * unit) / 2;
@@ -427,7 +427,7 @@ public final class HudComponent {
 	}
 
 	/** The background: a dark panel with the accent bar on its left (when turned on). */
-	private void drawFrame(GuiGraphicsExtractor graphics, int x, int y, int w, int h, int unit) {
+	private void drawFrame(OrbitGraphics graphics, int x, int y, int w, int h, int unit) {
 		if (!background) {
 			return;
 		}
@@ -440,7 +440,7 @@ public final class HudComponent {
 	 * Draws it in its own pixels (the pose is moved and scaled). {@code screenX}, {@code screenY} and {@code scale}
 	 * are for the entity pictures, drawn in screen pixels.
 	 */
-	private void drawScaled(GuiGraphicsExtractor graphics, boolean preview, int screenX, int screenY, float scale) {
+	private void drawScaled(OrbitGraphics graphics, boolean preview, int screenX, int screenY, float scale) {
 		Font font = font();
 		LocalPlayer player = player();
 		int w = width();
@@ -541,7 +541,7 @@ public final class HudComponent {
 	}
 
 	/** An accent label and a value, at x; returns where it ends. */
-	private int drawPart(GuiGraphicsExtractor graphics, Font font, String[] part, int x, int y) {
+	private int drawPart(OrbitGraphics graphics, Font font, String[] part, int x, int y) {
 		if (part[1].isEmpty()) {
 			graphics.text(font, part[0], x, y, Theme.MUTED, false);
 			return x + font.width(part[0]);
@@ -624,7 +624,7 @@ public final class HudComponent {
 	}
 
 	/** W, A S D, the space bar, Sneak and Sprint: keys light up in the accent colour while pressed. */
-	private void drawKeystrokes(GuiGraphicsExtractor graphics, Font font) {
+	private void drawKeystrokes(OrbitGraphics graphics, Font font) {
 		var options = Minecraft.getInstance().options;
 		key(graphics, font, options.keyUp, 20, 0, 18, 18, null);
 		key(graphics, font, options.keyLeft, 0, 20, 18, 18, null);
@@ -635,7 +635,7 @@ public final class HudComponent {
 		key(graphics, font, options.keySprint, 30, 51, 28, 13, Component.translatable("orbit_cosmetic.hud.sprint").getString());
 	}
 
-	private void key(GuiGraphicsExtractor graphics, Font font, KeyMapping mapping, int x, int y, int w, int h, @Nullable String label) {
+	private void key(OrbitGraphics graphics, Font font, KeyMapping mapping, int x, int y, int w, int h, @Nullable String label) {
 		boolean down = !sample && mapping.isDown();
 		keyBox(graphics, x, y, w, h, down);
 		String text = label != null ? label : shortName(mapping);
@@ -647,7 +647,7 @@ public final class HudComponent {
 		graphics.centeredText(font, text, x + w / 2, y + (h - 8) / 2 + 1, down ? 0xFFFFFFFF : text());
 	}
 
-	private void keyBox(GuiGraphicsExtractor graphics, int x, int y, int w, int h, boolean down) {
+	private void keyBox(OrbitGraphics graphics, int x, int y, int w, int h, boolean down) {
 		if (background || down) {
 			graphics.fill(x, y, x + w, y + h, down ? Theme.shade(accentColor(), 0.76F) : 0xB01C1C20);
 			graphics.outline(x, y, w, h, down ? accentColor() : 0xC02E2E35);
@@ -663,7 +663,7 @@ public final class HudComponent {
 	 * Every key and mouse button held, in the order they were pressed, each as a key that fades away when let go.
 	 * They line up from the side of the screen the component is on.
 	 */
-	private void drawAllKeys(GuiGraphicsExtractor graphics, Font font, boolean preview) {
+	private void drawAllKeys(OrbitGraphics graphics, Font font, boolean preview) {
 		List<HudInput.Held> held = sample ? List.of() : HudInput.heldKeys();
 		if (held.isEmpty() && (preview || sample)) {
 			held = List.of(new HudInput.Held("W", 1), new HudInput.Held("Left Shift", 1), new HudInput.Held("Space", 0.5F));
@@ -693,7 +693,7 @@ public final class HudComponent {
 	}
 
 	/** Clicks a second on each mouse button, with a dot between them that follows the mouse and settles back. */
-	private void drawCps(GuiGraphicsExtractor graphics, Font font) {
+	private void drawCps(OrbitGraphics graphics, Font font) {
 		int w = width();
 		int h = height();
 		drawFrame(graphics, 0, 0, w, h, 1);
@@ -734,7 +734,7 @@ public final class HudComponent {
 	}
 
 	/** A ribbon of directions, the way the player looks in the middle. */
-	private void drawCompass(GuiGraphicsExtractor graphics, Font font, float yRot) {
+	private void drawCompass(OrbitGraphics graphics, Font font, float yRot) {
 		int w = width();
 		int h = height();
 		drawFrame(graphics, 0, 0, w, h, 1);
@@ -761,7 +761,7 @@ public final class HudComponent {
 	 * The long compass: as wide as the screen, only the directions (the main ones in the accent colour) fading out
 	 * towards its ends, and a thin line under them as wide as what the camera sees (zooming in shortens it).
 	 */
-	private void drawLongCompass(GuiGraphicsExtractor graphics, Font font, float yRot) {
+	private void drawLongCompass(OrbitGraphics graphics, Font font, float yRot) {
 		int w = width();
 		int h = height();
 		float half = w / 2F;
@@ -916,7 +916,7 @@ public final class HudComponent {
 	}
 
 	/** An item and its text, one row of the full armour or item component (a grey square for the item when there is none to show). */
-	private void drawItemRow(GuiGraphicsExtractor graphics, Font font, @Nullable ItemStack stack, String text, boolean low, int x, int y) {
+	private void drawItemRow(OrbitGraphics graphics, Font font, @Nullable ItemStack stack, String text, boolean low, int x, int y) {
 		if (stack == null || stack.isEmpty()) {
 			graphics.fill(x, y, x + 16, y + 16, 0x30000000);
 			if (stack != null) {
@@ -934,12 +934,12 @@ public final class HudComponent {
 	 * An item in one of the game's slots (a hotbar slot, or the off hand's own), and its text: a row of the held item
 	 * or armour component with the vanilla slots, or of the party component's items with durability.
 	 */
-	private void drawSlotRow(GuiGraphicsExtractor graphics, Font font, @Nullable ItemStack stack, String text, boolean low, int x, int y, boolean offhand) {
+	private void drawSlotRow(OrbitGraphics graphics, Font font, @Nullable ItemStack stack, String text, boolean low, int x, int y, boolean offhand) {
 		if (offhand) {
-			graphics.blitSprite(RenderPipelines.GUI_TEXTURED, HOTBAR_OFFHAND, x, y, 29, 24);
+			graphics.sprite(HOTBAR_OFFHAND, x, y, 29, 24);
 		} else {
-			graphics.blitSprite(RenderPipelines.GUI_TEXTURED, HOTBAR, 182, 22, 0, 0, x, y + 1, 21, 22);
-			graphics.blitSprite(RenderPipelines.GUI_TEXTURED, HOTBAR, 182, 22, 181, 0, x + 21, y + 1, 1, 22);
+			graphics.spritePart(HOTBAR, 182, 22, 0, 0, x, y + 1, 21, 22);
+			graphics.spritePart(HOTBAR, 182, 22, 181, 0, x + 21, y + 1, 1, 22);
 		}
 		if (stack != null && !stack.isEmpty()) {
 			graphics.item(stack, x + 3, y + 4);
@@ -951,11 +951,11 @@ public final class HudComponent {
 	}
 
 	/** Armour in a small hotbar, like Minecraft's own (with durability bars). */
-	private void drawArmorHotbar(GuiGraphicsExtractor graphics, Font font) {
+	private void drawArmorHotbar(OrbitGraphics graphics, Font font) {
 		if (background) {
 			int slots = Math.max(1, armorSlots().size());
-			graphics.blitSprite(RenderPipelines.GUI_TEXTURED, HOTBAR, 182, 22, 0, 0, 0, 0, slots * 20 + 1, 22);
-			graphics.blitSprite(RenderPipelines.GUI_TEXTURED, HOTBAR, 182, 22, 181, 0, slots * 20 + 1, 0, 1, 22);
+			graphics.spritePart(HOTBAR, 182, 22, 0, 0, 0, 0, slots * 20 + 1, 22);
+			graphics.spritePart(HOTBAR, 182, 22, 181, 0, slots * 20 + 1, 0, 1, 22);
 		}
 		ItemStack[] armor = armor();
 		List<Integer> slots = armorSlots();
@@ -1057,7 +1057,7 @@ public final class HudComponent {
 		return health == Math.floor(health) ? String.valueOf((int) health) : String.format(Locale.ROOT, "%.1f", health);
 	}
 
-	private void drawLookingAt(GuiGraphicsExtractor graphics, Font font, boolean preview, int screenX, int screenY, float scale) {
+	private void drawLookingAt(OrbitGraphics graphics, Font font, boolean preview, int screenX, int screenY, float scale) {
 		Look look = look();
 		int w = width();
 		int h = height();
@@ -1070,13 +1070,13 @@ public final class HudComponent {
 		boolean health = look != null && look.health();
 		// The icon (or the entity, in screen pixels), then the lines.
 		if (look != null && look.living() != null) {
-			graphics.pose().popMatrix();
+			graphics.pop();
 			int x0 = screenX + Math.round(4 * scale);
 			int y0 = screenY + Math.round(2 * scale);
 			HudDoll.draw(graphics, look.living(), x0, y0, x0 + Math.round(18 * scale), y0 + Math.round(20 * scale), 20, 0, 0);
-			graphics.pose().pushMatrix();
-			graphics.pose().translate(screenX, screenY);
-			graphics.pose().scale(scale, scale);
+			graphics.push();
+			graphics.translate(screenX, screenY);
+			graphics.scale(scale, scale);
 		} else if (look != null && look.icon() != null && !look.icon().isEmpty()) {
 			graphics.item(look.icon(), 6, 3);
 		} else if (look == null) {
@@ -1110,7 +1110,7 @@ public final class HudComponent {
 	}
 
 	/** A small tick (green) or cross (red) on a dark square, 7 pixels wide. */
-	private static void drawCheck(GuiGraphicsExtractor graphics, int x, int y, boolean ok) {
+	private static void drawCheck(OrbitGraphics graphics, int x, int y, boolean ok) {
 		graphics.fill(x - 1, y - 1, x + 8, y + 8, 0xE0101012);
 		int color = ok ? 0xFF7CE38B : 0xFFFF5555;
 		if (ok) {
@@ -1130,25 +1130,25 @@ public final class HudComponent {
 		return sample ? null : HudTargets.lastHit();
 	}
 
-	private void drawLastHit(GuiGraphicsExtractor graphics, Font font, int screenX, int screenY, float scale) {
+	private void drawLastHit(OrbitGraphics graphics, Font font, int screenX, int screenY, float scale) {
 		LivingEntity target = lastHit();
 		int w = width();
 		int h = height();
 		drawFrame(graphics, 0, 0, w, h, 1);
 		if (target != null) {
-			graphics.pose().popMatrix();
+			graphics.pop();
 			int x0 = screenX + Math.round(5 * scale);
 			int y0 = screenY + Math.round(3 * scale);
 			HudDoll.draw(graphics, target, x0, y0, x0 + Math.round(28 * scale), y0 + Math.round(36 * scale), 25, 0, 0);
-			graphics.pose().pushMatrix();
-			graphics.pose().translate(screenX, screenY);
-			graphics.pose().scale(scale, scale);
+			graphics.push();
+			graphics.translate(screenX, screenY);
+			graphics.scale(scale, scale);
 		} else {
-			graphics.pose().popMatrix();
+			graphics.pop();
 			drawDollPlaceholder(graphics, screenX + Math.round(5 * scale), screenY + Math.round(3 * scale), Math.round(28 * scale), Math.round(36 * scale));
-			graphics.pose().pushMatrix();
-			graphics.pose().translate(screenX, screenY);
-			graphics.pose().scale(scale, scale);
+			graphics.push();
+			graphics.translate(screenX, screenY);
+			graphics.scale(scale, scale);
 		}
 		Component name = target != null ? target.getDisplayName() : Component.translatable("orbit_cosmetic.hud.sample.zombie");
 		float health = target != null ? target.getHealth() : 14;
@@ -1256,7 +1256,7 @@ public final class HudComponent {
 	 * server shows it, the leader's party mark in gold), what the toggles show of them (bars, or the game's own
 	 * hearts, shanks, armour, air and experience), their items, and where they play when it is not here.
 	 */
-	private void drawParty(GuiGraphicsExtractor graphics, Font font) {
+	private void drawParty(OrbitGraphics graphics, Font font) {
 		int w = width();
 		int h = height();
 		drawFrame(graphics, 0, 0, w, h, 1);
@@ -1389,7 +1389,7 @@ public final class HudComponent {
 	 * The member's items: in a row (bare, as the held item component draws them; the game's hotbar in the vanilla
 	 * style), or with durability one per row (off hand, main hand, armour), as the armour component shows them.
 	 */
-	private void drawPartySlots(GuiGraphicsExtractor graphics, Font font, dev.orbit.cosmetic.client.social.PartyLink.@Nullable Status status, int x, int y) {
+	private void drawPartySlots(OrbitGraphics graphics, Font font, dev.orbit.cosmetic.client.social.PartyLink.@Nullable Status status, int x, int y) {
 		boolean known = itemsReady() && status != null && status.playing();
 		boolean vanilla = is("vanilla");
 		List<String> slots = partySlots();
@@ -1466,7 +1466,7 @@ public final class HudComponent {
 	 * A member's head, darkened and marked (twice the icons' size on full-size heads): a red cross when dead, grey
 	 * when away from the game, yellow on another server.
 	 */
-	private static void drawPartyHead(GuiGraphicsExtractor graphics, Member member, int x, int y, int size, boolean away, boolean elsewhere) {
+	private static void drawPartyHead(OrbitGraphics graphics, Member member, int x, int y, int size, boolean away, boolean elsewhere) {
 		if (member.uuid().getMostSignificantBits() == 0) {
 			graphics.fill(x, y, x + size, y + size, member.uuid().getLeastSignificantBits() == 1 ? 0xFFB07A4A : 0xFF4A6FB0);
 		} else {
@@ -1491,7 +1491,7 @@ public final class HudComponent {
 		graphics.fill(x, y, x + size, y + size, 0x90000000);
 		int iconSize = size >= 16 ? 18 : 9;
 		int offset = (size - iconSize) / 2;
-		graphics.blitSprite(RenderPipelines.GUI_TEXTURED, Theme.icon(icon), x + offset, y + offset, iconSize, iconSize, color);
+		graphics.sprite(Theme.icon(icon), x + offset, y + offset, iconSize, iconSize, color);
 	}
 
 	/** Where this player plays: the server's address, or the singleplayer world's name. */

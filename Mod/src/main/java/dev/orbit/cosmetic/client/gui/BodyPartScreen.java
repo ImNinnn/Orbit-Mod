@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.gui.preview.PreviewBatch;
 import dev.orbit.cosmetic.client.gui.preview.PreviewModel;
@@ -11,7 +12,6 @@ import dev.orbit.cosmetic.client.library.LocalCosmetic;
 import dev.orbit.cosmetic.common.model.Anchor;
 import dev.orbit.cosmetic.common.model.BodyParts;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -108,8 +108,8 @@ public final class BodyPartScreen extends OrbitScreen {
 	}
 
 	@Override
-	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-		super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+	protected void draw(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		drawWidgets(graphics, mouseX, mouseY, partialTick);
 		int previewX = 10;
 		int previewY = SettingsTabs.HEIGHT + 4;
 		int previewW = previewWidth();

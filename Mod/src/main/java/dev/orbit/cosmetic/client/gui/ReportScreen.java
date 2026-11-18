@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.Notifications;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.anim.Wearer;
@@ -7,7 +8,6 @@ import dev.orbit.cosmetic.client.gui.ui.FlatButton;
 import dev.orbit.cosmetic.client.gui.ui.OrbitScreen;
 import dev.orbit.cosmetic.client.gui.ui.Theme;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
@@ -94,8 +94,8 @@ public final class ReportScreen extends OrbitScreen {
 	}
 
 	@Override
-	public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-		super.extractBackground(graphics, mouseX, mouseY, partialTick);
+	protected void drawBackground(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		super.drawBackground(graphics, mouseX, mouseY, partialTick);
 		int left = left();
 		int top = top();
 		Theme.panel(graphics, left - 10, top - 10, WIDTH + 20, 150, Theme.PANEL);
@@ -109,8 +109,8 @@ public final class ReportScreen extends OrbitScreen {
 	}
 
 	@Override
-	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-		super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+	protected void draw(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		drawWidgets(graphics, mouseX, mouseY, partialTick);
 		if (status != null) {
 			int y = top() + 128;
 			for (FormattedCharSequence line : font.split(status, WIDTH)) {

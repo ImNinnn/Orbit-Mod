@@ -1,12 +1,12 @@
 package dev.orbit.cosmetic.client.hud;
 
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.compat.Compat;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.resources.Identifier;
 
 /**
@@ -29,12 +29,13 @@ public final class HudRenderer {
 				return;
 			}
 			// With a screen open, the ones shown in menus are drawn over it instead.
-			draw(graphics, Compat.screen() == null ? Filter.ALL : Filter.NOT_IN_MENUS, tick.getGameTimeDeltaPartialTick(false));
+			draw(OrbitGraphics.of(graphics), Compat.screen() == null ? Filter.ALL : Filter.NOT_IN_MENUS, tick.getGameTimeDeltaPartialTick(false));
 		});
 		ScreenEvents.AFTER_INIT.register((client, screen, width, height) -> {
 			if (!(screen instanceof HudEditorScreen)) {
-				ScreenEvents.afterExtract(screen).register((current, graphics, mouseX, mouseY, partialTick) -> {
-					graphics.nextStratum();
+				ScreenEvents.afterExtract(screen).register((current, extractor, mouseX, mouseY, partialTick) -> {
+					OrbitGraphics graphics = OrbitGraphics.of(extractor);
+					graphics.layer();
 					draw(graphics, Filter.IN_MENUS, partialTick);
 				});
 			}
@@ -45,7 +46,7 @@ public final class HudRenderer {
 		ALL, IN_MENUS, NOT_IN_MENUS
 	}
 
-	private static void draw(GuiGraphicsExtractor graphics, Filter filter, float partialTick) {
+	private static void draw(OrbitGraphics graphics, Filter filter, float partialTick) {
 		if (HudLayout.components().isEmpty() || HudLayout.allHidden()) {
 			return;
 		}

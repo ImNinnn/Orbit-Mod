@@ -1,8 +1,9 @@
 package dev.orbit.cosmetic.client.gui;
 
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.OrbitClient;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.toasts.Toast;
 import net.minecraft.client.gui.components.toasts.ToastManager;
 import net.minecraft.client.renderer.RenderPipelines;
@@ -74,11 +75,12 @@ public final class OrbitToast implements Toast {
 	}
 
 	@Override
-	public void extractRenderState(GuiGraphicsExtractor graphics, Font font, long visibleTime) {
+	public void extractRenderState(GuiGraphicsExtractor extractor, Font font, long visibleTime) {
+		OrbitGraphics graphics = OrbitGraphics.of(extractor);
 		int height = height();
-		graphics.blitSprite(RenderPipelines.GUI_TEXTURED, BACKGROUND, 0, 0, width, height);
+		graphics.sprite(BACKGROUND, 0, 0, width, height);
 		int iconY = (height - 16) / 2;
-		graphics.blitSprite(RenderPipelines.GUI_TEXTURED, ICON, 3, iconY, 16, 16);
+		graphics.sprite(ICON, 3, iconY, 16, 16);
 		if (kind != Kind.INFO) {
 			// A small status pip on the dot: green, yellow or red.
 			graphics.fill(14, iconY + 11, 18, iconY + 15, 0xFF0A0A0D);

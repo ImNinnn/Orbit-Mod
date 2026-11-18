@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.social;
 
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import dev.orbit.cosmetic.client.OrbitClient;
@@ -12,7 +13,6 @@ import net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.client.gui.screens.Screen;
@@ -201,14 +201,14 @@ public final class FloatingChats {
 	}
 
 	/** Draws every window as it is placed (hidden ones too), for the HUD components editor. */
-	public static void drawPlaced(GuiGraphicsExtractor graphics) {
+	public static void drawPlaced(OrbitGraphics graphics) {
 		Social social = OrbitClient.get().social();
 		Minecraft minecraft = Minecraft.getInstance();
 		int screenW = minecraft.getWindow().getGuiScaledWidth();
 		int screenH = minecraft.getWindow().getGuiScaledHeight();
 		for (Window window : WINDOWS) {
 			clampTo(window, screenW, screenH);
-			graphics.nextStratum();
+			graphics.layer();
 			drawWindow(graphics, window, social.chat(window.friend), -1, -1, true);
 		}
 	}
@@ -242,7 +242,7 @@ public final class FloatingChats {
 		// With the HUD components, under the chat (screens and notifications go over them).
 		HudElementRegistry.attachElementAfter(dev.orbit.cosmetic.client.hud.HudRenderer.ID, Identifier.fromNamespaceAndPath(OrbitClient.MOD_ID, "floating_chats"), (graphics, tick) -> {
 			if (Compat.screen() == null && !Compat.hudHidden() && available()) {
-				draw(graphics, -1, -1, false);
+				draw(OrbitGraphics.of(graphics), -1, -1, false);
 			}
 		});
 		ScreenEvents.AFTER_INIT.register((client, screen, width, height) -> {
@@ -259,7 +259,7 @@ public final class FloatingChats {
 			}
 			if (!(screen instanceof FloatingChatInput)) {
 				// The message box draws the windows itself, under its text field.
-				ScreenEvents.afterExtract(screen).register((current, graphics, mouseX, mouseY, partialTick) -> draw(graphics, mouseX, mouseY, true));
+				ScreenEvents.afterExtract(screen).register((current, graphics, mouseX, mouseY, partialTick) -> draw(OrbitGraphics.of(graphics), mouseX, mouseY, true));
 			}
 			ScreenMouseEvents.allowMouseClick(screen).register((current, event) -> !click(current, event.x(), event.y()));
 			ScreenMouseEvents.allowMouseRelease(screen).register((current, event) -> {
@@ -284,7 +284,7 @@ public final class FloatingChats {
 	}
 
 	/** Draws the windows; with {@code interactive}, hovers, drags and resizes follow the mouse. */
-	static void draw(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean interactive) {
+	static void draw(OrbitGraphics graphics, int mouseX, int mouseY, boolean interactive) {
 		if (WINDOWS.isEmpty()) {
 			return;
 		}
@@ -309,16 +309,16 @@ public final class FloatingChats {
 			}
 			clampTo(window, screenW, screenH);
 			if (shown(window, interactive, now)) {
-				graphics.nextStratum();
+				graphics.layer();
 				drawWindow(graphics, window, chat, interactive ? mouseX : -1, interactive ? mouseY : -1, interactive);
 			} else if (window.hidden && interactive && ghosts()) {
-				graphics.nextStratum();
+				graphics.layer();
 				drawGhost(graphics, window, Theme.inside(mouseX, mouseY, window.x, window.y, window.w, TITLE));
 			}
 		}
 	}
 
-	private static void drawWindow(GuiGraphicsExtractor graphics, Window window, List<Social.Entry> chat, int mouseX, int mouseY, boolean interactive) {
+	private static void drawWindow(OrbitGraphics graphics, Window window, List<Social.Entry> chat, int mouseX, int mouseY, boolean interactive) {
 		Font font = Minecraft.getInstance().font;
 		int x = window.x;
 		int y = window.y;
@@ -438,7 +438,7 @@ public final class FloatingChats {
 	}
 
 	/** A hidden window over the pause menu: see-through, its outline and name only. */
-	private static void drawGhost(GuiGraphicsExtractor graphics, Window window, boolean hovered) {
+	private static void drawGhost(OrbitGraphics graphics, Window window, boolean hovered) {
 		Font font = Minecraft.getInstance().font;
 		int x = window.x;
 		int y = window.y;
