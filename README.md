@@ -705,7 +705,7 @@ server with `-Dorbit.backendUrl=...`, which released games ignore).
 
 Development runs (run directories are under `run/`):
 
-* `./gradlew :client-26.3:runClient` (or `client-26.1`, `client-26.2`).
+* `./gradlew :Mod:26.3:runClient` (or `:Mod:26.1`, `:Mod:26.2`).
 
 Versions: `mod_version` in `gradle.properties`.
 `./gradlew publishRelease` builds and signs the jars and hands them to Orbit Cloud, which offers them to
@@ -720,19 +720,23 @@ common/                     Pure Java, shared by every Minecraft version: .bbmod
                             animation engine and Molang, emotes, the equip encoding
 Mod/
   src/                      The client mod: libraries, Orbit menu, emotes, rendering, Orbit Cloud
-  versions/26.x/            One Gradle project per Minecraft version: its gradle.properties and the few
-                            classes that differ between versions (compat/Compat, compat/PreviewRenderer)
-  version.gradle            The build shared by every version
+  versions/26.x/            One Gradle project per Minecraft version (made by Stonecutter): its
+                            gradle.properties and the few classes that differ between versions
+                            (compat/Compat, compat/PreviewRenderer)
+  build.gradle              The build shared by every version
+  stonecutter.gradle        Which version the shared sources are written for right now (the "active" one)
 website/                    orbitcosmetics.dev
 ```
 
 ### Adding a Minecraft version
 
 The shared code compiles against every 26.x release, but the compiled classes differ (methods and classes
-moved), so each version gets its own jar. To add one: copy `Mod/versions/26.3` to the new
-version's folder, set `minecraft_version`, `minecraft_dependency` and `fabric_api_version` in its
-`gradle.properties`, add the version to `settings.gradle`, and fix whatever its `compat` classes no longer
-compile against.
+moved), so each version gets its own jar. The build uses [Stonecutter](https://stonecutter.kikugie.dev): every
+version compiles the same sources in `Mod/src`, where small differences are written as `//? if >=26.2 {`
+comments, and a version's own `Mod/versions/<version>/src` holds whole classes that replace the shared ones. To add
+a version: copy `Mod/versions/26.3` to the new version's folder, set `minecraft_version`, `minecraft_dependency`
+and `fabric_api_version` in its `gradle.properties`, add the version to `stonecutter { create(':Mod') { versions(...) } }`
+in `settings.gradle`, and fix whatever no longer compiles against it.
 
 ## How the EMF / Fresh Animations compatibility works
 
