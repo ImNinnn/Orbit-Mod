@@ -62,6 +62,8 @@ public final class SocialPopups {
 		@Nullable Runnable action;
 		java.util.function.@Nullable Supplier<Component> second;
 		@Nullable Runnable secondAction;
+		/** An action's title, translated when drawn (a popup made before the game's languages are loaded still reads right). */
+		@Nullable Component heading;
 		/** A vote's lines, as they change, and whether it is still on. */
 		java.util.function.@Nullable Supplier<Component> titleLine;
 		java.util.function.@Nullable Supplier<Component> detailLine;
@@ -106,7 +108,7 @@ public final class SocialPopups {
 				case INVITE -> Component.literal(world == null ? "" : world);
 				case REQUEST -> Component.translatable("orbit_cosmetic.popup.request.title", name);
 				case ONLINE -> Component.translatable("orbit_cosmetic.social.friend_online", name);
-				case ACTION -> Component.literal(world == null ? "" : world);
+				case ACTION -> heading != null ? heading : Component.literal(world == null ? "" : world);
 				case VOTE -> titleLine == null ? Component.empty() : titleLine.get();
 			};
 		}
@@ -171,7 +173,8 @@ public final class SocialPopups {
 	 * title and a line, and a button. Like every popup, it can be clicked while a screen is open (the chat, for one).
 	 */
 	public static void action(UUID player, String name, Component title, Component detail, Component button, Runnable action) {
-		Popup popup = new Popup(Kind.ACTION, player, name, detail, null, title.getString());
+		Popup popup = new Popup(Kind.ACTION, player, name, detail, null, null);
+		popup.heading = title;
 		popup.button = () -> button;
 		popup.action = action;
 		add(popup);
