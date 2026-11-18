@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.mixin;
 
+import dev.orbit.cosmetic.client.gfx.PlayerState;
 import org.spongepowered.asm.mixin.Unique;
 import dev.orbit.cosmetic.common.model.Anchor;
 import dev.orbit.cosmetic.client.gfx.PlayerBody;
@@ -30,7 +31,7 @@ public abstract class AvatarRendererMixin {
 	)
 	private void orbit$extractCosmetics(Avatar entity, AvatarRenderState state, float partialTicks, CallbackInfo ci) {
 		if (entity instanceof AbstractClientPlayer player) {
-			OrbitClient.get().extract(player, state, partialTicks);
+			OrbitClient.get().extract(player, PlayerState.of(state), partialTicks);
 		}
 	}
 

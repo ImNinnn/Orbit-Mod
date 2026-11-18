@@ -47,7 +47,7 @@ public final class PreviewRenderer<T extends PreviewBatch> extends PictureInPict
 			if (entry.camera() != null) {
 				camera.orientation = entry.camera().conjugate(new Quaternionf()).rotateY((float) Math.PI);
 			}
-			minecraft.getEntityRenderDispatcher().submit(entry.state(), camera, 0.0, 0.0, 0.0, poseStack, features.getSubmitNodeStorage());
+			minecraft.getEntityRenderDispatcher().submit(entry.player().raw(), camera, 0.0, 0.0, 0.0, poseStack, features.getSubmitNodeStorage());
 			poseStack.popPose();
 		}
 		features.renderAllFeatures();

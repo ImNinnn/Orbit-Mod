@@ -1,9 +1,9 @@
 package dev.orbit.cosmetic.client.mixin;
 
+import dev.orbit.cosmetic.client.render.PlayerFrame;
+import dev.orbit.cosmetic.client.gfx.PlayerState;
 import dev.orbit.cosmetic.client.gfx.PlayerBody;
-import dev.orbit.cosmetic.client.render.CosmeticRenderData;
 import dev.orbit.cosmetic.client.render.EmotePoser;
-import dev.orbit.cosmetic.client.render.EmoteRenderData;
 import net.minecraft.client.model.player.PlayerModel;
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import org.spongepowered.asm.mixin.Mixin;
@@ -27,12 +27,14 @@ public abstract class PlayerModelMixin {
 	@Inject(method = "setupAnim(Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;)V", at = @At("TAIL"))
 	private void orbit$applyEmote(AvatarRenderState state, CallbackInfo ci) {
 		PlayerBody model = PlayerBody.of((PlayerModel) (Object) this);
-		EmoteRenderData emote = state.getData(EmoteRenderData.KEY);
-		if (emote != null) {
-			EmotePoser.apply(model, emote.body());
+		PlayerFrame frame = PlayerState.of(state).frame();
+		if (frame == null) {
+			return;
 		}
-		CosmeticRenderData cosmetics = state.getData(CosmeticRenderData.KEY);
+		if (frame.emote != null) {
+			EmotePoser.apply(model, frame.emote);
+		}
 		// Each part's skin layer (hat, jacket, sleeve, trouser leg) is its child, so it goes with it.
-		EmotePoser.hide(model, cosmetics == null ? 0 : cosmetics.hiddenParts());
+		EmotePoser.hide(model, frame.hiddenParts());
 	}
 }

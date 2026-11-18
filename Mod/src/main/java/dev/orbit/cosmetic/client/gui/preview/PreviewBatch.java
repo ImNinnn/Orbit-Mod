@@ -1,9 +1,9 @@
 package dev.orbit.cosmetic.client.gui.preview;
 
+import dev.orbit.cosmetic.client.gfx.PlayerState;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.mixin.GuiGraphicsExtractorAccessor;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
-import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.client.renderer.state.gui.pip.PictureInPictureRenderState;
 import org.joml.Quaternionf;
 import org.jspecify.annotations.Nullable;
@@ -19,13 +19,14 @@ public sealed interface PreviewBatch extends PictureInPictureRenderState permits
 	/**
 	 * One player in the batch.
 	 *
+	 * @param player the player drawn, set up for this frame
 	 * @param x where its feet are, in GUI pixels from the batch's left edge
 	 * @param y where its feet are, in GUI pixels from the batch's top edge
 	 * @param size GUI pixels per block
 	 * @param rotation how the model is turned (vanilla inventory style: upside-down flip and tilt)
 	 * @param camera the camera angle used for billboards, or null
 	 */
-	record Entry(EntityRenderState state, float x, float y, float size, Quaternionf rotation, @Nullable Quaternionf camera) {
+	record Entry(PlayerState player, float x, float y, float size, Quaternionf rotation, @Nullable Quaternionf camera) {
 	}
 
 	List<Entry> entries();

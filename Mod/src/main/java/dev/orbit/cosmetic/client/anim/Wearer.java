@@ -1,5 +1,7 @@
 package dev.orbit.cosmetic.client.anim;
 
+import org.jspecify.annotations.Nullable;
+import net.minecraft.resources.Identifier;
 import dev.orbit.cosmetic.client.render.BakedCosmetic;
 import dev.orbit.cosmetic.client.render.RenderPiece;
 import dev.orbit.cosmetic.common.anim.AnimationPlayer;
@@ -16,7 +18,6 @@ import dev.orbit.cosmetic.common.emote.BodyPose;
 import dev.orbit.cosmetic.common.emote.EmoteAnimation;
 import dev.orbit.cosmetic.common.protocol.AssetId;
 import dev.orbit.cosmetic.common.protocol.EquippedCosmetic;
-import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Pose;
@@ -378,13 +379,14 @@ public final class Wearer {
 	/**
 	 * Builds this frame's render pieces.
 	 *
-	 * @param state the player's render state, or null when drawing first-person arms
+	 * @param moving how the player moves and looks, or null when drawing first-person arms
+	 * @param skin the player's skin texture, drawn on cosmetics' PLAYER/SKIN textures (null: unknown)
 	 * @param time animation clock time for this frame
 	 * @param partialTick progress from the last tick to the next one (0-1)
 	 * @param animate false to draw the rest pose (animations disabled, or the player is far away)
 	 * @param faceBudget maximum faces to draw for this player
 	 */
-	public List<RenderPiece> pieces(AvatarRenderState state, double time, float partialTick, boolean animate, int faceBudget, Function<AssetId, BakedCosmetic> lookup) {
+	public List<RenderPiece> pieces(@Nullable PlayerMotion moving, @Nullable Identifier skin, double time, float partialTick, boolean animate, int faceBudget, Function<AssetId, BakedCosmetic> lookup) {
 		List<RenderPiece> pieces = new ArrayList<>(worn.size() + 1);
 		int faces = 0;
 		boolean contextReady = false;
@@ -393,13 +395,13 @@ public final class Wearer {
 		if (current != null && current.resolved != null && current.boundTo != null && !current.boundTo.isReleased()) {
 			double elapsed = current.elapsed(time);
 			if (elapsed >= 0) {
-				fillContext(state, time);
+				fillContext(moving, time);
 				contextReady = true;
 				current.resolved.evaluate(elapsed, emoteMovement(), molang, current.props, body);
 				// Its props (if it has any) and its particles.
 				faces += current.boundTo.model().quadCount();
 				pieces.add(new RenderPiece(current.boundTo, current.props, 0, current.particles)
-					.withSkin(state == null || state.skin == null ? null : state.skin.body().texturePath()));
+					.withSkin(skin));
 			}
 		}
 		// Body parts: when two replace the same part, the one put on last shows it. A part that breaks the rules
@@ -414,7 +416,6 @@ public final class Wearer {
 				claimed |= bodyParts[i];
 			}
 		}
-		net.minecraft.resources.Identifier skin = state == null || state.skin == null ? null : state.skin.body().texturePath();
 		for (int index = 0; index < worn.size(); index++) {
 			Worn w = worn.get(index);
 			BakedCosmetic baked = lookup.apply(w.asset);
@@ -429,7 +430,7 @@ public final class Wearer {
 			if (animate && w.boundTo == baked && (w.player != null || !w.physics.isEmpty())) {
 				if (w.player != null) {
 					if (!contextReady) {
-						fillContext(state, time);
+						fillContext(moving, time);
 						contextReady = true;
 					}
 					w.player.setSmoothing(dev.orbit.cosmetic.client.OrbitClient.get().config().smoothAnimations);
@@ -458,22 +459,22 @@ public final class Wearer {
 		return forwardSpeed < -MotionTracker.BACKWARDS_SHARE * groundSpeed ? EmoteAnimation.Movement.BACKWARDS : EmoteAnimation.Movement.WALKING;
 	}
 
-	private void fillContext(AvatarRenderState state, double time) {
+	private void fillContext(@Nullable PlayerMotion moving, double time) {
 		molang.lifeTime = time / 20.0;
 		molang.groundSpeed = groundSpeed * 20;
 		molang.verticalSpeed = verticalSpeed * 20;
 		molang.onGround = motion.last() == null || motion.last().onGround();
 		molang.sprinting = motion.last() != null && motion.last().sprinting();
-		if (state == null) {
+		if (moving == null) {
 			return;
 		}
-		molang.distanceMoved = state.walkAnimationPos;
-		molang.moveSpeed = state.walkAnimationSpeed;
-		molang.headXRotation = state.xRot;
-		molang.headYRotation = state.yRot;
-		molang.sneaking = state.isCrouching;
-		molang.swimming = state.isVisuallySwimming;
-		molang.flying = state.isFallFlying;
-		molang.inWater = state.isInWater;
+		molang.distanceMoved = moving.distanceMoved();
+		molang.moveSpeed = moving.moveSpeed();
+		molang.headXRotation = moving.headXRotation();
+		molang.headYRotation = moving.headYRotation();
+		molang.sneaking = moving.sneaking();
+		molang.swimming = moving.swimming();
+		molang.flying = moving.flying();
+		molang.inWater = moving.inWater();
 	}
 }

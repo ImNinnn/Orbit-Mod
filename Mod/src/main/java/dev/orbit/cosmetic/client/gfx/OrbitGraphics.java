@@ -3,11 +3,16 @@ package dev.orbit.cosmetic.client.gfx;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.PlayerFaceExtractor;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.client.renderer.entity.state.EntityRenderState;
+import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -128,6 +133,33 @@ public final class OrbitGraphics {
 	/** A player's face (with their hat layer), {@code size} pixels square. */
 	public void face(OrbitSkin skin, int x, int y, int size) {
 		PlayerFaceExtractor.extractRenderState(graphics, skin.raw(), x, y, size);
+	}
+
+	/** While {@link #entity} draws: the pose it asked for (body turn, head turn, pitch), or null. */
+	private static float @Nullable [] entityPose;
+
+	/**
+	 * A creature drawn in a box like the inventory's player, {@code size} pixels per block, but turned as given:
+	 * its body {@code bodyRot} degrees (180 faces the viewer), its head {@code headRot} degrees from the body, and
+	 * tilted {@code pitch} degrees. Its name is not shown.
+	 */
+	public void entity(LivingEntity entity, int x0, int y0, int x1, int y1, int size, float bodyRot, float headRot, float pitch) {
+		entityPose = new float[] {bodyRot, headRot, pitch};
+		try {
+			InventoryScreen.extractEntityInInventoryFollowsMouse(graphics, x0, y0, x1, y1, size, 0.0625F, (x0 + x1) / 2F, (y0 + y1) / 2F, entity);
+		} finally {
+			entityPose = null;
+		}
+	}
+
+	/** Called by InventoryScreenMixin with the pose the inventory drawing is about to use; {@link #entity} replaces it. */
+	public static void poseEntity(EntityRenderState state) {
+		if (entityPose != null && state instanceof LivingEntityRenderState living) {
+			living.bodyRot = entityPose[0];
+			living.yRot = entityPose[1];
+			living.xRot = entityPose[2];
+			living.nameTag = null;
+		}
 	}
 
 	/** An item as in an inventory slot (16 by 16 pixels). */

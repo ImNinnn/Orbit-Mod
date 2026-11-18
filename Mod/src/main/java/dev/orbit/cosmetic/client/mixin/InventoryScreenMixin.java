@@ -26,7 +26,7 @@ public abstract class InventoryScreenMixin {
 
 	@ModifyArg(method = "extractEntityInInventoryFollowsMouse", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiGraphicsExtractor;entity"), index = 0)
 	private static EntityRenderState orbit$hudPose(EntityRenderState state) {
-		dev.orbit.cosmetic.client.hud.HudDoll.pose(state);
+		dev.orbit.cosmetic.client.gfx.OrbitGraphics.poseEntity(state);
 		return state;
 	}
 }

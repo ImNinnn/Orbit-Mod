@@ -1,5 +1,7 @@
 package dev.orbit.cosmetic.client;
 
+import dev.orbit.cosmetic.client.render.PlayerFrame;
+import dev.orbit.cosmetic.client.gfx.PlayerState;
 import dev.orbit.cosmetic.client.gfx.PlayerBody;
 import dev.orbit.cosmetic.client.gfx.OrbitCanvas;
 import dev.orbit.cosmetic.client.gfx.OrbitSkin;
@@ -24,9 +26,7 @@ import dev.orbit.cosmetic.client.net.BackendSync;
 import dev.orbit.cosmetic.client.net.RemotePlayers;
 import dev.orbit.cosmetic.client.render.CosmeticLayer;
 import dev.orbit.cosmetic.client.render.CosmeticRegistry;
-import dev.orbit.cosmetic.client.render.CosmeticRenderData;
 import dev.orbit.cosmetic.client.render.CosmeticRenderer;
-import dev.orbit.cosmetic.client.render.EmoteRenderData;
 import dev.orbit.cosmetic.client.render.RenderPiece;
 import dev.orbit.cosmetic.client.skin.OrbitSkins;
 import dev.orbit.cosmetic.client.skin.SkinLibrary;
@@ -49,12 +49,10 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.entity.player.AvatarRenderer;
-import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FontDescription;
 import net.minecraft.resources.Identifier;
 import dev.orbit.cosmetic.client.render.SkinMasks;
-import dev.orbit.cosmetic.client.render.ParticleRenderData;
 import dev.orbit.cosmetic.client.render.ParticleRenderer;
 import dev.orbit.cosmetic.client.render.BakedCosmetic;
 import dev.orbit.cosmetic.client.anim.ParticleSystem;
@@ -445,21 +443,19 @@ public final class OrbitClient implements ClientModInitializer {
 	// ---------------------------------------------------------------- rendering hooks
 
 	/** Called from the player renderer after it extracted a player's render state. */
-	public void extract(AbstractClientPlayer player, AvatarRenderState state, float partialTicks) {
-		state.setData(CosmeticRenderData.KEY, null);
-		state.setData(EmoteRenderData.KEY, null);
-		state.setData(ParticleRenderData.KEY, null);
+	public void extract(AbstractClientPlayer player, PlayerState state, float partialTicks) {
+		state.setFrame(null);
 		Minecraft minecraft = Minecraft.getInstance();
 		boolean local = minecraft.player != null && player.getUUID().equals(minecraft.player.getUUID());
 		Wearer wearer = local ? localWearer : remotes.wearers().get(player.getUUID());
-		if (state.nameTag != null && config.showNameplateIcons && (local ? backend.isActive() && !backend.isFullBan() : wearer != null && wearer.showIcon)) {
-			state.nameTag = Component.empty().append(NAMEPLATE_ICON).append(state.nameTag);
+		if (state.nameTag() != null && config.showNameplateIcons && (local ? backend.isActive() && !backend.isFullBan() : wearer != null && wearer.showIcon)) {
+			state.setNameTag(Component.empty().append(NAMEPLATE_ICON).append(state.nameTag()));
 		}
 		// Blocked players' cosmetics are hidden too.
 		if (wearer == null || !local && (!config.showOtherPlayers || account().isHidden(wearer.id) || social.isBlocked(wearer.id))) {
 			return;
 		}
-		double distanceSq = state.distanceToCameraSq;
+		double distanceSq = state.distanceToCameraSq();
 		if (!local && distanceSq > (double) config.renderDistance * config.renderDistance) {
 			return;
 		}
@@ -468,24 +464,29 @@ public final class OrbitClient implements ClientModInitializer {
 			return;
 		}
 		boolean animate = config.playAnimations && distanceSq <= (double) config.animationDistance * config.animationDistance;
-		List<RenderPiece> pieces = wearer.pieces(state, clock.at(partialTicks), partialTicks, animate, config.maxFacesPerPlayer, registry::get);
+		OrbitSkin skin = state.skin();
+		List<RenderPiece> pieces = wearer.pieces(state.motion(), skin == null ? null : skin.texture(), clock.at(partialTicks), partialTicks, animate, config.maxFacesPerPlayer, registry::get);
 		if (!config.renderCosmetics) {
 			// Cosmetics hidden: only an emote's own props are drawn.
 			pieces = pieces.stream().filter(piece -> emote != null && piece.baked() == emote.baked()).toList();
 		}
+		PlayerFrame frame = new PlayerFrame();
 		if (!pieces.isEmpty()) {
-			state.setData(CosmeticRenderData.KEY, new CosmeticRenderData(pieces));
-			state.setData(ParticleRenderData.KEY, new ParticleRenderData(wearer.particles(), false));
+			frame.pieces = pieces;
+			frame.particles = wearer.particles();
 			// The skin's outer layer would poke through cosmetics that sit close to the body.
-			if (state.skin != null) {
-				state.skin = skinMasks.apply(OrbitSkin.of(state.skin), pieces, emote == null ? null : emote.baked()).raw();
+			if (skin != null) {
+				state.setSkin(skinMasks.apply(skin, pieces, emote == null ? null : emote.baked()));
 			}
 		}
 		BodyPose body = wearer.body();
 		if (!body.isEmpty()) {
 			BodyPose copy = new BodyPose();
 			copy.copyFrom(body);
-			state.setData(EmoteRenderData.KEY, new EmoteRenderData(copy));
+			frame.emote = copy;
+		}
+		if (!pieces.isEmpty() || frame.emote != null) {
+			state.setFrame(frame);
 		}
 	}
 
@@ -508,7 +509,7 @@ public final class OrbitClient implements ClientModInitializer {
 			return skin;
 		}
 		float partial = minecraft.getDeltaTracker().getGameTimeDeltaPartialTick(false);
-		List<RenderPiece> pieces = localWearer.pieces(null, clock.at(partial), partial, config.playAnimations, config.maxFacesPerPlayer, registry::get);
+		List<RenderPiece> pieces = localWearer.pieces(null, null, clock.at(partial), partial, config.playAnimations, config.maxFacesPerPlayer, registry::get);
 		Wearer.Emote emote = localWearer.emote();
 		Identifier masked = skinMasks.texture(skin, OrbitSkin.of(minecraft.player).slim(), pieces, emote == null ? null : emote.baked());
 		return masked == null ? skin : masked;
@@ -554,7 +555,7 @@ public final class OrbitClient implements ClientModInitializer {
 		float bodyRot = Mth.rotLerp(partial, player.yBodyRotO, player.yBodyRot);
 		Quaternionf turn = new Quaternionf().rotationY((float) Math.toRadians(180 - bodyRot));
 		ParticleSystem system = localWearer.particles();
-		for (RenderPiece piece : localWearer.pieces(null, clock.at(partial), partial, config.playAnimations, config.maxFacesPerPlayer, registry::get)) {
+		for (RenderPiece piece : localWearer.pieces(null, null, clock.at(partial), partial, config.playAnimations, config.maxFacesPerPlayer, registry::get)) {
 			BakedCosmetic baked = piece.baked();
 			for (ParticleSettings settings : piece.particles()) {
 				if (!settings.enabled() || settings.texture() < 0 || settings.bone() >= baked.model().bones().size()) {
@@ -596,7 +597,7 @@ public final class OrbitClient implements ClientModInitializer {
 		}
 		float partial = minecraft.getDeltaTracker().getGameTimeDeltaPartialTick(false);
 		Identifier skin = OrbitSkin.of(minecraft.player).texture();
-		return localWearer.pieces(null, clock.at(partial), partial, config.playAnimations, config.maxFacesPerPlayer, registry::get).stream()
+		return localWearer.pieces(null, null, clock.at(partial), partial, config.playAnimations, config.maxFacesPerPlayer, registry::get).stream()
 			.map(piece -> piece.withSkin(skin)).toList();
 	}
 

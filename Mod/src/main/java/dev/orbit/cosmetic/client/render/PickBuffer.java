@@ -1,7 +1,6 @@
 package dev.orbit.cosmetic.client.render;
 
 import dev.orbit.cosmetic.common.protocol.AssetId;
-import net.fabricmc.fabric.api.client.rendering.v1.RenderStateDataKey;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
@@ -15,9 +14,6 @@ import java.util.List;
  * Render thread only, which is also where mouse events arrive.
  */
 public final class PickBuffer {
-	/** Set on the render state of the one preview whose faces are kept. */
-	public static final RenderStateDataKey<PickBuffer> KEY = RenderStateDataKey.create(() -> "orbit_cosmetic:pick");
-
 	/** One face: the cosmetic it belongs to (null for the player's body) and its four corners. */
 	private record Face(AssetId asset, float[] corners) {
 	}

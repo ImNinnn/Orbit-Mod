@@ -1,8 +1,8 @@
 package dev.orbit.cosmetic.client.mixin;
 
+import dev.orbit.cosmetic.client.render.PlayerFrame;
+import dev.orbit.cosmetic.client.gfx.PlayerState;
 import dev.orbit.cosmetic.client.render.EmotePoser;
-import dev.orbit.cosmetic.client.render.EmoteRenderData;
-import dev.orbit.cosmetic.client.render.ParticleRenderData;
 import dev.orbit.cosmetic.client.render.VanillaPlayerModels;
 import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.renderer.SubmitNodeCollector;
@@ -38,7 +38,10 @@ public abstract class LivingEntityRendererMixin {
 	@Inject(method = "submit(Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/level/CameraRenderState;)V", at = @At("HEAD"))
 	private void orbit$vanillaWhileEmoting(LivingEntityRenderState state, PoseStack poseStack, SubmitNodeCollector collector, CameraRenderState camera, CallbackInfo ci) {
 		if ((Object) this instanceof AvatarRenderer<?> && state instanceof AvatarRenderState avatar) {
-			avatar.setData(ParticleRenderData.BASE, new Matrix4f(poseStack.last().pose()));
+			PlayerFrame frame = PlayerState.of(avatar).frame();
+			if (frame != null) {
+				frame.base = new Matrix4f(poseStack.last().pose());
+			}
 			if (VanillaPlayerModels.isUsedFor(avatar)) {
 				orbit$replaced = model;
 				model = VanillaPlayerModels.forSkin(avatar.skin);
@@ -50,8 +53,9 @@ public abstract class LivingEntityRendererMixin {
 	@Inject(method = "submit(Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/level/CameraRenderState;)V",
 		at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/entity/LivingEntityRenderer;setupRotations(Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;FF)V", shift = At.Shift.AFTER))
 	private void orbit$moveWholePlayer(LivingEntityRenderState state, PoseStack poseStack, SubmitNodeCollector collector, CameraRenderState camera, CallbackInfo ci) {
-		if (state instanceof AvatarRenderState avatar && avatar.getData(EmoteRenderData.KEY) != null) {
-			EmotePoser.applyRoot(avatar.getData(EmoteRenderData.KEY).body(), poseStack);
+		PlayerFrame frame = state instanceof AvatarRenderState avatar ? PlayerState.of(avatar).frame() : null;
+		if (frame != null && frame.emote != null) {
+			EmotePoser.applyRoot(frame.emote, poseStack);
 		}
 	}
 

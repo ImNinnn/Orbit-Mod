@@ -1,21 +1,17 @@
 package dev.orbit.cosmetic.client.gui.preview;
 
+import dev.orbit.cosmetic.client.render.PlayerFrame;
+import dev.orbit.cosmetic.client.gfx.PlayerState;
 import dev.orbit.cosmetic.client.gfx.OrbitSkin;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.anim.Wearer;
-import dev.orbit.cosmetic.client.render.ParticleRenderData;
 import dev.orbit.cosmetic.client.render.PickBuffer;
 import dev.orbit.cosmetic.common.anim.PhysicsState;
 import dev.orbit.cosmetic.common.anim.ParticleSettings;
-import dev.orbit.cosmetic.client.render.CosmeticRenderData;
-import dev.orbit.cosmetic.client.render.EmoteRenderData;
 import dev.orbit.cosmetic.client.render.RenderPiece;
 import dev.orbit.cosmetic.common.emote.BodyPose;
 import dev.orbit.cosmetic.common.protocol.AssetId;
 import dev.orbit.cosmetic.common.protocol.EquippedCosmetic;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.entity.state.AvatarRenderState;
-import net.minecraft.world.entity.player.PlayerModelPart;
 import org.joml.Quaternionf;
 
 import dev.orbit.cosmetic.client.render.BakedCosmetic;
@@ -43,10 +39,7 @@ public final class PreviewModel {
 	/** Extents of cosmetic models, measured once each. */
 	private static final Map<CosmeticModel, float[]> EXTENTS = Collections.synchronizedMap(new WeakHashMap<>());
 
-	/** Full brightness, so previews look the same everywhere. */
-	private static final int FULL_BRIGHT = 0xF000F0;
-
-	private final AvatarRenderState state = new AvatarRenderState();
+	private final PlayerState state = PlayerState.create();
 	private final Wearer wearer;
 	private List<EquippedCosmetic> worn = List.of();
 	/** The skin shown; null for the local player's. */
@@ -227,38 +220,17 @@ public final class PreviewModel {
 	 */
 	public PreviewBatch.Entry entry(float x, float y, float size, float yaw, float pitch, float partialTick) {
 		OrbitClient orbit = OrbitClient.get();
-		Minecraft minecraft = Minecraft.getInstance();
 		double time = orbit.menuTime();
 		long tick = (long) Math.floor(time);
 		if (tick != lastTick) {
 			lastTick = tick;
 			wearer.tickMoving(tick, moving, orbit.registry()::get);
 		}
-		state.skin = (skin != null ? skin : orbit.menuSkin()).raw();
-		state.lightCoords = FULL_BRIGHT;
-		state.boundingBoxWidth = 0.6F;
-		state.boundingBoxHeight = 1.8F;
-		state.eyeHeight = 1.62F;
-		state.ageInTicks = (float) time;
-		state.scale = 1.0F;
-		state.bodyRot = 180.0F + yaw;
-		state.yRot = 0.0F;
-		state.xRot = pitch;
-		state.nameTag = null;
+		OrbitSkin shown = skin != null ? skin : orbit.menuSkin();
 		// Legs swing like the game's: a share of a full swing from the distance covered in a tick.
-		state.walkAnimationSpeed = (float) Math.min(1, Math.hypot(moving.forward(), moving.sideways()) / 20 * 4);
-		state.walkAnimationPos = (float) time * state.walkAnimationSpeed;
-		// Menus always show the vanilla player model, whatever model packs change in the world.
-		state.setData(EmoteRenderData.MENU_PREVIEW, Boolean.TRUE);
-		state.showHat = minecraft.options.isModelPartEnabled(PlayerModelPart.HAT);
-		state.showJacket = minecraft.options.isModelPartEnabled(PlayerModelPart.JACKET);
-		state.showLeftSleeve = minecraft.options.isModelPartEnabled(PlayerModelPart.LEFT_SLEEVE);
-		state.showRightSleeve = minecraft.options.isModelPartEnabled(PlayerModelPart.RIGHT_SLEEVE);
-		state.showLeftPants = minecraft.options.isModelPartEnabled(PlayerModelPart.LEFT_PANTS_LEG);
-		state.showRightPants = minecraft.options.isModelPartEnabled(PlayerModelPart.RIGHT_PANTS_LEG);
-		state.showCape = minecraft.options.isModelPartEnabled(PlayerModelPart.CAPE);
+		state.poseForMenu(shown, time, yaw, pitch, (float) Math.min(1, Math.hypot(moving.forward(), moving.sideways()) / 20 * 4));
 		// Physics move once per tick of the menu's time; frames in between interpolate.
-		List<RenderPiece> pieces = wearer.pieces(state, time, (float) (time - tick), orbit.config().playAnimations, orbit.config().maxFacesPerPlayer, orbit.registry()::get);
+		List<RenderPiece> pieces = wearer.pieces(state.motion(), shown.texture(), time, (float) (time - tick), orbit.config().playAnimations, orbit.config().maxFacesPerPlayer, orbit.registry()::get);
 		if (hovered != null || selected != null) {
 			List<RenderPiece> highlighted = new ArrayList<>(pieces.size());
 			for (RenderPiece piece : pieces) {
@@ -267,19 +239,21 @@ public final class PreviewModel {
 			}
 			pieces = highlighted;
 		}
-		state.setData(PickBuffer.KEY, pick);
-		state.setData(CosmeticRenderData.KEY, pieces.isEmpty() ? null : new CosmeticRenderData(pieces));
-		state.setData(ParticleRenderData.KEY, new ParticleRenderData(wearer.particles(), true));
+		// Menus always show the vanilla player model, whatever model packs change in the world.
+		PlayerFrame frame = new PlayerFrame();
+		frame.preview = true;
+		frame.pick = pick;
+		frame.pieces = pieces;
+		frame.particles = wearer.particles();
 		Wearer.Emote emote = wearer.emote();
-		state.skin = orbit.skinMasks().apply(OrbitSkin.of(state.skin), pieces, emote == null ? null : emote.baked()).raw();
+		state.setSkin(orbit.skinMasks().apply(shown, pieces, emote == null ? null : emote.baked()));
 		BodyPose body = wearer.body();
-		if (body.isEmpty()) {
-			state.setData(EmoteRenderData.KEY, null);
-		} else {
+		if (!body.isEmpty()) {
 			BodyPose copy = new BodyPose();
 			copy.copyFrom(body);
-			state.setData(EmoteRenderData.KEY, new EmoteRenderData(copy));
+			frame.emote = copy;
 		}
+		state.setFrame(frame);
 		Quaternionf tilt = new Quaternionf().rotateX((float) Math.toRadians(-6));
 		Quaternionf rotation = new Quaternionf().rotateZ((float) Math.PI).mul(tilt);
 		return new PreviewBatch.Entry(state, x, y, size, rotation, tilt);

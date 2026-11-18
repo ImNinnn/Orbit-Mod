@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.render;
 
+import dev.orbit.cosmetic.client.gfx.PlayerState;
 import net.minecraft.client.model.geom.builders.CubeDeformation;
 import net.minecraft.client.model.geom.builders.LayerDefinition;
 import net.minecraft.client.model.player.PlayerCapeModel;
@@ -22,7 +23,8 @@ public final class VanillaPlayerModels {
 
 	/** True when this player is drawn with the vanilla models: while emoting, and always in Orbit's menus. */
 	public static boolean isUsedFor(AvatarRenderState state) {
-		return state.getData(EmoteRenderData.KEY) != null || state.getData(EmoteRenderData.MENU_PREVIEW) != null;
+		PlayerFrame frame = PlayerState.of(state).frame();
+		return frame != null && frame.usesVanillaModel();
 	}
 
 	/**
