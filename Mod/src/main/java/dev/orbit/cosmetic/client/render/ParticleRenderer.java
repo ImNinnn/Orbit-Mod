@@ -1,10 +1,9 @@
 package dev.orbit.cosmetic.client.render;
 
+import net.minecraft.resources.Identifier;
+import dev.orbit.cosmetic.client.gfx.OrbitCanvas;
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.orbit.cosmetic.client.anim.ParticleSystem;
-import net.minecraft.client.renderer.SubmitNodeCollector;
-import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
@@ -27,6 +26,10 @@ public final class ParticleRenderer {
 	private record Quad(float[] vertices, int color, int light) {
 	}
 
+	/** Particles drawn together: the same texture, lit the same way. */
+	private record Batch(Identifier texture, boolean glow) {
+	}
+
 	private ParticleRenderer() {
 	}
 
@@ -38,8 +41,8 @@ public final class ParticleRenderer {
 	 * @param normal the particles' normal in the pose stack's space: where the game's shading lights them fully
 	 */
 	public static void submit(ParticleSystem system, double originX, double originY, double originZ, Matrix4f toRender, Vector3f right, Vector3f up,
-		Vector3f normal, PoseStack poseStack, SubmitNodeCollector collector) {
-		Map<RenderType, List<Quad>> quads = new LinkedHashMap<>();
+		Vector3f normal, PoseStack poseStack, OrbitCanvas canvas) {
+		Map<Batch, List<Quad>> quads = new LinkedHashMap<>();
 		Vector3f side = new Vector3f();
 		Vector3f top = new Vector3f();
 		Vector3f corner = new Vector3f();
@@ -48,7 +51,7 @@ public final class ParticleRenderer {
 			if (alpha <= 0 || p.texture == null || p.source == null || p.source.isReleased()) {
 				continue;
 			}
-			RenderType type = p.glow() ? RenderTypes.entityTranslucentEmissive(p.texture) : RenderTypes.entityTranslucent(p.texture);
+			Batch batch = new Batch(p.texture, p.glow());
 			float half = p.size() / 2;
 			if (half <= 0) {
 				continue;
@@ -69,19 +72,19 @@ public final class ParticleRenderer {
 				quad[o + 3] = c[2];
 				quad[o + 4] = c[3];
 			}
-			quads.computeIfAbsent(type, t -> new ArrayList<>()).add(new Quad(quad, alpha << 24 | 0xFFFFFF, p.glow() ? FULL_BRIGHT : p.light));
+			quads.computeIfAbsent(batch, b -> new ArrayList<>()).add(new Quad(quad, alpha << 24 | 0xFFFFFF, p.glow() ? FULL_BRIGHT : p.light));
 		}
-		for (Map.Entry<RenderType, List<Quad>> entry : quads.entrySet()) {
+		for (Map.Entry<Batch, List<Quad>> entry : quads.entrySet()) {
 			List<Quad> list = entry.getValue();
-			collector.submitCustomGeometry(poseStack, entry.getKey(), (posed, consumer) -> {
-				Matrix4f pose = posed.pose();
+			Batch batch = entry.getKey();
+			canvas.draw(poseStack, batch.texture(), batch.glow() ? OrbitCanvas.Look.GLOWING : OrbitCanvas.Look.TRANSLUCENT, (pose, poseNormal, out) -> {
 				Vector3f v = new Vector3f();
-				Vector3f n = posed.normal().transform(new Vector3f(normal)).normalize();
+				Vector3f n = poseNormal.transform(new Vector3f(normal)).normalize();
 				for (Quad quad : list) {
 					for (int i = 0; i < 4; i++) {
 						int o = i * STRIDE;
 						pose.transformPosition(quad.vertices[o], quad.vertices[o + 1], quad.vertices[o + 2], v);
-						consumer.addVertex(v.x, v.y, v.z, quad.color, quad.vertices[o + 3], quad.vertices[o + 4], OverlayTexture.NO_OVERLAY, quad.light, n.x, n.y, n.z);
+						out.vertex(v.x, v.y, v.z, quad.color, quad.vertices[o + 3], quad.vertices[o + 4], OverlayTexture.NO_OVERLAY, quad.light, n.x, n.y, n.z);
 					}
 				}
 			});

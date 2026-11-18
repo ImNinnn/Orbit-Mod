@@ -1,5 +1,7 @@
 package dev.orbit.cosmetic.client;
 
+import dev.orbit.cosmetic.client.gfx.PlayerBody;
+import dev.orbit.cosmetic.client.gfx.OrbitCanvas;
 import dev.orbit.cosmetic.client.gfx.OrbitSkin;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -43,12 +45,9 @@ import net.fabricmc.fabric.api.client.rendering.v1.LivingEntityRenderLayerRegist
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.model.geom.ModelPart;
-import net.minecraft.client.model.player.PlayerModel;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.player.AvatarRenderer;
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.network.chat.Component;
@@ -533,7 +532,7 @@ public final class OrbitClient implements ClientModInitializer {
 			system.update();
 			if (!system.isEmpty()) {
 				// Lit from above in the world, like the top of a block.
-				ParticleRenderer.submit(system, camera.pos.x, camera.pos.y, camera.pos.z, identity, right, up, new Vector3f(0, 1, 0), context.poseStack(), context.submitNodeCollector());
+				ParticleRenderer.submit(system, camera.pos.x, camera.pos.y, camera.pos.z, identity, right, up, new Vector3f(0, 1, 0), context.poseStack(), OrbitCanvas.of(context.submitNodeCollector()));
 			}
 		}
 	}
@@ -587,12 +586,12 @@ public final class OrbitClient implements ClientModInitializer {
 	}
 
 	/** The local player's cosmetics for a first-person arm, with their skin; empty when none are drawn there. */
-	private List<RenderPiece> firstPersonPieces(PlayerModel model, ModelPart arm) {
+	private List<RenderPiece> firstPersonPieces(Anchor arm) {
 		Minecraft minecraft = Minecraft.getInstance();
 		if (!config.renderCosmetics || !config.showInFirstPerson || localWearer == null || localWearer.worn().isEmpty() || minecraft.player == null) {
 			return List.of();
 		}
-		if (arm != model.rightArm && arm != model.leftArm) {
+		if (arm != Anchor.RIGHT_ARM && arm != Anchor.LEFT_ARM) {
 			return List.of();
 		}
 		float partial = minecraft.getDeltaTracker().getGameTimeDeltaPartialTick(false);
@@ -601,22 +600,20 @@ public final class OrbitClient implements ClientModInitializer {
 			.map(piece -> piece.withSkin(skin)).toList();
 	}
 
-	/** Whether a body part replaces this first-person arm (then only the body part is drawn). */
-	public boolean replacesFirstPersonArm(PlayerModel model, ModelPart arm) {
-		Anchor anchor = arm == model.rightArm ? Anchor.RIGHT_ARM : Anchor.LEFT_ARM;
-		return firstPersonPieces(model, arm).stream().anyMatch(piece -> (piece.hiddenParts() & 1 << anchor.ordinal()) != 0);
+	/** Whether a body part replaces this first-person arm ({@link Anchor#RIGHT_ARM} or LEFT_ARM; then only the body part is drawn). */
+	public boolean replacesFirstPersonArm(Anchor arm) {
+		return firstPersonPieces(arm).stream().anyMatch(piece -> (piece.hiddenParts() & 1 << arm.ordinal()) != 0);
 	}
 
 	/** Called after the first-person hand was submitted (or instead of it); draws cosmetics attached to that arm. */
-	public void renderFirstPersonArm(PlayerModel model, PoseStack poseStack, SubmitNodeCollector collector, int light, ModelPart arm) {
-		List<RenderPiece> pieces = firstPersonPieces(model, arm);
-		Anchor anchor = arm == model.rightArm ? Anchor.RIGHT_ARM : Anchor.LEFT_ARM;
+	public void renderFirstPersonArm(PlayerBody model, PoseStack poseStack, OrbitCanvas canvas, int light, Anchor arm) {
+		List<RenderPiece> pieces = firstPersonPieces(arm);
 		if (pieces.isEmpty()) {
 			return;
 		}
 		poseStack.pushPose();
-		arm.translateAndRotate(poseStack);
-		CosmeticRenderer.submit(pieces, null, poseStack, collector, light, anchor);
+		model.moveToAlone(arm, poseStack);
+		CosmeticRenderer.submit(pieces, model, poseStack, canvas, light, arm);
 		poseStack.popPose();
 	}
 }

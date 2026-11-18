@@ -1,12 +1,10 @@
 package dev.orbit.cosmetic.client.render;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import dev.orbit.cosmetic.client.gfx.PlayerBody;
 import dev.orbit.cosmetic.common.emote.BodyPose;
 import dev.orbit.cosmetic.common.emote.EmoteAnimation;
 import dev.orbit.cosmetic.common.model.Anchor;
-import net.minecraft.client.model.HumanoidModel;
-import net.minecraft.client.model.geom.ModelPart;
-import net.minecraft.client.model.geom.PartPose;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
@@ -24,23 +22,22 @@ public final class EmotePoser {
 	private EmotePoser() {
 	}
 
-	public static void apply(HumanoidModel<?> model, BodyPose body) {
+	public static void apply(PlayerBody model, BodyPose body) {
+		float[] rest = new float[9];
+		float[] pose = new float[9];
 		for (int part = 0; part < EmoteAnimation.PARTS.length; part++) {
 			if (!body.animated[part]) {
 				continue;
 			}
-			ModelPart target = AnchorResolver.part(model, EmoteAnimation.PARTS[part]);
-			PartPose rest = target.getInitialPose();
+			Anchor anchor = EmoteAnimation.PARTS[part];
+			model.rest(anchor, rest);
 			int o = part * 3;
-			target.x = rest.x() + body.position[o];
-			target.y = rest.y() + body.position[o + 1];
-			target.z = rest.z() + body.position[o + 2];
-			target.xRot = rest.xRot() + body.rotation[o];
-			target.yRot = rest.yRot() + body.rotation[o + 1];
-			target.zRot = rest.zRot() + body.rotation[o + 2];
-			target.xScale = rest.xScale() * body.scale[o];
-			target.yScale = rest.yScale() * body.scale[o + 1];
-			target.zScale = rest.zScale() * body.scale[o + 2];
+			for (int axis = 0; axis < 3; axis++) {
+				pose[axis] = rest[axis] + body.position[o + axis];
+				pose[3 + axis] = rest[3 + axis] + body.rotation[o + axis];
+				pose[6 + axis] = rest[6 + axis] * body.scale[o + axis];
+			}
+			model.setTransform(anchor, pose);
 		}
 		if (body.animated[BodyPose.UPPER]) {
 			applyUpper(model, body);
@@ -48,7 +45,7 @@ public final class EmotePoser {
 	}
 
 	/** Turns, moves and scales the head, body and arms together around the upper half's pivot (model space). */
-	private static void applyUpper(HumanoidModel<?> model, BodyPose body) {
+	private static void applyUpper(PlayerBody model, BodyPose body) {
 		int o = BodyPose.UPPER * 3;
 		Quaternionf turn = new Quaternionf().rotationZYX(body.rotation[o + 2], body.rotation[o + 1], body.rotation[o]);
 		float sx = body.scale[o];
@@ -58,22 +55,33 @@ public final class EmotePoser {
 		Vector3f offset = new Vector3f();
 		Vector3f angles = new Vector3f();
 		Quaternionf own = new Quaternionf();
+		float[] part = new float[9];
 		for (Anchor anchor : UPPER_PARTS) {
-			ModelPart part = AnchorResolver.part(model, anchor);
-			offset.set((part.x - pivot[0]) * sx, (part.y - pivot[1]) * sy, (part.z - pivot[2]) * sz);
+			model.transform(anchor, part);
+			offset.set((part[0] - pivot[0]) * sx, (part[1] - pivot[1]) * sy, (part[2] - pivot[2]) * sz);
 			turn.transform(offset);
-			part.x = pivot[0] + body.position[o] + offset.x;
-			part.y = pivot[1] + body.position[o + 1] + offset.y;
-			part.z = pivot[2] + body.position[o + 2] + offset.z;
+			part[0] = pivot[0] + body.position[o] + offset.x;
+			part[1] = pivot[1] + body.position[o + 1] + offset.y;
+			part[2] = pivot[2] + body.position[o + 2] + offset.z;
 			// The part's own rotation, inside the upper half's.
-			own.rotationZYX(part.zRot, part.yRot, part.xRot);
+			own.rotationZYX(part[5], part[4], part[3]);
 			new Quaternionf(turn).mul(own).getEulerAnglesZYX(angles);
-			part.xRot = angles.x;
-			part.yRot = angles.y;
-			part.zRot = angles.z;
-			part.xScale *= sx;
-			part.yScale *= sy;
-			part.zScale *= sz;
+			part[3] = angles.x;
+			part[4] = angles.y;
+			part[5] = angles.z;
+			part[6] *= sx;
+			part[7] *= sy;
+			part[8] *= sz;
+			model.setTransform(anchor, part);
+		}
+	}
+
+	/** Hides the body parts a body part cosmetic replaces (bits of {@link Anchor#ordinal()}); shown ones stay as they are. */
+	public static void hide(PlayerBody model, int parts) {
+		for (Anchor anchor : Anchor.values()) {
+			if (anchor != Anchor.ROOT && (parts & 1 << anchor.ordinal()) != 0) {
+				model.setVisible(anchor, false);
+			}
 		}
 	}
 

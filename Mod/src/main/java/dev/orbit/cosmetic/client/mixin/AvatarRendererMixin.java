@@ -1,5 +1,9 @@
 package dev.orbit.cosmetic.client.mixin;
 
+import org.spongepowered.asm.mixin.Unique;
+import dev.orbit.cosmetic.common.model.Anchor;
+import dev.orbit.cosmetic.client.gfx.PlayerBody;
+import dev.orbit.cosmetic.client.gfx.OrbitCanvas;
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.orbit.cosmetic.client.OrbitClient;
 import net.minecraft.client.model.geom.ModelPart;
@@ -48,12 +52,13 @@ public abstract class AvatarRendererMixin {
 	@Inject(method = "renderHand", at = @At("HEAD"), cancellable = true)
 	private void orbit$replaceArm(PoseStack poseStack, SubmitNodeCollector collector, int light, Identifier skin, ModelPart arm, boolean sleeve, CallbackInfo ci) {
 		PlayerModel model = ((AvatarRenderer<?>) (Object) this).getModel();
-		if (OrbitClient.get().replacesFirstPersonArm(model, arm)) {
+		Anchor anchor = orbit$anchor(model, arm);
+		if (OrbitClient.get().replacesFirstPersonArm(anchor)) {
 			// The game resets the arm's pose before drawing it; the body part follows the same pose.
 			arm.resetPose();
 			model.leftArm.zRot = -0.1F;
 			model.rightArm.zRot = 0.1F;
-			OrbitClient.get().renderFirstPersonArm(model, poseStack, collector, light, arm);
+			OrbitClient.get().renderFirstPersonArm(PlayerBody.of(model), poseStack, OrbitCanvas.of(collector), light, anchor);
 			ci.cancel();
 		}
 	}
@@ -61,6 +66,13 @@ public abstract class AvatarRendererMixin {
 	/** First-person arms are rendered without render layers, so arm cosmetics are drawn here. */
 	@Inject(method = "renderHand", at = @At("TAIL"))
 	private void orbit$renderArmCosmetics(PoseStack poseStack, SubmitNodeCollector collector, int light, Identifier skin, ModelPart arm, boolean sleeve, CallbackInfo ci) {
-		OrbitClient.get().renderFirstPersonArm(((AvatarRenderer<?>) (Object) this).getModel(), poseStack, collector, light, arm);
+		PlayerModel model = ((AvatarRenderer<?>) (Object) this).getModel();
+		OrbitClient.get().renderFirstPersonArm(PlayerBody.of(model), poseStack, OrbitCanvas.of(collector), light, orbit$anchor(model, arm));
+	}
+
+	/** Which arm the game draws; ROOT for any other part (nothing is drawn on it then). */
+	@Unique
+	private static Anchor orbit$anchor(PlayerModel model, ModelPart arm) {
+		return arm == model.rightArm ? Anchor.RIGHT_ARM : arm == model.leftArm ? Anchor.LEFT_ARM : Anchor.ROOT;
 	}
 }

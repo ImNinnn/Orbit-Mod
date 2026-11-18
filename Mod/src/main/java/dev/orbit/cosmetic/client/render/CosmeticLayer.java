@@ -1,5 +1,7 @@
 package dev.orbit.cosmetic.client.render;
 
+import dev.orbit.cosmetic.client.gfx.PlayerBody;
+import dev.orbit.cosmetic.client.gfx.OrbitCanvas;
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.anim.ParticleSystem;
@@ -43,17 +45,17 @@ public final class CosmeticLayer extends RenderLayer<AvatarRenderState, PlayerMo
 		ParticleRenderData particles = state.getData(ParticleRenderData.KEY);
 		Matrix4f base = state.getData(ParticleRenderData.BASE);
 		if (data != null && !data.pieces().isEmpty()) {
-			HumanoidModel<?> model = getParentModel();
+			PlayerBody model = PlayerBody.of(getParentModel());
 			if (OrbitClient.get().config().attachMode == ClientConfig.AttachMode.VANILLA) {
 				HumanoidModel<AvatarRenderState> vanilla = vanillaModel();
 				vanilla.setupAnim(state);
+				model = PlayerBody.of(vanilla);
 				EmoteRenderData emote = state.getData(EmoteRenderData.KEY);
 				if (emote != null) {
-					EmotePoser.apply(vanilla, emote.body());
+					EmotePoser.apply(model, emote.body());
 				}
-				model = vanilla;
 			}
-			CosmeticRenderer.submit(data.pieces(), model, poseStack, collector, light, null);
+			CosmeticRenderer.submit(data.pieces(), model, poseStack, OrbitCanvas.of(collector), light, null);
 			PickBuffer pick = state.getData(PickBuffer.KEY);
 			if (pick != null) {
 				CosmeticRenderer.record(data.pieces(), model, poseStack, pick);
@@ -72,12 +74,12 @@ public final class CosmeticLayer extends RenderLayer<AvatarRenderState, PlayerMo
 			Vector3f up = back.transformDirection(new Vector3f(0, -1, 0)).normalize();
 			// Lit from the front in menus: facing the viewer.
 			Vector3f normal = base.transformDirection(new Vector3f(right).cross(up)).normalize();
-			ParticleRenderer.submit(particles.system(), 0, 0, 0, base, right, up, normal, new PoseStack(), collector);
+			ParticleRenderer.submit(particles.system(), 0, 0, 0, base, right, up, normal, new PoseStack(), OrbitCanvas.of(collector));
 		}
 	}
 
 	/** Gives every enabled emitter of the worn cosmetics (and the emote) the chance to spawn a particle where it is. */
-	private static void emit(ParticleSystem system, List<RenderPiece> pieces, HumanoidModel<?> model, PoseStack poseStack, Matrix4f base, AvatarRenderState state, int light) {
+	private static void emit(ParticleSystem system, List<RenderPiece> pieces, PlayerBody model, PoseStack poseStack, Matrix4f base, AvatarRenderState state, int light) {
 		Matrix4f toPlayer = null;
 		Quaternionf unturn = new Quaternionf().rotationY((float) Math.toRadians(180 - state.bodyRot)).conjugate();
 		for (RenderPiece piece : pieces) {
@@ -97,7 +99,7 @@ public final class CosmeticLayer extends RenderLayer<AvatarRenderState, PlayerMo
 					continue;
 				}
 				poseStack.pushPose();
-				AnchorResolver.apply(model, bone.anchor(), poseStack);
+				model.moveTo(bone.anchor(), poseStack);
 				Vector3f at = poseStack.last().pose().transformPosition(matrices[bone.index()].transformPosition(new Vector3f()));
 				poseStack.popPose();
 				if (toPlayer == null) {

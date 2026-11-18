@@ -4,15 +4,12 @@ import dev.orbit.cosmetic.client.gfx.OrbitTextures;
 import dev.orbit.cosmetic.client.gfx.OrbitSkin;
 import dev.orbit.cosmetic.client.gfx.OrbitImage;
 import dev.orbit.cosmetic.client.OrbitClient;
-import dev.orbit.cosmetic.client.mixin.ModelPartAccessor;
+import dev.orbit.cosmetic.client.gfx.PlayerBody;
 import dev.orbit.cosmetic.common.model.Anchor;
 import dev.orbit.cosmetic.common.model.Bone;
 import dev.orbit.cosmetic.common.model.CosmeticModel;
 import dev.orbit.cosmetic.common.model.Quad;
 import dev.orbit.cosmetic.common.protocol.AssetId;
-import net.minecraft.client.model.geom.ModelPart;
-import net.minecraft.client.model.geom.PartPose;
-import net.minecraft.client.model.player.PlayerModel;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Util;
 import org.joml.Matrix4f;
@@ -268,63 +265,55 @@ public final class SkinMasks {
 	/** Every outer-layer pixel of the vanilla player model (wide or slim arms). Main thread, once each. */
 	private Spot[] spots(boolean slim) {
 		return spots.computeIfAbsent(slim, s -> {
-			PlayerModel model = VanillaPlayerModels.model(slim);
 			List<Spot> result = new ArrayList<>();
-			addSpots(model.hat, Anchor.HEAD, 0.5F, result);
-			addSpots(model.jacket, Anchor.BODY, 0.25F, result);
-			addSpots(model.leftSleeve, Anchor.LEFT_ARM, 0.25F, result);
-			addSpots(model.rightSleeve, Anchor.RIGHT_ARM, 0.25F, result);
-			addSpots(model.leftPants, Anchor.LEFT_LEG, 0.25F, result);
-			addSpots(model.rightPants, Anchor.RIGHT_LEG, 0.25F, result);
+			for (PlayerBody.LayerFace face : PlayerBody.skinLayer(slim)) {
+				// The hat stands further out than the other layers.
+				addSpots(face, face.anchor() == Anchor.HEAD ? 0.5F : 0.25F, result);
+			}
 			return result.toArray(Spot[]::new);
 		});
 	}
 
-	/** The pixels of one layer part, in the frame of the body part it belongs to. */
-	private static void addSpots(ModelPart layer, Anchor anchor, float depth, List<Spot> out) {
-		PartPose pose = layer.getInitialPose();
-		for (ModelPart.Cube cube : ((ModelPartAccessor) (Object) layer).orbit$cubes()) {
-			Vector3f center = new Vector3f((cube.minX + cube.maxX) / 2, (cube.minY + cube.maxY) / 2, (cube.minZ + cube.maxZ) / 2);
-			for (ModelPart.Polygon polygon : cube.polygons) {
-				ModelPart.Vertex[] v = polygon.vertices();
-				if (v.length < 4) {
+	/** The pixels of one face of the layer, in the frame of the body part it belongs to. */
+	private static void addSpots(PlayerBody.LayerFace face, float depth, List<Spot> out) {
+		Vector3f center = face.boxCenter();
+		float[] c = face.corners();
+		Vector3f p0 = new Vector3f(c[0], c[1], c[2]);
+		Vector3f edgeA = new Vector3f(c[5], c[6], c[7]).sub(p0);
+		Vector3f edgeB = new Vector3f(c[15], c[16], c[17]).sub(p0);
+		// Facing away from the middle of the cube.
+		Vector3f normal = new Vector3f(edgeA).cross(edgeB).normalize();
+		Vector3f middle = new Vector3f(p0).add(new Vector3f(edgeA).add(edgeB).mul(0.5F));
+		if (normal.dot(new Vector3f(middle).sub(center)) < 0) {
+			normal.negate();
+		}
+		float u0 = c[3];
+		float v0 = c[4];
+		float du1 = c[8] - u0;
+		float dv1 = c[9] - v0;
+		float du3 = c[18] - u0;
+		float dv3 = c[19] - v0;
+		float det = du1 * dv3 - du3 * dv1;
+		if (Math.abs(det) < 1.0e-9F) {
+			return;
+		}
+		float minU = Math.min(Math.min(u0, c[8]), Math.min(c[13], c[18])) * SIZE;
+		float maxU = Math.max(Math.max(u0, c[8]), Math.max(c[13], c[18])) * SIZE;
+		float minV = Math.min(Math.min(v0, c[9]), Math.min(c[14], c[19])) * SIZE;
+		float maxV = Math.max(Math.max(v0, c[9]), Math.max(c[14], c[19])) * SIZE;
+		Vector3f offset = face.offset();
+		for (int ty = Math.round(minV); ty < Math.round(maxV); ty++) {
+			for (int tx = Math.round(minU); tx < Math.round(maxU); tx++) {
+				if (tx < 0 || ty < 0 || tx >= SIZE || ty >= SIZE) {
 					continue;
 				}
-				Vector3f p0 = new Vector3f(v[0].x(), v[0].y(), v[0].z());
-				Vector3f edgeA = new Vector3f(v[1].x(), v[1].y(), v[1].z()).sub(p0);
-				Vector3f edgeB = new Vector3f(v[3].x(), v[3].y(), v[3].z()).sub(p0);
-				// Facing away from the middle of the cube.
-				Vector3f normal = new Vector3f(edgeA).cross(edgeB).normalize();
-				Vector3f middle = new Vector3f(p0).add(new Vector3f(edgeA).add(edgeB).mul(0.5F));
-				if (normal.dot(new Vector3f(middle).sub(center)) < 0) {
-					normal.negate();
-				}
-				float du1 = v[1].u() - v[0].u();
-				float dv1 = v[1].v() - v[0].v();
-				float du3 = v[3].u() - v[0].u();
-				float dv3 = v[3].v() - v[0].v();
-				float det = du1 * dv3 - du3 * dv1;
-				if (Math.abs(det) < 1.0e-9F) {
-					continue;
-				}
-				float minU = Math.min(Math.min(v[0].u(), v[1].u()), Math.min(v[2].u(), v[3].u())) * SIZE;
-				float maxU = Math.max(Math.max(v[0].u(), v[1].u()), Math.max(v[2].u(), v[3].u())) * SIZE;
-				float minV = Math.min(Math.min(v[0].v(), v[1].v()), Math.min(v[2].v(), v[3].v())) * SIZE;
-				float maxV = Math.max(Math.max(v[0].v(), v[1].v()), Math.max(v[2].v(), v[3].v())) * SIZE;
-				for (int ty = Math.round(minV); ty < Math.round(maxV); ty++) {
-					for (int tx = Math.round(minU); tx < Math.round(maxU); tx++) {
-						if (tx < 0 || ty < 0 || tx >= SIZE || ty >= SIZE) {
-							continue;
-						}
-						// Where this pixel's middle is on the face.
-						float u = (tx + 0.5F) / SIZE - v[0].u();
-						float w = (ty + 0.5F) / SIZE - v[0].v();
-						float a = (u * dv3 - du3 * w) / det;
-						float b = (du1 * w - u * dv1) / det;
-						Vector3f position = new Vector3f(p0).add(new Vector3f(edgeA).mul(a)).add(new Vector3f(edgeB).mul(b)).add(pose.x(), pose.y(), pose.z());
-						out.add(new Spot(ty * SIZE + tx, anchor, position, normal, depth));
-					}
-				}
+				// Where this pixel's middle is on the face.
+				float u = (tx + 0.5F) / SIZE - u0;
+				float w = (ty + 0.5F) / SIZE - v0;
+				float a = (u * dv3 - du3 * w) / det;
+				float b = (du1 * w - u * dv1) / det;
+				Vector3f position = new Vector3f(p0).add(new Vector3f(edgeA).mul(a)).add(new Vector3f(edgeB).mul(b)).add(offset.x, offset.y, offset.z);
+				out.add(new Spot(ty * SIZE + tx, face.anchor(), position, normal, depth));
 			}
 		}
 	}

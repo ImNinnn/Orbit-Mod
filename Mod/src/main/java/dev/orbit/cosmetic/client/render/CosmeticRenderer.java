@@ -1,15 +1,13 @@
 package dev.orbit.cosmetic.client.render;
 
+import dev.orbit.cosmetic.client.gfx.PlayerBody;
+import net.minecraft.resources.Identifier;
+import dev.orbit.cosmetic.client.gfx.OrbitCanvas;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
 import dev.orbit.cosmetic.common.anim.PoseBuffer;
 import dev.orbit.cosmetic.common.model.Anchor;
 import dev.orbit.cosmetic.common.model.Bone;
 import dev.orbit.cosmetic.common.model.ParticleEmitters;
-import net.minecraft.client.model.HumanoidModel;
-import net.minecraft.client.renderer.SubmitNodeCollector;
-import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
@@ -30,7 +28,7 @@ public final class CosmeticRenderer {
 	 * @param onlyAnchor when not null, only bones of this anchor are drawn and the pose stack must already be
 	 *                   positioned on that body part (used for first-person arms)
 	 */
-	public static void submit(List<RenderPiece> pieces, HumanoidModel<?> model, PoseStack poseStack, SubmitNodeCollector collector, int light, Anchor onlyAnchor) {
+	public static void submit(List<RenderPiece> pieces, PlayerBody model, PoseStack poseStack, OrbitCanvas canvas, int light, Anchor onlyAnchor) {
 		for (RenderPiece piece : pieces) {
 			BakedCosmetic baked = piece.baked();
 			if (baked.isReleased()) {
@@ -42,19 +40,19 @@ public final class CosmeticRenderer {
 				}
 				if (onlyAnchor != null) {
 					if (anchor == onlyAnchor) {
-						submitAnchor(baked, piece, anchor, poseStack, collector, light);
+						submitAnchor(baked, piece, anchor, poseStack, canvas, light);
 					}
 					continue;
 				}
 				poseStack.pushPose();
-				AnchorResolver.apply(model, anchor, poseStack);
-				submitAnchor(baked, piece, anchor, poseStack, collector, light);
+				model.moveTo(anchor, poseStack);
+				submitAnchor(baked, piece, anchor, poseStack, canvas, light);
 				poseStack.popPose();
 			}
 		}
 	}
 
-	private static void submitAnchor(BakedCosmetic baked, RenderPiece piece, Anchor anchor, PoseStack poseStack, SubmitNodeCollector collector, int light) {
+	private static void submitAnchor(BakedCosmetic baked, RenderPiece piece, Anchor anchor, PoseStack poseStack, OrbitCanvas canvas, int light) {
 		PoseBuffer pose = piece.pose();
 		int style = piece.style();
 		int[] bones = baked.bonesByAnchor.get(anchor);
@@ -65,9 +63,11 @@ public final class CosmeticRenderer {
 			}
 			int t = texture;
 			// A PLAYER/SKIN texture shows the wearer's skin.
-			RenderType type = baked.isSkinSlot(texture) && piece.skin() != null ? RenderTypes.entityTranslucent(piece.skin()) : baked.renderType(texture, style);
+			boolean skin = baked.isSkinSlot(texture) && piece.skin() != null;
+			Identifier image = skin ? piece.skin() : baked.texture(texture, style);
+			OrbitCanvas.Look look = skin ? OrbitCanvas.Look.TRANSLUCENT : baked.look(texture, style);
 			float[] frame = piece.frames() == null || texture >= piece.frames().length ? null : piece.frames()[texture];
-			collector.submitCustomGeometry(poseStack, type, (posed, consumer) -> emit(baked, bones, matrices, t, posed, consumer, light, piece.overlay(), piece.color(), frame));
+			canvas.draw(poseStack, image, look, (posed, normal, out) -> emit(baked, bones, matrices, t, posed, normal, out, light, piece.overlay(), piece.color(), frame));
 		}
 	}
 
@@ -84,10 +84,9 @@ public final class CosmeticRenderer {
 	 * Keeps where the pieces and the player's body are drawn, for clicking on them (see {@link PickBuffer}). The pose
 	 * stack is where the player model is drawn from, as for {@link #submit}.
 	 */
-	public static void record(List<RenderPiece> pieces, HumanoidModel<?> model, PoseStack poseStack, PickBuffer pick) {
+	public static void record(List<RenderPiece> pieces, PlayerBody model, PoseStack poseStack, PickBuffer pick) {
 		pick.reset();
-		model.root().visit(poseStack, (pose, path, index, cube) ->
-			pick.addBox(null, pose.pose(), cube.minX / 16, cube.minY / 16, cube.minZ / 16, cube.maxX / 16, cube.maxY / 16, cube.maxZ / 16));
+		model.boxes(poseStack, (pose, x0, y0, z0, x1, y1, z1) -> pick.addBox(null, pose, x0 / 16, y0 / 16, z0 / 16, x1 / 16, y1 / 16, z1 / 16));
 		Matrix4f position = new Matrix4f();
 		for (RenderPiece piece : pieces) {
 			BakedCosmetic baked = piece.baked();
@@ -99,7 +98,7 @@ public final class CosmeticRenderer {
 					continue;
 				}
 				poseStack.pushPose();
-				AnchorResolver.apply(model, anchor, poseStack);
+				model.moveTo(anchor, poseStack);
 				int[] bones = baked.bonesByAnchor.get(anchor);
 				Matrix4f[] matrices = boneMatrices(baked.model().bones(), bones, piece.pose());
 				for (int bone : bones) {
@@ -170,7 +169,7 @@ public final class CosmeticRenderer {
 		return matrices;
 	}
 
-	private static void emit(BakedCosmetic baked, int[] bones, Matrix4f[] matrices, int texture, PoseStack.Pose posed, VertexConsumer consumer, int light, int overlay, int color,
+	private static void emit(BakedCosmetic baked, int[] bones, Matrix4f[] matrices, int texture, Matrix4f pose, Matrix3f poseNormal, OrbitCanvas.Vertices out, int light, int overlay, int color,
 		float @org.jspecify.annotations.Nullable [] frame) {
 		Matrix4f position = new Matrix4f();
 		Matrix3f normal = new Matrix3f();
@@ -182,8 +181,8 @@ public final class CosmeticRenderer {
 			if (mesh == null) {
 				continue;
 			}
-			position.set(posed.pose()).mul(matrices[bone]);
-			normal.set(posed.normal()).mul(boneNormal.set(matrices[bone]));
+			position.set(pose).mul(matrices[bone]);
+			normal.set(poseNormal).mul(boneNormal.set(matrices[bone]));
 			for (int i = 0; i < mesh.length; i += BakedCosmetic.STRIDE) {
 				position.transformPosition(mesh[i], mesh[i + 1], mesh[i + 2], p);
 				normal.transform(mesh[i + 5], mesh[i + 6], mesh[i + 7], n);
@@ -196,7 +195,7 @@ public final class CosmeticRenderer {
 				// An animated texture: into the frame showing now.
 				float u = frame == null ? mesh[i + 3] : mesh[i + 3] * frame[0];
 				float v = frame == null ? mesh[i + 4] : frame[2] + mesh[i + 4] * frame[1];
-				consumer.addVertex(p.x, p.y, p.z, color, u, v, overlay, light, n.x, n.y, n.z);
+				out.vertex(p.x, p.y, p.z, color, u, v, overlay, light, n.x, n.y, n.z);
 			}
 		}
 	}

@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.render;
 
+import dev.orbit.cosmetic.client.gfx.OrbitCanvas;
 import dev.orbit.cosmetic.client.gfx.OrbitTextures;
 import dev.orbit.cosmetic.client.gfx.OrbitImage;
 import dev.orbit.cosmetic.client.OrbitClient;
@@ -9,8 +10,6 @@ import dev.orbit.cosmetic.common.model.CosmeticModel;
 import dev.orbit.cosmetic.common.model.Quad;
 import dev.orbit.cosmetic.common.model.TextureStyles;
 import dev.orbit.cosmetic.common.protocol.AssetId;
-import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.resources.Identifier;
 
 import java.util.ArrayList;
@@ -29,7 +28,8 @@ public final class BakedCosmetic {
 	private final AssetId id;
 	private final CosmeticModel model;
 	private final Identifier[] textureIds;
-	private final RenderType[] renderTypes;
+	/** Whether each texture has half-transparent pixels (drawn blended). */
+	private final boolean[] translucent;
 	private final TextureStyles styles;
 	/** The average colour of each style's sample texture (opaque ARGB), for the style buttons. */
 	private final int[] styleColors;
@@ -45,11 +45,11 @@ public final class BakedCosmetic {
 	private int bodyParts = -1;
 	private boolean released;
 
-	private BakedCosmetic(AssetId id, CosmeticModel model, Identifier[] textureIds, RenderType[] renderTypes, TextureStyles styles, int[] styleColors) {
+	private BakedCosmetic(AssetId id, CosmeticModel model, Identifier[] textureIds, boolean[] translucent, TextureStyles styles, int[] styleColors) {
 		this.id = id;
 		this.model = model;
 		this.textureIds = textureIds;
-		this.renderTypes = renderTypes;
+		this.translucent = translucent;
 		this.styles = styles;
 		this.styleColors = styleColors;
 		List<Bone> bones = model.bones();
@@ -108,15 +108,13 @@ public final class BakedCosmetic {
 	 */
 	static BakedCosmetic create(AssetId id, CosmeticModel model, OrbitImage[] images, boolean[] translucent, TextureStyles styles, int[] styleColors) {
 		Identifier[] ids = new Identifier[images.length];
-		RenderType[] types = new RenderType[images.length];
 		boolean[] skinSlots = skinSlots(model, images);
 		for (int i = 0; i < images.length; i++) {
 			ids[i] = Identifier.fromNamespaceAndPath(OrbitClient.MOD_ID, "cosmetic/" + id.hex() + "/" + i);
 			String label = "Orbit cosmetic " + id.shortHex() + " #" + i;
 			OrbitTextures.register(ids[i], label, images[i]);
-			types[i] = translucent[i] ? RenderTypes.entityTranslucent(ids[i]) : RenderTypes.entityCutout(ids[i]);
 		}
-		BakedCosmetic baked = new BakedCosmetic(id, model, ids, types, styles, styleColors);
+		BakedCosmetic baked = new BakedCosmetic(id, model, ids, translucent.clone(), styles, styleColors);
 		baked.skinSlots = skinSlots;
 		return baked;
 	}
@@ -164,9 +162,9 @@ public final class BakedCosmetic {
 		return model;
 	}
 
-	/** The render type for faces of a texture, drawn in a style (alternate texture). */
-	RenderType renderType(int texture, int style) {
-		return renderTypes[styles.texture(style, texture)];
+	/** How faces of a texture show it, drawn in a style (alternate texture). */
+	OrbitCanvas.Look look(int texture, int style) {
+		return translucent[styles.texture(style, texture)] ? OrbitCanvas.Look.TRANSLUCENT : OrbitCanvas.Look.CUTOUT;
 	}
 
 	/** The texture drawn for a texture of the model in a style (alternate texture), or null for none. */
@@ -185,7 +183,7 @@ public final class BakedCosmetic {
 	}
 
 	int textureCount() {
-		return renderTypes.length;
+		return textureIds.length;
 	}
 
 	public boolean isReleased() {

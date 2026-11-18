@@ -1,9 +1,9 @@
 package dev.orbit.cosmetic.client.mixin;
 
+import dev.orbit.cosmetic.client.gfx.PlayerBody;
 import dev.orbit.cosmetic.client.render.CosmeticRenderData;
 import dev.orbit.cosmetic.client.render.EmotePoser;
 import dev.orbit.cosmetic.client.render.EmoteRenderData;
-import dev.orbit.cosmetic.common.model.Anchor;
 import net.minecraft.client.model.player.PlayerModel;
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import org.spongepowered.asm.mixin.Mixin;
@@ -26,21 +26,13 @@ public abstract class PlayerModelMixin {
 
 	@Inject(method = "setupAnim(Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;)V", at = @At("TAIL"))
 	private void orbit$applyEmote(AvatarRenderState state, CallbackInfo ci) {
-		PlayerModel model = (PlayerModel) (Object) this;
+		PlayerBody model = PlayerBody.of((PlayerModel) (Object) this);
 		EmoteRenderData emote = state.getData(EmoteRenderData.KEY);
 		if (emote != null) {
 			EmotePoser.apply(model, emote.body());
 		}
 		CosmeticRenderData cosmetics = state.getData(CosmeticRenderData.KEY);
-		int hidden = cosmetics == null ? 0 : cosmetics.hiddenParts();
-		if (hidden != 0) {
-			// Each part's skin layer (hat, jacket, sleeve, trouser leg) is its child, so it goes with it.
-			model.head.visible &= (hidden & 1 << Anchor.HEAD.ordinal()) == 0;
-			model.body.visible &= (hidden & 1 << Anchor.BODY.ordinal()) == 0;
-			model.rightArm.visible &= (hidden & 1 << Anchor.RIGHT_ARM.ordinal()) == 0;
-			model.leftArm.visible &= (hidden & 1 << Anchor.LEFT_ARM.ordinal()) == 0;
-			model.rightLeg.visible &= (hidden & 1 << Anchor.RIGHT_LEG.ordinal()) == 0;
-			model.leftLeg.visible &= (hidden & 1 << Anchor.LEFT_LEG.ordinal()) == 0;
-		}
+		// Each part's skin layer (hat, jacket, sleeve, trouser leg) is its child, so it goes with it.
+		EmotePoser.hide(model, cosmetics == null ? 0 : cosmetics.hiddenParts());
 	}
 }
