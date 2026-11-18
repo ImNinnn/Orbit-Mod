@@ -14,7 +14,11 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.LivingEntityRenderLayerRegistrationCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
+//? if >=26.1 {
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
+//?} else {
+/*import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents;
+*///?}
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents;
 import net.fabricmc.fabric.api.client.screen.v1.Screens;
@@ -123,10 +127,18 @@ public final class OrbitPlatform {
 	}
 
 	public static void onWorldDraw(WorldDraw draw) {
+		//? if >=26.1 {
 		LevelRenderEvents.COLLECT_SUBMITS.register(context -> {
 			CameraRenderState camera = context.levelState().cameraRenderState;
 			draw.draw(OrbitCanvas.of(context.submitNodeCollector()), context.poseStack(), camera.pos, camera.orientation);
 		});
+		//?} else {
+		/*// Before entities are drawn: what is submitted then is drawn with them.
+		WorldRenderEvents.BEFORE_ENTITIES.register(context -> {
+			CameraRenderState camera = context.worldState().cameraRenderState;
+			draw.draw(OrbitCanvas.of(context.commandQueue()), context.matrices(), camera.pos, camera.orientation);
+		});
+		*///?}
 	}
 
 	/** Adds Orbit's cosmetic layer to the player renderers and its preview renderers to the GUI. */

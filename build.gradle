@@ -75,7 +75,7 @@ tasks.register('publishRelease') {
 		def files = [:]
 		clientProjects.each { path ->
 			def client = project(path)
-			def jar = client.tasks.named('jar').get().archiveFile.get().asFile
+			def jar = client.tasks.named(client.releaseJar).get().archiveFile.get().asFile
 			def target = client.minecraft_version
 			def bytes = jar.bytes
 			def sha = java.security.MessageDigest.getInstance('SHA-256').digest(bytes).encodeHex().toString()

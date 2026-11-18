@@ -24,7 +24,17 @@ public abstract class InventoryScreenMixin {
 		}
 	}
 
-	@ModifyArg(method = "extractEntityInInventoryFollowsMouse", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiGraphicsExtractor;entity"), index = 0)
+	// The whole descriptor, so the target is remapped where Minecraft is obfuscated.
+	//? if >=26.2 {
+	@ModifyArg(method = "extractEntityInInventoryFollowsMouse", at = @At(value = "INVOKE",
+		target = "Lnet/minecraft/client/gui/GuiGraphicsExtractor;entity(Lnet/minecraft/client/renderer/entity/state/EntityRenderState;FLorg/joml/Vector3fc;Lorg/joml/Quaternionfc;Lorg/joml/Quaternionfc;IIII)V"), index = 0)
+	//?} else if >=26.1 {
+	/*@ModifyArg(method = "extractEntityInInventoryFollowsMouse", at = @At(value = "INVOKE",
+		target = "Lnet/minecraft/client/gui/GuiGraphicsExtractor;entity(Lnet/minecraft/client/renderer/entity/state/EntityRenderState;FLorg/joml/Vector3f;Lorg/joml/Quaternionf;Lorg/joml/Quaternionf;IIII)V"), index = 0)
+	*///?} else {
+	/*@ModifyArg(method = "extractEntityInInventoryFollowsMouse", at = @At(value = "INVOKE",
+		target = "Lnet/minecraft/client/gui/GuiGraphicsExtractor;submitEntityRenderState(Lnet/minecraft/client/renderer/entity/state/EntityRenderState;FLorg/joml/Vector3f;Lorg/joml/Quaternionf;Lorg/joml/Quaternionf;IIII)V"), index = 0)
+	*///?}
 	private static EntityRenderState orbit$hudPose(EntityRenderState state) {
 		dev.orbit.cosmetic.client.gfx.OrbitGraphics.poseEntity(state);
 		return state;

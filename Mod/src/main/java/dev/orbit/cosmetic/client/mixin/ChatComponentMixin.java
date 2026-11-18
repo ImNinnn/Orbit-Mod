@@ -19,6 +19,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  */
 @Mixin(ChatComponent.class)
 abstract class ChatComponentMixin {
+	//? if >=26.1 {
 	@Inject(method = "addClientSystemMessage", at = @At("HEAD"))
 	private void orbit$clientLine(Component message, CallbackInfo ci) {
 		Hosting.chatLine(message);
@@ -34,6 +35,19 @@ abstract class ChatComponentMixin {
 	private ChatComponent.DisplayMode orbit$peek(ChatComponent.DisplayMode mode) {
 		return mode == ChatComponent.DisplayMode.BACKGROUND && OrbitKeys.peekingChat() ? ChatComponent.DisplayMode.FOREGROUND : mode;
 	}
+	//?} else {
+	/*// System messages (the game's own and the server's) all arrive here before 26.1.
+	@Inject(method = "addMessage(Lnet/minecraft/network/chat/Component;)V", at = @At("HEAD"))
+	private void orbit$systemLine(Component message, CallbackInfo ci) {
+		Hosting.chatLine(message);
+	}
+
+	// The first flag is "focused" (the chat screen passes true): every line, with its background.
+	@ModifyVariable(method = "render(Lnet/minecraft/client/gui/GuiGraphics;Lnet/minecraft/client/gui/Font;IIIZZ)V", at = @At("HEAD"), argsOnly = true, ordinal = 0)
+	private boolean orbit$peek(boolean focused) {
+		return focused || OrbitKeys.peekingChat();
+	}
+	*///?}
 
 	/**
 	 * As many lines as when typing. (Not by claiming the chat is focused: the HUD does not draw the chat at all

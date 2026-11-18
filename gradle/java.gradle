@@ -11,9 +11,11 @@ java {
 	}
 }
 
+// The Java the code is written for: 25 (what 26.x runs on) unless a project says otherwise (java_release in a
+// Minecraft version's gradle.properties: 1.20.5 to 1.21.11 run on Java 21). It still compiles with Java 25.
 tasks.withType(JavaCompile).configureEach {
 	options.encoding = 'UTF-8'
-	options.release = 25
+	options.release = (project.findProperty('java_release') ?: '25') as int
 }
 
 repositories {

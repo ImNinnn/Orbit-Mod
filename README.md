@@ -696,8 +696,8 @@ All cosmetic and emote files, local or downloaded, are treated as untrusted:
 ./gradlew build
 ```
 
-builds the three client jars (and their `-store` jars without self-updating, for mod sites). Gradle provisions
-Java 25 automatically if needed.
+builds a client jar per Minecraft version (and its `-store` jar without self-updating, for mod sites). Gradle
+provisions Java 25 automatically if needed; the code for 1.21.11 is compiled for Java 21, the Java that version runs on.
 
 Orbit Cloud, the server every Orbit player shares, is private: its code is not part of this repository, and the
 mod only talks to the official Orbit Cloud at `api.orbitcosmetics.dev` (development runs can use a local test
@@ -705,7 +705,9 @@ server with `-Dorbit.backendUrl=...`, which released games ignore).
 
 Development runs (run directories are under `run/`):
 
-* `./gradlew :Mod:26.3:runClient` (or `:Mod:26.1`, `:Mod:26.2`).
+* `./gradlew :Mod:26.3:runClient` (or `:Mod:26.1`, `:Mod:26.2`, `:Mod:1.21.11`).
+* `./gradlew :Mod:1.21.11:prodClient` runs the jar players get in a normal game (no development names), with Fabric
+  API only and on that version's Java: the way to check a release for an obfuscated Minecraft version.
 
 Versions: `mod_version` in `gradle.properties`.
 `./gradlew publishRelease` builds and signs the jars and hands them to Orbit Cloud, which offers them to
@@ -720,7 +722,7 @@ common/                     Pure Java, shared by every Minecraft version: .bbmod
                             animation engine and Molang, emotes, the equip encoding
 Mod/
   src/                      The client mod: libraries, Orbit menu, emotes, rendering, Orbit Cloud
-  versions/26.x/            One Gradle project per Minecraft version (made by Stonecutter): its
+  versions/<version>/        One Gradle project per Minecraft version (made by Stonecutter): its
                             gradle.properties and the few classes that differ between versions
                             (compat/Compat, compat/PreviewRenderer)
   build.gradle              The build shared by every version
@@ -730,13 +732,26 @@ website/                    orbitcosmetics.dev
 
 ### Adding a Minecraft version
 
-The shared code compiles against every 26.x release, but the compiled classes differ (methods and classes
+The shared code compiles against every supported release, but the compiled classes differ (methods and classes
 moved), so each version gets its own jar. The build uses [Stonecutter](https://stonecutter.kikugie.dev): every
-version compiles the same sources in `Mod/src`, where small differences are written as `//? if >=26.2 {`
-comments, and a version's own `Mod/versions/<version>/src` holds whole classes that replace the shared ones. To add
-a version: copy `Mod/versions/26.3` to the new version's folder, set `minecraft_version`, `minecraft_dependency`
-and `fabric_api_version` in its `gradle.properties`, add the version to `stonecutter { create(':Mod') { versions(...) } }`
-in `settings.gradle`, and fix whatever no longer compiles against it.
+version compiles the same sources in `Mod/src`, which are written for the newest version. Differences are handled
+three ways:
+
+* Names that changed (a class, a method, a package) are rewritten for older versions by the replacements in
+  `Mod/build.gradle`, some only in the one file that uses them.
+* Code that differs is written as `//? if >=26.1 {` … `//?} else {` … `//?}` comments; the inactive part stays
+  commented out.
+* A version's own `Mod/versions/<version>/src` holds whole classes that only exist per version (compat/Compat,
+  compat/PreviewRenderer).
+
+Minecraft before 26.1 is obfuscated: those versions build with Loom's remapping plugin and Mojang's names, and players
+get the remapped jar (`remapJar`). Mixin targets there need full descriptors where a name alone would not be remapped.
+
+To add a version: make its folder in `Mod/versions` with a `gradle.properties` (`minecraft_version`,
+`minecraft_dependency`, `fabric_api_version`, `modmenu_version`, and `java_release` when it runs on an older Java),
+copy compat/ from the closest version, add the version to `stonecutter { create(':Mod') { versions(...) } }` in
+`settings.gradle`, and fix whatever no longer compiles or no longer finds its mixin target (start it once:
+a mixin whose target is missing stops the game).
 
 ## How the EMF / Fresh Animations compatibility works
 

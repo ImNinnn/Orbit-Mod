@@ -1,7 +1,7 @@
 {
 	"required": true,
 	"package": "dev.orbit.cosmetic.client.mixin",
-	"compatibilityLevel": "JAVA_25",
+	"compatibilityLevel": "JAVA_${java}",
 	"client": [
 		"SplashManagerMixin",
 		"AbstractSelectionListMixin",

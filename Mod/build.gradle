@@ -3,7 +3,72 @@
 // differ for that version (dev.orbit.cosmetic.client.compat), and the version's gradle.properties picks Minecraft
 // and Fabric API. Stonecutter adds the shared sources itself, as processed for the version.
 apply from: rootProject.file('gradle/java.gradle')
-apply plugin: 'net.fabricmc.fabric-loom'
+// Minecraft before 26.1 is obfuscated: Loom remaps it (and the mods built against it) with Mojang's names.
+def obfuscated = stonecutter.eval(stonecutter.current.version, '<26.1')
+apply plugin: obfuscated ? 'net.fabricmc.fabric-loom-remap' : 'net.fabricmc.fabric-loom'
+
+// Names Minecraft changed: the shared code uses the newest; older versions get theirs (both ways, so switching the
+// active version round-trips).
+stonecutter {
+	replacements {
+		regex(stonecutter.eval(stonecutter.current.version, '<26.1')) {
+			// 26.1 renamed the GUI's drawing object.
+			replace('\\bGuiGraphicsExtractor\\b', 'GuiGraphics', '\\bGuiGraphics\\b', 'GuiGraphicsExtractor')
+		}
+		def pre26 = stonecutter.eval(stonecutter.current.version, '<26.1')
+		// Each pair: the newest name (in the shared code) and the one before 26.1, as regexes and replacements.
+		def renames = { List<List<String>> pairs, String file = null ->
+			pairs.each { pair ->
+				regex(pre26) {
+					if (file != null) {
+						include file
+					}
+					replace(pair[0], pair[1], pair[2], pair[3])
+				}
+			}
+		}
+		// 26.1 renamed the GUI's "render" methods "extract".
+		renames([
+			['\\bextractWidgetRenderState\\b', 'renderWidget', '\\brenderWidget\\b', 'extractWidgetRenderState'],
+			['\\bextractContent\\b', 'renderContent', '\\brenderContent\\b', 'extractContent'],
+			['\\bextractBackground\\b', 'renderBackground', '\\brenderBackground\\b', 'extractBackground'],
+			['\\bInventoryScreen\\.extractEntityInInventoryFollowsMouse\\b', 'InventoryScreen.renderEntityInInventoryFollowsMouse',
+			 '\\bInventoryScreen\\.renderEntityInInventoryFollowsMouse\\b', 'InventoryScreen.extractEntityInInventoryFollowsMouse'],
+			['\\bextractEntityInInventoryFollowsMouse\\b', 'renderEntityInInventoryFollowsMouse', '\\brenderEntityInInventoryFollowsMouse\\b', 'extractEntityInInventoryFollowsMouse'],
+			['\\.getDefaultClockTime\\(\\)', '.getDayTime()', '\\.getDayTime\\(\\)', '.getDefaultClockTime()'],
+			['\\bextractMenuBackgroundTexture\\b', 'renderMenuBackgroundTexture', '\\brenderMenuBackgroundTexture\\b', 'extractMenuBackgroundTexture'],
+			['\\baddPicturesInPictureState\\b', 'submitPicturesInPictureState', '\\bsubmitPicturesInPictureState\\b', 'addPicturesInPictureState'],
+			['\\bextractListSeparators\\b', 'renderListSeparators', '\\brenderListSeparators\\b', 'extractListSeparators'],
+			['net/minecraft/client/renderer/state/level/(CameraRenderState|LevelRenderState)\\b', 'net/minecraft/client/renderer/state/$1',
+			 'net/minecraft/client/renderer/state/(CameraRenderState|LevelRenderState)\\b', 'net/minecraft/client/renderer/state/level/$1'],
+			// Render states moved packages.
+			['net\\.minecraft\\.client\\.renderer\\.state\\.level\\.(CameraRenderState|LevelRenderState)\\b', 'net.minecraft.client.renderer.state.$1',
+			 'net\\.minecraft\\.client\\.renderer\\.state\\.(CameraRenderState|LevelRenderState)\\b', 'net.minecraft.client.renderer.state.level.$1'],
+			['net\\.minecraft\\.client\\.renderer\\.state\\.gui\\.', 'net.minecraft.client.gui.render.state.', 'net\\.minecraft\\.client\\.gui\\.render\\.state\\.', 'net.minecraft.client.renderer.state.gui.'],
+			// Fabric API took Mojang's names in 26.1.
+			['\\bScreenEvents\\.beforeExtract\\b', 'ScreenEvents.beforeRender', '\\bScreenEvents\\.beforeRender\\b', 'ScreenEvents.beforeExtract'],
+			['\\bScreenEvents\\.afterExtract\\b', 'ScreenEvents.afterRender', '\\bScreenEvents\\.afterRender\\b', 'ScreenEvents.afterExtract'],
+			['\\bScreens\\.getWidgets\\b', 'Screens.getButtons', '\\bScreens\\.getButtons\\b', 'Screens.getWidgets'],
+			['\\bKeyMappingHelper\\.registerKeyMapping\\b', 'KeyBindingHelper.registerKeyBinding', '\\bKeyBindingHelper\\.registerKeyBinding\\b', 'KeyMappingHelper.registerKeyMapping'],
+			['\\bclient\\.keymapping\\.v1\\.KeyMappingHelper\\b', 'client.keybinding.v1.KeyBindingHelper', '\\bclient\\.keybinding\\.v1\\.KeyBindingHelper\\b', 'client.keymapping.v1.KeyMappingHelper'],
+			['\\bLivingEntityRenderLayerRegistrationCallback\\b', 'LivingEntityFeatureRendererRegistrationCallback', '\\bLivingEntityFeatureRendererRegistrationCallback\\b', 'LivingEntityRenderLayerRegistrationCallback'],
+		])
+		// A screen's and a toast's own drawing method.
+		['**/gui/ui/OrbitBaseScreen.java', '**/gui/OrbitToast.java'].each { file ->
+			renames([['\\bextractRenderState\\(', 'render(', '\\brender\\(', 'extractRenderState(']], file)
+		}
+		renames([['\\bPlayerFaceExtractor\\.extractRenderState\\(', 'PlayerFaceRenderer.draw(', '\\bPlayerFaceRenderer\\.draw\\(', 'PlayerFaceExtractor.extractRenderState('],
+			['\\bPlayerFaceExtractor\\b', 'PlayerFaceRenderer', '\\bPlayerFaceRenderer\\b', 'PlayerFaceExtractor']], '**/gfx/OrbitGraphics.java')
+		// OrbitGraphics calls GuiGraphics by older names (only its field "graphics" is Minecraft's object).
+		[['text', 'drawString'], ['centeredText', 'drawCenteredString'], ['outline', 'renderOutline'], ['item', 'renderItem'],
+		 ['itemDecorations', 'renderItemDecorations']].each { names ->
+			regex(pre26) {
+				include '**/gfx/OrbitGraphics.java'
+				replace("\\bgraphics\\.${names[0]}\\(", "graphics.${names[1]}(", "\\bgraphics\\.${names[1]}\\(", "graphics.${names[0]}(")
+			}
+		}
+	}
+}
 
 // The development test harness (screenshots, diagnostics) is only on the maintainer's computer, not in the repository.
 def harness = file('../../src/testmod').isDirectory()
@@ -94,18 +159,26 @@ repositories {
 
 dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	implementation "net.fabricmc:fabric-loader:${loader_version}"
-	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+	if (obfuscated) {
+		mappings loom.officialMojangMappings()
+		modImplementation "net.fabricmc:fabric-loader:${loader_version}"
+		modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+		// Only for the Configure button in Mod Menu's list; the mod runs without Mod Menu.
+		modCompileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
+	} else {
+		implementation "net.fabricmc:fabric-loader:${loader_version}"
+		implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+		compileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
+	}
 
 	implementation project(':common')
-	// Only for the Configure button in Mod Menu's list; the mod runs without Mod Menu.
-	compileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
 }
 
 processResources {
-	def properties = [version: project.version, minecraft: project.minecraft_dependency, target: project.minecraft_version]
+	def properties = [version: project.version, minecraft: project.minecraft_dependency, target: project.minecraft_version,
+		java: project.findProperty('java_release') ?: '25']
 	inputs.properties properties
-	filesMatching('fabric.mod.json') {
+	filesMatching(['fabric.mod.json', 'orbit_cosmetic.mixins.json']) {
 		expand properties
 	}
 }
@@ -113,6 +186,25 @@ processResources {
 jar {
 	// Ship the shared library inside the mod jar.
 	from(project(':common').sourceSets.main.output)
+}
+
+// The jar players get: the remapped one where Minecraft is obfuscated (the plain jar has development names there).
+ext.releaseJar = obfuscated ? 'remapJar' : 'jar'
+
+// The game as players run it, with the jar players get and Fabric API only (no development names, no harness), on
+// the Java that Minecraft version uses: ./gradlew :Mod:<version>:prodClient. ORBIT_PROD_SERVER joins a server at once;
+// ORBIT_RUN_DIR picks the game folder (run/prod-<version> otherwise).
+tasks.register('prodClient', net.fabricmc.loom.task.prod.ClientProductionRunTask) {
+	group = 'fabric'
+	description = 'Runs the release jar in a normal (non-development) game.'
+	mods.from(tasks.named(releaseJar))
+	mods.from(configurations.detachedConfiguration(dependencies.create("net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}")).setTransitive(false))
+	runDir = file(System.getenv('ORBIT_RUN_DIR') ?: "../../../run/prod-${project.minecraft_version}")
+	javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of((project.findProperty('java_release') ?: '25') as int) }
+	programArgs.addAll('--username', System.getenv('ORBIT_TEST_USERNAME') ?: 'OrbitTester')
+	if (System.getenv('ORBIT_PROD_SERVER')) {
+		programArgs.addAll('--quickPlayMultiplayer', System.getenv('ORBIT_PROD_SERVER'))
+	}
 }
 
 // The build for mod sites (Modrinth, CurseForge): the same mod without its self-updater, since those sites update
@@ -135,13 +227,13 @@ def storeMetadata = tasks.register('storeMetadata') {
 def storeJar = tasks.register('storeJar', Zip) {
 	group = 'build'
 	description = 'Builds the jar for mod sites, without self-updating.'
-	dependsOn tasks.named('jar'), storeMetadata
+	dependsOn tasks.named(releaseJar), storeMetadata
 	archiveBaseName = base.archivesName
 	archiveVersion = project.version
 	archiveClassifier = 'store'
 	archiveExtension = 'jar'
 	destinationDirectory = layout.buildDirectory.dir('libs')
-	from({ zipTree(tasks.named('jar').get().archiveFile) }) {
+	from({ zipTree(tasks.named(releaseJar).get().archiveFile) }) {
 		exclude 'dev/orbit/cosmetic/client/update/**', 'orbit-release.pub', 'fabric.mod.json'
 	}
 	from(storeMeta)
