@@ -1,5 +1,8 @@
 package dev.orbit.cosmetic.client.library;
 
+import dev.orbit.cosmetic.common.library.OrbitState;
+import dev.orbit.cosmetic.common.library.TileColors;
+import dev.orbit.cosmetic.common.library.CosmeticSettingsFile;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import dev.orbit.cosmetic.client.Notifications;

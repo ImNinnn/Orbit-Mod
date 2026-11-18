@@ -9,7 +9,7 @@ import dev.orbit.cosmetic.client.gui.ui.Theme;
 import dev.orbit.cosmetic.client.hud.HudComponent;
 import dev.orbit.cosmetic.client.hud.HudLayout;
 import dev.orbit.cosmetic.client.library.EmoteLibrary;
-import dev.orbit.cosmetic.client.library.OrbitState;
+import dev.orbit.cosmetic.common.library.OrbitState;
 import dev.orbit.cosmetic.client.skin.SkinLibrary;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;

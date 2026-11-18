@@ -1,18 +1,18 @@
-package dev.orbit.cosmetic.client.net;
+package dev.orbit.cosmetic.common.cloud;
 
-import dev.orbit.cosmetic.client.platform.OrbitPlatform;
+import dev.orbit.cosmetic.common.util.Development;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
-import dev.orbit.cosmetic.client.emote.EmoteSignal;
+import dev.orbit.cosmetic.common.protocol.EmoteSignal;
 import dev.orbit.cosmetic.common.anim.ParticleSettings;
 import dev.orbit.cosmetic.common.protocol.ParticleCodec;
 import dev.orbit.cosmetic.common.protocol.ProtocolException;
-import dev.orbit.cosmetic.client.library.TileColors;
-import dev.orbit.cosmetic.client.skin.SkinSignal;
+import dev.orbit.cosmetic.common.library.TileColors;
+import dev.orbit.cosmetic.common.protocol.SkinSignal;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,7 +32,7 @@ import java.util.UUID;
  * Blocking calls to Orbit Cloud. Call from a background thread only.
  * Responses are untrusted: sizes are capped and every value is checked by the caller.
  */
-final class BackendClient {
+public final class BackendClient {
 	private static final Gson GSON = new Gson();
 	private static final int MAX_JSON_BYTES = 512 * 1024;
 	private static final int MAX_CATALOG_BYTES = 4 * 1024 * 1024;
@@ -47,7 +47,7 @@ final class BackendClient {
 	 * @param emote the emote being played, or null
 	 * @param emoteAge seconds since the backend first saw that emote start
 	 */
-	record PresenceEntry(UUID player, String name, int format, String equip, EmoteSignal emote, double emoteAge, SkinSignal skin) {
+	public record PresenceEntry(UUID player, String name, int format, String equip, EmoteSignal emote, double emoteAge, SkinSignal skin) {
 	}
 
 	/**
@@ -56,27 +56,27 @@ final class BackendClient {
 	 * @param fullBan a complete ban (nothing shared) rather than a feature ban (catalog items only)
 	 * @param bannedUntil 0 for permanent bans
 	 */
-	record Session(String token, UUID player, String name, boolean banned, boolean fullBan, double bannedUntil) {
+	public record Session(String token, UUID player, String name, boolean banned, boolean fullBan, double bannedUntil) {
 	}
 
-	static final class BackendException extends IOException {
-		final int status;
+	public static final class BackendException extends IOException {
+		public final int status;
 		/** The backend's error code, such as "blocked" or "too_large"; empty if the body had none. */
-		final String code;
+		public final String code;
 		/** The backend's human-readable message, or a generic one. */
-		final String detail;
+		public final String detail;
 		/** For "blocked": when the ban ends (Unix seconds), 0 if permanent or unknown. */
-		final double banExpires;
+		public final double banExpires;
 		/** For "blocked": a complete ban rather than a feature ban. */
-		final boolean fullBan;
+		public final boolean fullBan;
 		/** For "cosmetic_blocked": the SHA-256 of the items moderators blocked. */
-		final List<String> blockedItems;
+		public final List<String> blockedItems;
 
-		BackendException(int status, String code, String detail) {
+		public BackendException(int status, String code, String detail) {
 			this(status, code, detail, 0, false, List.of());
 		}
 
-		BackendException(int status, String code, String detail, double banExpires, boolean fullBan, List<String> blockedItems) {
+		public BackendException(int status, String code, String detail, double banExpires, boolean fullBan, List<String> blockedItems) {
 			super(detail.isEmpty() ? "HTTP " + status : detail);
 			this.status = status;
 			this.code = code;
@@ -96,7 +96,7 @@ final class BackendClient {
 	private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3)).followRedirects(HttpClient.Redirect.NEVER).build();
 
 	/** @throws IllegalArgumentException if the URL is not an http(s) URL */
-	BackendClient(String baseUrl, String modVersion) {
+	public BackendClient(String baseUrl, String modVersion) {
 		this.userAgent = "OrbitCosmetic/" + modVersion + " (+https://orbitcosmetics.dev)";
 		this.modVersion = modVersion;
 		String trimmed = baseUrl == null ? "" : baseUrl.trim();
@@ -111,17 +111,17 @@ final class BackendClient {
 		this.baseUrl = trimmed;
 	}
 
-	String baseUrl() {
+	public String baseUrl() {
 		return baseUrl;
 	}
 
 	/** The oldest Orbit Cosmetic version Orbit Cloud accepted at the last {@link #health()} check, or null. */
-	String minimumClient() {
+	public String minimumClient() {
 		return minimumClient;
 	}
 
 	/** @return the backend's authentication scheme (Orbit Cloud: "mojang"), or null if it is not healthy */
-	String health() throws IOException, InterruptedException {
+	public String health() throws IOException, InterruptedException {
 		JsonObject body = json(send(request("/v1/health").GET(), MAX_JSON_BYTES));
 		if (!"ok".equals(text(body, "status"))) {
 			return null;
@@ -131,7 +131,7 @@ final class BackendClient {
 		return auth == null ? "none" : auth;
 	}
 
-	String challenge() throws IOException, InterruptedException {
+	public String challenge() throws IOException, InterruptedException {
 		String serverId = text(json(send(request("/v1/auth/challenge").POST(HttpRequest.BodyPublishers.noBody()), MAX_JSON_BYTES)), "server_id");
 		if (serverId == null || !serverId.matches("[0-9a-f]{40}")) {
 			throw new IOException("Invalid challenge from the backend");
@@ -140,7 +140,7 @@ final class BackendClient {
 	}
 
 	/** Exchanges a challenge the game has joined (through Mojang) for a session. */
-	Session createSession(String username, String serverId) throws IOException, InterruptedException {
+	public Session createSession(String username, String serverId) throws IOException, InterruptedException {
 		JsonObject body = new JsonObject();
 		body.addProperty("username", username);
 		body.addProperty("server_id", serverId);
@@ -158,7 +158,7 @@ final class BackendClient {
 	}
 
 	/** The current session's player and ban state. */
-	Session me() throws IOException, InterruptedException {
+	public Session me() throws IOException, InterruptedException {
 		return session(json(send(request("/v1/auth/me").GET(), MAX_JSON_BYTES)), token);
 	}
 
@@ -179,16 +179,16 @@ final class BackendClient {
 		}
 	}
 
-	boolean signedIn() {
+	public boolean signedIn() {
 		return token != null;
 	}
 
-	void signOut() {
+	public void signOut() {
 		token = null;
 	}
 
 	/** @return true if the backend already has an asset with this SHA-256 */
-	boolean hasAsset(String sha256) throws IOException, InterruptedException {
+	public boolean hasAsset(String sha256) throws IOException, InterruptedException {
 		try {
 			send(request("/v1/cosmetics/by-sha256/" + sha256).GET(), MAX_JSON_BYTES);
 			return true;
@@ -201,7 +201,7 @@ final class BackendClient {
 	}
 
 	/** Uploads a cosmetic or an emote file. A 409 (already uploaded) counts as success; returns false in that case. */
-	boolean upload(String sha256, String displayName, byte[] bytes, boolean emote) throws IOException, InterruptedException {
+	public boolean upload(String sha256, String displayName, byte[] bytes, boolean emote) throws IOException, InterruptedException {
 		String boundary = "orbit-" + UUID.randomUUID();
 		byte[] body = multipart(boundary, sha256.substring(0, 16) + ".bbmodel", displayName, emote ? "emote" : "cosmetic", bytes);
 		try {
@@ -219,19 +219,19 @@ final class BackendClient {
 
 	/** The featured catalog: items (every page of them, up to a sane maximum) and bundles. Malformed entries are skipped. */
 	/** The servers Orbit Cloud recommends (name and address of each). */
-	JsonObject splashes() throws IOException, InterruptedException {
+	public JsonObject splashes() throws IOException, InterruptedException {
 		return json(send(request("/v1/featured/splashes").GET(), MAX_JSON_BYTES));
 	}
 
-	JsonObject announcement() throws IOException, InterruptedException {
+	public JsonObject announcement() throws IOException, InterruptedException {
 		return json(send(request("/v1/featured/announcement").GET(), MAX_JSON_BYTES));
 	}
 
-	JsonObject recommendedServers() throws IOException, InterruptedException {
+	public JsonObject recommendedServers() throws IOException, InterruptedException {
 		return json(send(request("/v1/servers/recommended").GET(), MAX_JSON_BYTES));
 	}
 
-	Catalog featured() throws IOException, InterruptedException {
+	public Catalog featured() throws IOException, InterruptedException {
 		JsonObject response = json(send(request("/v1/featured?limit=" + CATALOG_PAGE).GET(), MAX_CATALOG_BYTES));
 		List<CatalogItem> items = catalogItems(response.get("items"));
 		int total = number(response, "total");
@@ -294,7 +294,7 @@ final class BackendClient {
 	 *
 	 * @return true if this is a new report, false if it updated an earlier one
 	 */
-	boolean report(UUID player, String name, String reason, String note, List<String> cosmetics) throws IOException, InterruptedException {
+	public boolean report(UUID player, String name, String reason, String note, List<String> cosmetics) throws IOException, InterruptedException {
 		JsonObject body = new JsonObject();
 		body.addProperty("player_uuid", player.toString());
 		body.addProperty("player_name", name);
@@ -324,7 +324,7 @@ final class BackendClient {
 	}
 
 	/** The Orbit settings file shipped with a featured cosmetic, by the item's ID in the catalog. */
-	byte[] featuredSettings(String itemId, int maxBytes) throws IOException, InterruptedException {
+	public byte[] featuredSettings(String itemId, int maxBytes) throws IOException, InterruptedException {
 		if (!itemId.matches("[A-Za-z0-9][A-Za-z0-9._-]{0,63}")) {
 			throw new IOException("Invalid catalog item");
 		}
@@ -343,11 +343,11 @@ final class BackendClient {
 		}
 	}
 
-	byte[] download(String sha256, int maxBytes) throws IOException, InterruptedException {
+	public byte[] download(String sha256, int maxBytes) throws IOException, InterruptedException {
 		return send(request("/v1/cosmetics/by-sha256/" + sha256 + "/download").GET(), maxBytes);
 	}
 
-	void putPresence(UUID player, String name, int format, String equip, EmoteSignal emote, SkinSignal skin) throws IOException, InterruptedException {
+	public void putPresence(UUID player, String name, int format, String equip, EmoteSignal emote, SkinSignal skin) throws IOException, InterruptedException {
 		JsonObject body = new JsonObject();
 		body.addProperty("player_name", name);
 		body.addProperty("format", format);
@@ -379,7 +379,7 @@ final class BackendClient {
 			.PUT(HttpRequest.BodyPublishers.ofString(GSON.toJson(body))), MAX_JSON_BYTES);
 	}
 
-	void deletePresence(UUID player) throws IOException, InterruptedException {
+	public void deletePresence(UUID player) throws IOException, InterruptedException {
 		try {
 			send(request("/v1/presence/" + player).DELETE(), MAX_JSON_BYTES);
 		} catch (BackendException e) {
@@ -390,7 +390,7 @@ final class BackendClient {
 	}
 
 	/** @param names player names as well, so offline-mode servers (whose UUIDs differ) still match */
-	List<PresenceEntry> queryPresence(List<UUID> players, List<String> names) throws IOException, InterruptedException {
+	public List<PresenceEntry> queryPresence(List<UUID> players, List<String> names) throws IOException, InterruptedException {
 		JsonObject body = new JsonObject();
 		JsonArray list = new JsonArray();
 		players.forEach(player -> list.add(player.toString()));
@@ -463,8 +463,8 @@ final class BackendClient {
 		if (current != null) {
 			builder.header("Authorization", "Bearer " + current);
 		}
-		if (devPlayer != null) {
-			builder.header("X-Orbit-Dev-Player", devPlayer);
+		if (devPlayer() != null) {
+			builder.header("X-Orbit-Dev-Player", devPlayer());
 		}
 		return builder;
 	}
@@ -473,18 +473,19 @@ final class BackendClient {
 	 * Development runs against a local test backend name their player in a header ({@code -Dorbit.devPlayer}, with
 	 * {@code -Dorbit.backendUrl}); a development backend has no Mojang sign-in. Never set in released games.
 	 */
-	private static final String devPlayer = System.getProperty("orbit.backendUrl") != null
-		&& OrbitPlatform.isDevelopment() ? System.getProperty("orbit.devPlayer") : null;
+	private static String devPlayer() {
+		return Development.property("orbit.backendUrl") != null ? Development.property("orbit.devPlayer") : null;
+	}
 
 	/** True when this is a development run identified by {@link #devPlayer} (no Mojang sign-in needed). */
-	static boolean hasDevPlayer() {
-		return devPlayer != null;
+	public static boolean hasDevPlayer() {
+		return devPlayer() != null;
 	}
 
 	// ---------------------------------------------------------------- friends (see backend routes/social.py)
 
 	/** A JSON call to the friends API: method GET, POST, PUT or DELETE, with an optional JSON body. */
-	JsonObject social(String method, String path, JsonElement body) throws IOException, InterruptedException {
+	public JsonObject social(String method, String path, JsonElement body) throws IOException, InterruptedException {
 		HttpRequest.Builder builder = request("/v1/social" + path);
 		HttpRequest.BodyPublisher publisher = body == null ? HttpRequest.BodyPublishers.noBody() : HttpRequest.BodyPublishers.ofString(GSON.toJson(body));
 		if (body != null) {
@@ -498,15 +499,15 @@ final class BackendClient {
 	 * Opens the party's live socket ({@code /v1/social/live}), signed in like every request. A refused sign-in is a
 	 * 401, so the caller signs in again.
 	 */
-	java.net.http.WebSocket openLive(java.net.http.WebSocket.Listener listener) throws IOException, InterruptedException {
+	public java.net.http.WebSocket openLive(java.net.http.WebSocket.Listener listener) throws IOException, InterruptedException {
 		URI uri = URI.create(baseUrl.replaceFirst("^http", "ws") + "/v1/social/live");
 		java.net.http.WebSocket.Builder builder = http.newWebSocketBuilder().connectTimeout(Duration.ofSeconds(5)).header("X-Orbit-Version", modVersion);
 		String current = token;
 		if (current != null) {
 			builder.header("Authorization", "Bearer " + current);
 		}
-		if (devPlayer != null) {
-			builder.header("X-Orbit-Dev-Player", devPlayer);
+		if (devPlayer() != null) {
+			builder.header("X-Orbit-Dev-Player", devPlayer());
 		}
 		try {
 			return builder.buildAsync(uri, listener).get(10, java.util.concurrent.TimeUnit.SECONDS);
@@ -523,7 +524,7 @@ final class BackendClient {
 
 	/** Waits up to 25 seconds for a change; returns the new change cursor. */
 	/** The wait's answer: the new {@code cursor}, and {@code signals} (see BackendSync#signals). */
-	JsonObject socialWait(int cursor) throws IOException, InterruptedException {
+	public JsonObject socialWait(int cursor) throws IOException, InterruptedException {
 		JsonObject result = json(send(request("/v1/social/wait?cursor=" + cursor).timeout(Duration.ofSeconds(45)).GET(), MAX_JSON_BYTES));
 		JsonElement value = result.get("cursor");
 		if (value == null || !value.isJsonPrimitive() || !value.getAsJsonPrimitive().isNumber()) {
@@ -534,13 +535,13 @@ final class BackendClient {
 
 	/** Uploads an encrypted attachment; returns its ID. */
 	/** Sends raw bytes to a path of the friends API (a group's picture); returns the answer. */
-	JsonObject socialPutRaw(String path, byte[] data) throws IOException, InterruptedException {
+	public JsonObject socialPutRaw(String path, byte[] data) throws IOException, InterruptedException {
 		HttpRequest.Builder builder = request("/v1/social" + path).header("Content-Type", "application/octet-stream")
 			.timeout(java.time.Duration.ofMinutes(1)).PUT(HttpRequest.BodyPublishers.ofByteArray(data));
 		return json(send(builder, MAX_JSON_BYTES));
 	}
 
-	String socialUpload(byte[] data) throws IOException, InterruptedException {
+	public String socialUpload(byte[] data) throws IOException, InterruptedException {
 		HttpRequest.Builder builder = request("/v1/social/attachments").header("Content-Type", "application/octet-stream")
 			.timeout(java.time.Duration.ofMinutes(2)).POST(HttpRequest.BodyPublishers.ofByteArray(data));
 		String id = text(json(send(builder, MAX_JSON_BYTES)), "id");
@@ -552,11 +553,11 @@ final class BackendClient {
 
 	/** Downloads an encrypted attachment. */
 	/** Downloads a file of Orbit Cloud at a path (signed in). */
-	byte[] download(String path, int maxBytes, boolean signedIn) throws IOException, InterruptedException {
+	public byte[] download(String path, int maxBytes, boolean signedIn) throws IOException, InterruptedException {
 		return send(request(path).timeout(java.time.Duration.ofMinutes(2)).GET(), maxBytes);
 	}
 
-	byte[] socialDownload(String id, int maxBytes) throws IOException, InterruptedException {
+	public byte[] socialDownload(String id, int maxBytes) throws IOException, InterruptedException {
 		return send(request("/v1/social/attachments/" + id).timeout(java.time.Duration.ofMinutes(2)).GET(), maxBytes);
 	}
 

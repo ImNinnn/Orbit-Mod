@@ -10,6 +10,8 @@ tasks.withType(JavaCompile).configureEach {
 }
 dependencies {
 	compileOnly "com.google.code.gson:gson:${gson_version}"
+	// Logging, also provided by Minecraft.
+	compileOnly "org.slf4j:slf4j-api:${slf4j_version}"
 
 	testImplementation "com.google.code.gson:gson:${gson_version}"
 	testImplementation platform('org.junit:junit-bom:5.13.4')

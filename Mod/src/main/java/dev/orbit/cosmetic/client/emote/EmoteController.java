@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.emote;
 
+import dev.orbit.cosmetic.common.protocol.EmoteSignal;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.anim.Wearer;
 import dev.orbit.cosmetic.client.library.EmoteLibrary;

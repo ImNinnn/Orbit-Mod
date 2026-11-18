@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.social;
 
+import dev.orbit.cosmetic.common.social.SocialCrypto;
 import dev.orbit.cosmetic.client.gfx.OrbitTextures;
 import dev.orbit.cosmetic.client.gfx.OrbitSkin;
 import dev.orbit.cosmetic.client.gfx.OrbitImage;

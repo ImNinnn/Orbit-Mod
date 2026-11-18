@@ -1,4 +1,4 @@
-package dev.orbit.cosmetic.client.net;
+package dev.orbit.cosmetic.common.cloud;
 
 import dev.orbit.cosmetic.common.protocol.AssetId;
 

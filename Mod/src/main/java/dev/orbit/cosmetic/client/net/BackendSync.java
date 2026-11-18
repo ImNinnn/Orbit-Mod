@@ -1,12 +1,15 @@
 package dev.orbit.cosmetic.client.net;
 
+import dev.orbit.cosmetic.common.cloud.BackendClient;
+import dev.orbit.cosmetic.common.cloud.CatalogItem;
+import dev.orbit.cosmetic.common.cloud.Catalog;
 import dev.orbit.cosmetic.client.platform.OrbitPlatform;
 import dev.orbit.cosmetic.client.Notifications;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.anim.Wearer;
-import dev.orbit.cosmetic.client.emote.EmoteSignal;
+import dev.orbit.cosmetic.common.protocol.EmoteSignal;
 import dev.orbit.cosmetic.client.library.LocalCosmetic;
-import dev.orbit.cosmetic.client.skin.SkinSignal;
+import dev.orbit.cosmetic.common.protocol.SkinSignal;
 import dev.orbit.cosmetic.common.protocol.AssetId;
 import dev.orbit.cosmetic.common.protocol.EquipCodec;
 import dev.orbit.cosmetic.common.protocol.EquippedCosmetic;

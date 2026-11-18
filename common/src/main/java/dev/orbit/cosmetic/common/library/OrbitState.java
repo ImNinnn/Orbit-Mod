@@ -1,9 +1,10 @@
-package dev.orbit.cosmetic.client.library;
+package dev.orbit.cosmetic.common.library;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParseException;
-import dev.orbit.cosmetic.client.OrbitClient;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -22,6 +23,8 @@ import java.util.Map;
  * {@code <file inside Orbit/Emotes>#<animation name>}.
  */
 public final class OrbitState {
+	private static final Logger LOGGER = LoggerFactory.getLogger("Orbit");
+
 	public static final int WHEEL_SLOTS = 8;
 	public static final int MAX_WHEELS = 10;
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
@@ -159,7 +162,7 @@ public final class OrbitState {
 					stored = loaded;
 				}
 			} catch (IOException | JsonParseException e) {
-				OrbitClient.LOGGER.warn("Could not read {}", file, e);
+				LOGGER.warn("Could not read {}", file, e);
 			}
 		}
 		// Whatever the file holds, keep the shape the rest of the mod relies on.
@@ -207,7 +210,7 @@ public final class OrbitState {
 			Files.writeString(temp, GSON.toJson(stored), StandardCharsets.UTF_8);
 			Files.move(temp, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
 		} catch (IOException e) {
-			OrbitClient.LOGGER.warn("Could not save {}", file, e);
+			LOGGER.warn("Could not save {}", file, e);
 		}
 	}
 }

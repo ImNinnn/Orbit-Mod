@@ -19,11 +19,11 @@ import dev.orbit.cosmetic.client.library.CosmeticLibrary;
 import dev.orbit.cosmetic.client.library.EmoteLibrary;
 import dev.orbit.cosmetic.client.social.ShareScreen;
 import dev.orbit.cosmetic.client.library.LocalCosmetic;
-import dev.orbit.cosmetic.client.library.CosmeticSettingsFile;
-import dev.orbit.cosmetic.client.library.OrbitState;
-import dev.orbit.cosmetic.client.net.Catalog;
-import dev.orbit.cosmetic.client.net.CatalogItem;
-import dev.orbit.cosmetic.client.net.FeaturedCheck;
+import dev.orbit.cosmetic.common.library.CosmeticSettingsFile;
+import dev.orbit.cosmetic.common.library.OrbitState;
+import dev.orbit.cosmetic.common.cloud.Catalog;
+import dev.orbit.cosmetic.common.cloud.CatalogItem;
+import dev.orbit.cosmetic.common.cloud.FeaturedCheck;
 import dev.orbit.cosmetic.client.render.BakedCosmetic;
 import dev.orbit.cosmetic.client.skin.MojangAccount;
 import dev.orbit.cosmetic.client.skin.SkinLibrary;
@@ -1185,7 +1185,7 @@ public final class OrbitMenuScreen extends OrbitScreen {
 		net.minecraft.util.Util.ioPool().execute(() -> {
 			try {
 				java.net.http.HttpResponse<byte[]> response = java.net.http.HttpClient.newHttpClient().send(
-					java.net.http.HttpRequest.newBuilder(java.net.URI.create(dev.orbit.cosmetic.client.skin.SkinSignal.downloadUrl(hash))).build(),
+					java.net.http.HttpRequest.newBuilder(java.net.URI.create(dev.orbit.cosmetic.common.protocol.SkinSignal.downloadUrl(hash))).build(),
 					java.net.http.HttpResponse.BodyHandlers.ofByteArray());
 				if (response.statusCode() != 200 || response.body().length > 256 * 1024) {
 					throw new IOException("Mojang answered " + response.statusCode());

@@ -1,8 +1,9 @@
 package dev.orbit.cosmetic.client.skin;
 
+import dev.orbit.cosmetic.common.protocol.SkinSignal;
 import dev.orbit.cosmetic.client.gfx.OrbitSkin;
 import dev.orbit.cosmetic.client.Notifications;
-import dev.orbit.cosmetic.client.library.OrbitState;
+import dev.orbit.cosmetic.common.library.OrbitState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
 import net.minecraft.network.chat.Component;

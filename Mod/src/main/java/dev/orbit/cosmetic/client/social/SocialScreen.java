@@ -17,7 +17,7 @@ import dev.orbit.cosmetic.client.gui.ui.FlatButton;
 import dev.orbit.cosmetic.client.gui.ui.Hotspot;
 import dev.orbit.cosmetic.client.gui.ui.OrbitScreen;
 import dev.orbit.cosmetic.client.gui.ui.Theme;
-import dev.orbit.cosmetic.client.library.CosmeticSettingsFile;
+import dev.orbit.cosmetic.common.library.CosmeticSettingsFile;
 import dev.orbit.cosmetic.client.render.BakedCosmetic;
 import dev.orbit.cosmetic.client.screenshot.ScreenshotLibrary;
 import dev.orbit.cosmetic.common.anim.AnimationClip;

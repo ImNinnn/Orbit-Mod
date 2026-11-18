@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.skin;
 
+import dev.orbit.cosmetic.common.protocol.SkinSignal;
 import dev.orbit.cosmetic.client.platform.OrbitPlatform;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;

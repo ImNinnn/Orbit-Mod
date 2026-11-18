@@ -1,7 +1,7 @@
-package dev.orbit.cosmetic.client.net;
+package dev.orbit.cosmetic.common.cloud;
 
 import com.google.gson.JsonElement;
-import dev.orbit.cosmetic.client.library.TileColors;
+import dev.orbit.cosmetic.common.library.TileColors;
 
 /**
  * One item of the Orbit Cloud featured catalog: a cosmetic, an emote or a body part picked by the moderators.

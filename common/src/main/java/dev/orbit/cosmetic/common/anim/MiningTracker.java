@@ -1,4 +1,4 @@
-package dev.orbit.cosmetic.client.anim;
+package dev.orbit.cosmetic.common.anim;
 
 import java.util.HashMap;
 import java.util.Map;

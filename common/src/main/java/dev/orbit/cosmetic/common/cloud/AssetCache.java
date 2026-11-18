@@ -1,6 +1,7 @@
-package dev.orbit.cosmetic.client.net;
+package dev.orbit.cosmetic.common.cloud;
 
-import dev.orbit.cosmetic.client.OrbitClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import dev.orbit.cosmetic.common.protocol.AssetId;
 
 import java.io.IOException;
@@ -18,6 +19,8 @@ import java.util.List;
  * from verified hashes, and contents are verified again when read. Old files are trimmed to the size limit.
  */
 public final class AssetCache {
+	private static final Logger LOGGER = LoggerFactory.getLogger("Orbit");
+
 	private final Path directory;
 
 	public AssetCache(Path directory) {
@@ -56,7 +59,7 @@ public final class AssetCache {
 			Files.write(temp, bytes);
 			Files.move(temp, file(id), StandardCopyOption.REPLACE_EXISTING);
 		} catch (IOException e) {
-			OrbitClient.LOGGER.warn("Could not cache cosmetic {}", id.shortHex(), e);
+			LOGGER.warn("Could not cache cosmetic {}", id.shortHex(), e);
 		}
 	}
 
@@ -94,7 +97,7 @@ public final class AssetCache {
 				}
 			}
 		} catch (IOException e) {
-			OrbitClient.LOGGER.warn("Could not clear {}", directory, e);
+			LOGGER.warn("Could not clear {}", directory, e);
 		}
 		return count;
 	}

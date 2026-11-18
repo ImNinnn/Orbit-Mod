@@ -1,4 +1,4 @@
-package dev.orbit.cosmetic.client.library;
+package dev.orbit.cosmetic.common.library;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -38,7 +38,7 @@ public final class TileColors {
 			return null;
 		}
 		if (colors.size() == 1) {
-			String color = colors.getFirst();
+			String color = colors.get(0);
 			int argb = parse(color, FADE_ALPHA);
 			return new int[] {argb & 0x00FFFFFF, argb};
 		}

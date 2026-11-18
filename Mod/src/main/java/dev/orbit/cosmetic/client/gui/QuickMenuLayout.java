@@ -14,7 +14,7 @@ import dev.orbit.cosmetic.client.hud.HudComponent;
 import dev.orbit.cosmetic.client.hud.HudEditorScreen;
 import dev.orbit.cosmetic.client.hud.HudLayout;
 import dev.orbit.cosmetic.client.library.EmoteLibrary;
-import dev.orbit.cosmetic.client.library.OrbitState;
+import dev.orbit.cosmetic.common.library.OrbitState;
 import dev.orbit.cosmetic.client.skin.SkinLibrary;
 import dev.orbit.cosmetic.client.social.SocialScreen;
 import net.minecraft.client.Minecraft;

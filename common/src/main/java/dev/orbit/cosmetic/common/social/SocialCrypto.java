@@ -1,4 +1,4 @@
-package dev.orbit.cosmetic.client.social;
+package dev.orbit.cosmetic.common.social;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;

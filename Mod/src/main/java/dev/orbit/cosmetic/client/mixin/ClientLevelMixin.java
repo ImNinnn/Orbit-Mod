@@ -1,6 +1,6 @@
 package dev.orbit.cosmetic.client.mixin;
 
-import dev.orbit.cosmetic.client.anim.MiningTracker;
+import dev.orbit.cosmetic.common.anim.MiningTracker;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import org.spongepowered.asm.mixin.Mixin;

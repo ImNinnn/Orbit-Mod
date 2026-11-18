@@ -7,7 +7,7 @@ import dev.orbit.cosmetic.client.gui.QuickMenuScreen;
 import dev.orbit.cosmetic.client.gui.ScreenshotsScreen;
 import dev.orbit.cosmetic.client.host.HostScreen;
 import dev.orbit.cosmetic.client.library.EmoteLibrary;
-import dev.orbit.cosmetic.client.library.OrbitState;
+import dev.orbit.cosmetic.common.library.OrbitState;
 import dev.orbit.cosmetic.client.social.SocialScreen;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;

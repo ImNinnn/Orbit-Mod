@@ -1,6 +1,6 @@
-package dev.orbit.cosmetic.client.skin;
+package dev.orbit.cosmetic.common.protocol;
 
-import dev.orbit.cosmetic.client.platform.OrbitPlatform;
+import dev.orbit.cosmetic.common.util.Development;
 
 import java.util.regex.Pattern;
 
@@ -11,8 +11,10 @@ import java.util.regex.Pattern;
  */
 public record SkinSignal(String texture, boolean slim, String cape, boolean noCape) {
 	/** Tests serve textures from a local fake of Mojang's texture host; only in a development environment. */
-	private static final String TEXTURES = System.getProperty("orbit.mojangTextures") != null && OrbitPlatform.isDevelopment()
-		? System.getProperty("orbit.mojangTextures").replaceAll("/+$", "") : "https://textures.minecraft.net";
+	private static String textures() {
+		String override = Development.property("orbit.mojangTextures");
+		return override != null ? override.replaceAll("/+$", "") : "https://textures.minecraft.net";
+	}
 
 	private static final Pattern HASH = Pattern.compile("[0-9a-f]{32,64}");
 
@@ -37,6 +39,6 @@ public record SkinSignal(String texture, boolean slim, String cape, boolean noCa
 
 	/** Where to download a texture from. */
 	public static String downloadUrl(String hash) {
-		return TEXTURES + "/texture/" + hash;
+		return textures() + "/texture/" + hash;
 	}
 }

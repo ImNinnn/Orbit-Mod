@@ -1,4 +1,4 @@
-package dev.orbit.cosmetic.client.emote;
+package dev.orbit.cosmetic.common.protocol;
 
 import dev.orbit.cosmetic.common.anim.ParticleSettings;
 

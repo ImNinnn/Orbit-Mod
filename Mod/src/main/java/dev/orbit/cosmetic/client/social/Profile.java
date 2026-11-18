@@ -5,7 +5,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.library.LocalCosmetic;
-import dev.orbit.cosmetic.client.library.OrbitState;
+import dev.orbit.cosmetic.common.library.OrbitState;
 import dev.orbit.cosmetic.client.render.BakedCosmetic;
 import dev.orbit.cosmetic.common.anim.AnimationClip;
 import dev.orbit.cosmetic.common.anim.AnimationSettings;

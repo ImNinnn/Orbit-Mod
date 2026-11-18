@@ -1,4 +1,4 @@
-package dev.orbit.cosmetic.client.net;
+package dev.orbit.cosmetic.common.cloud;
 
 import java.util.List;
 

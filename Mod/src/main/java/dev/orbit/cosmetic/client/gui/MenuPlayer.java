@@ -11,7 +11,7 @@ import dev.orbit.cosmetic.client.gui.ui.FlatButton;
 import dev.orbit.cosmetic.client.gui.ui.Theme;
 import dev.orbit.cosmetic.client.host.HostScreen;
 import dev.orbit.cosmetic.client.library.EmoteLibrary;
-import dev.orbit.cosmetic.client.library.OrbitState;
+import dev.orbit.cosmetic.common.library.OrbitState;
 import dev.orbit.cosmetic.client.social.Social;
 import dev.orbit.cosmetic.client.social.SocialScreen;
 import dev.orbit.cosmetic.common.protocol.AssetId;

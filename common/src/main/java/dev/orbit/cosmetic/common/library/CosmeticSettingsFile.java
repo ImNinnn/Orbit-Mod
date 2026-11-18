@@ -1,4 +1,4 @@
-package dev.orbit.cosmetic.client.library;
+package dev.orbit.cosmetic.common.library;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -60,14 +60,14 @@ import java.util.Map;
  * program (Blockbench can export one) and is never overwritten.
  */
 public final class CosmeticSettingsFile {
-	static final String MARKER = "orbitCosmetic";
-	static final int FORMAT = 1;
+	public static final String MARKER = "orbitCosmetic";
+	public static final int FORMAT = 1;
 	private static final int MAX_BYTES = 256 * 1024;
 	private static final int MAX_TEXT = 512;
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
 
 	/** What was read from disk. {@code root} keeps unknown keys so rewriting does not lose them. */
-	record Data(
+	public record Data(
 		JsonObject root,
 		boolean exists,
 		boolean foreign,
@@ -89,19 +89,19 @@ public final class CosmeticSettingsFile {
 	 * Saved settings of one particle emitter. The texture is kept by name, so it survives textures being added or
 	 * reordered; the settings' bone and texture indexes are filled in against the model when used.
 	 */
-	record SavedParticles(String texture, ParticleSettings settings) {
+	public record SavedParticles(String texture, ParticleSettings settings) {
 	}
 
 	private CosmeticSettingsFile() {
 	}
 
-	static Path pathFor(Path model) {
+	public static Path pathFor(Path model) {
 		String file = model.getFileName().toString();
 		String base = file.toLowerCase(Locale.ROOT).endsWith(".bbmodel") ? file.substring(0, file.length() - ".bbmodel".length()) : file;
 		return model.resolveSibling(base + ".json");
 	}
 
-	static long modified(Path model) {
+	public static long modified(Path model) {
 		try {
 			Path file = pathFor(model);
 			return Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS) ? Files.getLastModifiedTime(file).toMillis() : -1;
@@ -111,7 +111,7 @@ public final class CosmeticSettingsFile {
 	}
 
 	/** Reads the settings file of a model. Blocking; never throws. */
-	static Data read(Path model) {
+	public static Data read(Path model) {
 		Path file = pathFor(model);
 		if (!Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)) {
 			return Data.empty();
@@ -134,7 +134,7 @@ public final class CosmeticSettingsFile {
 	}
 
 	/** Parses settings JSON (also used for imported files). Returns null if it is not a JSON object. */
-	static JsonObject parse(String text) {
+	public static JsonObject parse(String text) {
 		JsonReader reader = new JsonReader(new StringReader(text));
 		reader.setStrictness(Strictness.LENIENT);
 		reader.setNestingLimit(32);
@@ -221,7 +221,7 @@ public final class CosmeticSettingsFile {
 	}
 
 	/** Puts particle settings into a settings file's JSON (replacing what it had). */
-	static void writeParticles(JsonObject out, CosmeticModel model, Map<String, SavedParticles> particles) {
+	public static void writeParticles(JsonObject out, CosmeticModel model, Map<String, SavedParticles> particles) {
 		JsonObject parts = new JsonObject();
 		for (Map.Entry<String, SavedParticles> entry : particles.entrySet()) {
 			ParticleSettings settings = entry.getValue().settings();
@@ -248,7 +248,7 @@ public final class CosmeticSettingsFile {
 	 * The emitters' settings for this model: the groups that have saved particle settings and still exist, in model
 	 * order. A saved texture the model no longer has falls back to the default one.
 	 */
-	static List<ParticleSettings> particles(CosmeticModel model, Map<String, SavedParticles> saved) {
+	public static List<ParticleSettings> particles(CosmeticModel model, Map<String, SavedParticles> saved) {
 		List<ParticleSettings> result = new ArrayList<>();
 		for (Bone bone : model.bones()) {
 			SavedParticles entry = saved.get(boneKey(bone));
@@ -275,12 +275,12 @@ public final class CosmeticSettingsFile {
 	}
 
 	/** Settings for a group that just became an emitter. */
-	static ParticleSettings newEmitter(CosmeticModel model, int bone) {
+	public static ParticleSettings newEmitter(CosmeticModel model, int bone) {
 		return ParticleSettings.defaults(bone, ParticleEmitters.defaultTexture(model));
 	}
 
 	/** The key a part's settings are stored under: its group's UUID, or its name when it has none. */
-	static String boneKey(Bone bone) {
+	public static String boneKey(Bone bone) {
 		return bone.uuid() != null ? bone.uuid() : "name:" + bone.name();
 	}
 
@@ -301,7 +301,7 @@ public final class CosmeticSettingsFile {
 	 *
 	 * @return the new modification time, or -1 if writing failed
 	 */
-	static long write(Path model, JsonObject root, CosmeticModel cosmetic, List<AnimationSettings> settings, Map<String, List<AxisDrive>> physics,
+	public static long write(Path model, JsonObject root, CosmeticModel cosmetic, List<AnimationSettings> settings, Map<String, List<AxisDrive>> physics,
 		Map<String, SavedParticles> particles) {
 		JsonObject out = root.deepCopy();
 		out.addProperty(MARKER, FORMAT);
@@ -351,7 +351,7 @@ public final class CosmeticSettingsFile {
 	}
 
 	/** Writes {@code out} as the model's settings file and makes {@code root} hold it; returns the new modification time or -1. */
-	static long save(Path model, JsonObject root, JsonObject out) {
+	public static long save(Path model, JsonObject root, JsonObject out) {
 		Path file = pathFor(model);
 		try {
 			Path temp = file.resolveSibling(file.getFileName() + ".tmp");
@@ -366,7 +366,7 @@ public final class CosmeticSettingsFile {
 	}
 
 	/** Whether a file is an Orbit settings file (checked before importing a JSON next to a model). */
-	static boolean isSettingsFile(Path file) {
+	public static boolean isSettingsFile(Path file) {
 		try {
 			if (!Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS) || Files.size(file) > MAX_BYTES) {
 				return false;
@@ -379,7 +379,7 @@ public final class CosmeticSettingsFile {
 	}
 
 	/** A new settings file holding only the marker and the model's name (for emote files). */
-	static byte[] minimal(String modelFile) {
+	public static byte[] minimal(String modelFile) {
 		JsonObject root = new JsonObject();
 		root.addProperty(MARKER, FORMAT);
 		root.addProperty("model", modelFile);
@@ -387,7 +387,7 @@ public final class CosmeticSettingsFile {
 	}
 
 	/** Whether downloaded bytes are an Orbit settings file (size-limited JSON object with the marker key). */
-	static boolean isSettingsJson(byte[] bytes) {
+	public static boolean isSettingsJson(byte[] bytes) {
 		if (bytes.length > MAX_BYTES) {
 			return false;
 		}
@@ -403,7 +403,7 @@ public final class CosmeticSettingsFile {
 	 * A settings file with tile colours: {@code settings} (an Orbit settings file, or null for a new one) with its
 	 * {@code "gradient"} set, unless it has one already.
 	 */
-	static byte[] withGradient(byte[] settings, String modelFile, JsonElement gradient) {
+	public static byte[] withGradient(byte[] settings, String modelFile, JsonElement gradient) {
 		JsonObject root = settings == null ? null : parse(new String(settings, StandardCharsets.UTF_8));
 		if (root == null) {
 			root = new JsonObject();

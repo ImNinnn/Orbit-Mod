@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.anim;
 
+import dev.orbit.cosmetic.common.anim.MiningTracker;
 import org.jspecify.annotations.Nullable;
 import net.minecraft.resources.Identifier;
 import dev.orbit.cosmetic.client.render.BakedCosmetic;

@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.library;
 
+import dev.orbit.cosmetic.common.library.CosmeticSettingsFile;
 import dev.orbit.cosmetic.common.anim.AnimationClip;
 import dev.orbit.cosmetic.common.anim.AnimationSettings;
 import dev.orbit.cosmetic.common.anim.AxisDrive;

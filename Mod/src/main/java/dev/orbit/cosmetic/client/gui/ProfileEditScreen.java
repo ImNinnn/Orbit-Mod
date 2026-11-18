@@ -7,7 +7,7 @@ import dev.orbit.cosmetic.client.gui.ui.FlatCycle;
 import dev.orbit.cosmetic.client.gui.ui.Hotspot;
 import dev.orbit.cosmetic.client.gui.ui.OrbitScreen;
 import dev.orbit.cosmetic.client.gui.ui.Theme;
-import dev.orbit.cosmetic.client.library.OrbitState;
+import dev.orbit.cosmetic.common.library.OrbitState;
 import dev.orbit.cosmetic.client.social.Profile;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.components.EditBox;

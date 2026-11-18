@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.skin;
 
+import dev.orbit.cosmetic.common.protocol.SkinSignal;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.gfx.OrbitTextures;
 import net.minecraft.resources.Identifier;
