@@ -1,5 +1,8 @@
 package dev.orbit.cosmetic.client.social;
 
+import dev.orbit.cosmetic.client.input.OrbitChar;
+import dev.orbit.cosmetic.client.input.OrbitClick;
+import dev.orbit.cosmetic.client.input.OrbitKey;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import com.google.gson.JsonObject;
 import com.mojang.blaze3d.platform.InputConstants;
@@ -29,8 +32,6 @@ import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.CharacterEvent;
-import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -437,12 +438,12 @@ public final class SocialScreen extends OrbitScreen {
 		}
 	}
 
-	private static boolean isEnter(KeyEvent event) {
+	private static boolean isEnter(OrbitKey event) {
 		return event.key() == InputConstants.KEY_RETURN || event.key() == InputConstants.KEY_NUMPADENTER;
 	}
 
 	@Override
-	public boolean keyPressed(KeyEvent event) {
+	public boolean keyPressed(OrbitKey event) {
 		if (memberMenu != null && event.key() == InputConstants.KEY_ESCAPE) {
 			memberMenu = null;
 			return true;
@@ -476,11 +477,11 @@ public final class SocialScreen extends OrbitScreen {
 	}
 
 	@Override
-	public boolean charTyped(CharacterEvent event) {
+	public boolean charTyped(OrbitChar event) {
 		// Typing anywhere writes the message (a space still presses what is focused).
 		if (input != null && !input.isFocused() && !(getFocused() instanceof EditBox) && event.codepoint() != ' ' && event.isAllowedChatCharacter()) {
 			setFocused(input);
-			return input.charTyped(event);
+			return event.typeInto(input);
 		}
 		return super.charTyped(event);
 	}
@@ -854,7 +855,7 @@ public final class SocialScreen extends OrbitScreen {
 	}
 
 	@Override
-	public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
+	public boolean mouseClicked(OrbitClick event, boolean doubleClick) {
 		MemberMenu menu = memberMenu;
 		if (menu != null) {
 			// The menu takes the click: a line does its action, anywhere else closes it.

@@ -1,5 +1,7 @@
 package dev.orbit.cosmetic.client.hud;
 
+import dev.orbit.cosmetic.client.input.OrbitClick;
+import dev.orbit.cosmetic.client.input.OrbitKey;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.orbit.cosmetic.client.OrbitClient;
@@ -18,8 +20,6 @@ import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import org.jspecify.annotations.Nullable;
@@ -845,7 +845,7 @@ public final class HudEditorScreen extends OrbitScreen {
 	}
 
 	@Override
-	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+	public boolean mouseClicked(OrbitClick event, boolean doubleClick) {
 		if (super.mouseClicked(event, doubleClick)) {
 			return true;
 		}
@@ -927,7 +927,7 @@ public final class HudEditorScreen extends OrbitScreen {
 	}
 
 	@Override
-	public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
+	public boolean mouseDragged(OrbitClick event, double dx, double dy) {
 		mouseX = (int) event.x();
 		mouseY = (int) event.y();
 		switch (drag) {
@@ -1064,7 +1064,7 @@ public final class HudEditorScreen extends OrbitScreen {
 	}
 
 	@Override
-	public boolean mouseReleased(MouseButtonEvent event) {
+	public boolean mouseReleased(OrbitClick event) {
 		if (drag == Drag.RECTANGLE) {
 			int[] r = rectangle();
 			if (r[2] > 3 || r[3] > 3) {
@@ -1115,7 +1115,7 @@ public final class HudEditorScreen extends OrbitScreen {
 	}
 
 	@Override
-	public boolean keyPressed(KeyEvent event) {
+	public boolean keyPressed(OrbitKey event) {
 		boolean typing = getFocused() instanceof EditBox;
 		if (!typing && !selection.isEmpty() && mode == Mode.EDIT) {
 			if (event.key() == InputConstants.KEY_DELETE || event.key() == InputConstants.KEY_BACKSPACE) {

@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.host;
 
+import dev.orbit.cosmetic.client.input.OrbitClick;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.Notifications;
 import dev.orbit.cosmetic.client.compat.Compat;
@@ -12,7 +13,6 @@ import dev.orbit.cosmetic.client.social.ShareScreen;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -293,7 +293,7 @@ public final class HostScreen extends OrbitScreen {
 	}
 
 	@Override
-	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+	public boolean mouseClicked(OrbitClick event, boolean doubleClick) {
 		if (super.mouseClicked(event, doubleClick)) {
 			return true;
 		}

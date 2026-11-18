@@ -1,5 +1,7 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.client.input.OrbitClick;
+import dev.orbit.cosmetic.client.input.OrbitKey;
 import dev.orbit.cosmetic.client.gui.ui.OrbitBaseScreen;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.OrbitKeys;
@@ -7,8 +9,6 @@ import dev.orbit.cosmetic.client.compat.Compat;
 import dev.orbit.cosmetic.client.gui.ui.Theme;
 import dev.orbit.cosmetic.client.gui.ui.FlatButton;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
 
@@ -59,8 +59,8 @@ public final class QuickMenuScreen extends OrbitBaseScreen {
 	}
 
 	@Override
-	public boolean keyReleased(KeyEvent event) {
-		if (OrbitKeys.quickMenuKey().matches(event)) {
+	public boolean keyReleased(OrbitKey event) {
+		if (event.matches(OrbitKeys.quickMenuKey())) {
 			open(chosen);
 			return true;
 		}
@@ -68,15 +68,15 @@ public final class QuickMenuScreen extends OrbitBaseScreen {
 	}
 
 	@Override
-	public boolean keyPressed(KeyEvent event) {
-		if (OrbitKeys.quickMenuKey().matches(event)) {
+	public boolean keyPressed(OrbitKey event) {
+		if (event.matches(OrbitKeys.quickMenuKey())) {
 			return true;
 		}
 		return super.keyPressed(event);
 	}
 
 	@Override
-	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+	public boolean mouseClicked(OrbitClick event, boolean doubleClick) {
 		if (super.mouseClicked(event, doubleClick)) {
 			return true;
 		}

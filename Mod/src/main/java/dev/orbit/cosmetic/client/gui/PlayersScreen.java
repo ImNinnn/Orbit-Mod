@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.client.input.OrbitClick;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.anim.Wearer;
@@ -10,7 +11,6 @@ import dev.orbit.cosmetic.client.gui.ui.Theme;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.network.chat.Component;
@@ -165,7 +165,7 @@ public final class PlayersScreen extends OrbitScreen {
 	}
 
 	@Override
-	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+	public boolean mouseClicked(OrbitClick event, boolean doubleClick) {
 		if (super.mouseClicked(event, doubleClick)) {
 			return true;
 		}

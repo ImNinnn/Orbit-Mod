@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.client.input.OrbitClick;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.gui.ui.FlatButton;
 import dev.orbit.cosmetic.client.gui.ui.FlatCycle;
@@ -13,7 +14,6 @@ import dev.orbit.cosmetic.common.anim.PhysicsLink;
 import dev.orbit.cosmetic.common.protocol.EquipCodec;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -102,18 +102,18 @@ public final class PhysicsScreen extends OrbitScreen {
 	}
 
 	@Override
-	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+	public boolean mouseClicked(OrbitClick event, boolean doubleClick) {
 		return super.mouseClicked(event, doubleClick) || preview.mouseClicked(event.x(), event.y());
 	}
 
 	@Override
-	public boolean mouseReleased(MouseButtonEvent event) {
+	public boolean mouseReleased(OrbitClick event) {
 		preview.mouseReleased();
 		return super.mouseReleased(event);
 	}
 
 	@Override
-	public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
+	public boolean mouseDragged(OrbitClick event, double dx, double dy) {
 		return preview.mouseDragged(dx) || super.mouseDragged(event, dx, dy);
 	}
 

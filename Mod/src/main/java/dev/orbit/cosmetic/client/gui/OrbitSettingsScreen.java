@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.client.input.OrbitClick;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.compat.Compat;
@@ -10,7 +11,6 @@ import dev.orbit.cosmetic.client.gui.ui.Theme;
 import dev.orbit.cosmetic.common.model.ModelLimits;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
@@ -436,7 +436,7 @@ public final class OrbitSettingsScreen extends OrbitScreen {
 	}
 
 	@Override
-	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+	public boolean mouseClicked(OrbitClick event, boolean doubleClick) {
 		if (super.mouseClicked(event, doubleClick)) {
 			return true;
 		}
@@ -457,7 +457,7 @@ public final class OrbitSettingsScreen extends OrbitScreen {
 	}
 
 	@Override
-	public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
+	public boolean mouseDragged(OrbitClick event, double dx, double dy) {
 		if (dragging != null) {
 			dragging.drag(event.x(), contentX, contentW);
 			return true;
@@ -466,7 +466,7 @@ public final class OrbitSettingsScreen extends OrbitScreen {
 	}
 
 	@Override
-	public boolean mouseReleased(MouseButtonEvent event) {
+	public boolean mouseReleased(OrbitClick event) {
 		dragging = null;
 		return super.mouseReleased(event);
 	}

@@ -1,5 +1,7 @@
 package dev.orbit.cosmetic.client.social;
 
+import dev.orbit.cosmetic.client.input.OrbitClick;
+import dev.orbit.cosmetic.client.input.OrbitKey;
 import dev.orbit.cosmetic.client.gui.ui.OrbitBaseScreen;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import com.google.gson.JsonObject;
@@ -9,8 +11,6 @@ import dev.orbit.cosmetic.client.compat.Compat;
 import dev.orbit.cosmetic.client.gui.ui.Theme;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import org.jspecify.annotations.Nullable;
 
@@ -65,7 +65,7 @@ final class FloatingChatInput extends OrbitBaseScreen {
 	}
 
 	@Override
-	public boolean keyPressed(KeyEvent event) {
+	public boolean keyPressed(OrbitKey event) {
 		if (event.key() == InputConstants.KEY_RETURN || event.key() == InputConstants.KEY_NUMPADENTER) {
 			String text = box.getValue().strip();
 			if (!text.isEmpty()) {
@@ -83,7 +83,7 @@ final class FloatingChatInput extends OrbitBaseScreen {
 	}
 
 	@Override
-	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+	public boolean mouseClicked(OrbitClick event, boolean doubleClick) {
 		if (super.mouseClicked(event, doubleClick)) {
 			return true;
 		}

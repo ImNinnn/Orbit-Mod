@@ -1,12 +1,11 @@
 package dev.orbit.cosmetic.client.gui.ui;
 
+import dev.orbit.cosmetic.client.input.OrbitClick;
+import dev.orbit.cosmetic.client.input.OrbitKey;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.client.input.MouseButtonInfo;
 import net.minecraft.network.chat.Component;
 
 import java.util.function.Consumer;
@@ -72,12 +71,12 @@ public final class Hotspot extends OrbitWidget {
 	}
 
 	@Override
-	protected boolean isValidClickButton(MouseButtonInfo button) {
-		return button.button() == InputConstants.MOUSE_BUTTON_LEFT || button.button() == InputConstants.MOUSE_BUTTON_RIGHT && onSecondary != null;
+	protected boolean acceptsButton(int button) {
+		return button == InputConstants.MOUSE_BUTTON_LEFT || button == InputConstants.MOUSE_BUTTON_RIGHT && onSecondary != null;
 	}
 
 	@Override
-	public void onClick(MouseButtonEvent event, boolean doubleClick) {
+	public void onClick(OrbitClick event, boolean doubleClick) {
 		if (event.button() == InputConstants.MOUSE_BUTTON_RIGHT) {
 			onSecondary.accept(this);
 		} else {
@@ -86,7 +85,7 @@ public final class Hotspot extends OrbitWidget {
 	}
 
 	@Override
-	public boolean keyPressed(KeyEvent event) {
+	public boolean keyPressed(OrbitKey event) {
 		if (!active || !visible || !isFocused()) {
 			return false;
 		}

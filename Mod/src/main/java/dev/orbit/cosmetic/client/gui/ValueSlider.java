@@ -1,12 +1,12 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.client.input.OrbitClick;
 import dev.orbit.cosmetic.client.gui.ui.OrbitWidget;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.gui.ui.Theme;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.narration.NarratedElementType;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 
@@ -48,12 +48,12 @@ final class ValueSlider extends OrbitWidget {
 	}
 
 	@Override
-	public void onClick(MouseButtonEvent event, boolean doubleClick) {
+	public void onClick(OrbitClick event, boolean doubleClick) {
 		setFromMouse(event.x());
 	}
 
 	@Override
-	protected void onDrag(MouseButtonEvent event, double dx, double dy) {
+	protected void onDrag(OrbitClick event, double dx, double dy) {
 		setFromMouse(event.x());
 	}
 

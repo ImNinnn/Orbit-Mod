@@ -1,13 +1,13 @@
 package dev.orbit.cosmetic.client.gui.ui;
 
+import dev.orbit.cosmetic.client.input.OrbitClick;
+import dev.orbit.cosmetic.client.input.OrbitKey;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.narration.NarratedElementType;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import org.jspecify.annotations.Nullable;
@@ -30,12 +30,12 @@ public final class SwitchButton extends OrbitWidget {
 	}
 
 	@Override
-	public void onClick(MouseButtonEvent event, boolean doubleClick) {
+	public void onClick(OrbitClick event, boolean doubleClick) {
 		set.accept(!get.getAsBoolean());
 	}
 
 	@Override
-	public boolean keyPressed(KeyEvent event) {
+	public boolean keyPressed(OrbitKey event) {
 		if (isFocused() && (event.key() == com.mojang.blaze3d.platform.InputConstants.KEY_RETURN || event.key() == com.mojang.blaze3d.platform.InputConstants.KEY_SPACE)) {
 			set.accept(!get.getAsBoolean());
 			return true;

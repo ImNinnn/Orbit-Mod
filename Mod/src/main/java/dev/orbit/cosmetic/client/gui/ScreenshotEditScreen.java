@@ -1,5 +1,7 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.client.input.OrbitClick;
+import dev.orbit.cosmetic.client.input.OrbitKey;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import com.mojang.blaze3d.platform.NativeImage;
 import dev.orbit.cosmetic.client.Notifications;
@@ -12,8 +14,6 @@ import dev.orbit.cosmetic.client.screenshot.ScreenshotLibrary;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -373,7 +373,7 @@ public final class ScreenshotEditScreen extends OrbitScreen {
 	}
 
 	@Override
-	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+	public boolean mouseClicked(OrbitClick event, boolean doubleClick) {
 		if (super.mouseClicked(event, doubleClick)) {
 			return true;
 		}
@@ -445,7 +445,7 @@ public final class ScreenshotEditScreen extends OrbitScreen {
 	}
 
 	@Override
-	public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
+	public boolean mouseDragged(OrbitClick event, double dx, double dy) {
 		if (drag == Drag.SV || drag == Drag.HUE || drag == Drag.ALPHA) {
 			pick(event.x(), event.y());
 			return true;
@@ -506,7 +506,7 @@ public final class ScreenshotEditScreen extends OrbitScreen {
 	}
 
 	@Override
-	public boolean mouseReleased(MouseButtonEvent event) {
+	public boolean mouseReleased(OrbitClick event) {
 		if (drag == Drag.DRAW) {
 			rebuildWidgets();
 		}
@@ -515,10 +515,10 @@ public final class ScreenshotEditScreen extends OrbitScreen {
 	}
 
 	@Override
-	public boolean keyPressed(KeyEvent event) {
+	public boolean keyPressed(OrbitKey event) {
 		// Ctrl+Z undoes, Ctrl+Shift+Z or Ctrl+Y redoes (the name box has no undo of its own).
-		if (event.hasControlDownWithQuirk() && !event.hasAltDown() && (Compat.isLetter(event, 'z') || Compat.isLetter(event, 'y'))) {
-			if (event.hasShiftDown() || Compat.isLetter(event, 'y')) {
+		if (event.hasControlDownWithQuirk() && !event.hasAltDown() && (event.isLetter('z') || event.isLetter('y'))) {
+			if (event.hasShiftDown() || event.isLetter('y')) {
 				redo();
 			} else {
 				undo();

@@ -1,5 +1,7 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.client.input.OrbitClick;
+import dev.orbit.cosmetic.client.input.OrbitKey;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.CosmeticStatus;
 import dev.orbit.cosmetic.client.Notifications;
@@ -38,8 +40,6 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
 import org.jspecify.annotations.Nullable;
@@ -1566,7 +1566,7 @@ public final class OrbitMenuScreen extends OrbitScreen {
 	// ---------------------------------------------------------------- input
 
 	@Override
-	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+	public boolean mouseClicked(OrbitClick event, boolean doubleClick) {
 		if (super.mouseClicked(event, doubleClick)) {
 			return true;
 		}
@@ -1628,7 +1628,7 @@ public final class OrbitMenuScreen extends OrbitScreen {
 	}
 
 	@Override
-	public boolean mouseReleased(MouseButtonEvent event) {
+	public boolean mouseReleased(OrbitClick event) {
 		if (draggingPreview && Math.abs(event.x() - pressX) < 3 && Math.abs(event.y() - pressY) < 3) {
 			// A click on a cosmetic of the big preview selects it.
 			Item item = hoveredAsset == null ? null : itemFor(hoveredAsset);
@@ -1641,7 +1641,7 @@ public final class OrbitMenuScreen extends OrbitScreen {
 	}
 
 	@Override
-	public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
+	public boolean mouseDragged(OrbitClick event, double dx, double dy) {
 		if (draggingPreview) {
 			panelYaw = (panelYaw - (float) dx * 2.5F) % 360;
 			return true;
@@ -1664,9 +1664,9 @@ public final class OrbitMenuScreen extends OrbitScreen {
 	}
 
 	@Override
-	public boolean keyPressed(KeyEvent event) {
+	public boolean keyPressed(OrbitKey event) {
 		// Ctrl+F searches; Enter or Down in the search goes to the first tile.
-		if (event.hasControlDownWithQuirk() && Compat.isLetter(event, 'f')) {
+		if (event.hasControlDownWithQuirk() && event.isLetter('f')) {
 			setFocused(searchBox);
 			return true;
 		}
@@ -1675,7 +1675,7 @@ public final class OrbitMenuScreen extends OrbitScreen {
 			setFocused(tileSpots.values().iterator().next());
 			return true;
 		}
-		if (!searchBox.isFocused() && !(outfitName != null && outfitName.isFocused()) && orbit().openMenuKey().matches(event)) {
+		if (!searchBox.isFocused() && !(outfitName != null && outfitName.isFocused()) && event.matches(orbit().openMenuKey())) {
 			onClose();
 			return true;
 		}

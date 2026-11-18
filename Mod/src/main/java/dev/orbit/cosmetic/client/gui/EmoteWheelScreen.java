@@ -1,5 +1,7 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.client.input.OrbitClick;
+import dev.orbit.cosmetic.client.input.OrbitKey;
 import dev.orbit.cosmetic.client.gui.ui.OrbitBaseScreen;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.OrbitClient;
@@ -13,8 +15,6 @@ import dev.orbit.cosmetic.client.library.EmoteLibrary;
 import dev.orbit.cosmetic.client.library.OrbitState;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
@@ -93,8 +93,8 @@ public final class EmoteWheelScreen extends OrbitBaseScreen {
 	}
 
 	@Override
-	public boolean keyReleased(KeyEvent event) {
-		if (OrbitClient.get().emoteWheelKey().matches(event)) {
+	public boolean keyReleased(OrbitKey event) {
+		if (event.matches(OrbitClient.get().emoteWheelKey())) {
 			play(chosen);
 			return true;
 		}
@@ -102,8 +102,8 @@ public final class EmoteWheelScreen extends OrbitBaseScreen {
 	}
 
 	@Override
-	public boolean keyPressed(KeyEvent event) {
-		if (OrbitClient.get().emoteWheelKey().matches(event)) {
+	public boolean keyPressed(OrbitKey event) {
+		if (event.matches(OrbitClient.get().emoteWheelKey())) {
 			// Opened with a quick tap: pressing the key again closes it (or plays the chosen emote on release).
 			return true;
 		}
@@ -111,7 +111,7 @@ public final class EmoteWheelScreen extends OrbitBaseScreen {
 	}
 
 	@Override
-	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+	public boolean mouseClicked(OrbitClick event, boolean doubleClick) {
 		if (super.mouseClicked(event, doubleClick)) {
 			return true;
 		}

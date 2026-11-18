@@ -1,5 +1,7 @@
 package dev.orbit.cosmetic.client.gui.servers;
 
+import dev.orbit.cosmetic.client.input.OrbitClick;
+import dev.orbit.cosmetic.client.input.OrbitKey;
 import dev.orbit.cosmetic.client.gui.ui.OrbitWidget;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import com.mojang.blaze3d.platform.InputConstants;
@@ -16,8 +18,6 @@ import net.minecraft.client.gui.components.StringWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -159,16 +159,16 @@ public final class ServerTabs {
 		}
 
 		@Override
-		public void onClick(MouseButtonEvent event, boolean doubleClick) {
+		public void onClick(OrbitClick event, boolean doubleClick) {
 			if (!selected) {
 				open(tab, parent);
 			}
 		}
 
 		@Override
-		public boolean keyPressed(KeyEvent event) {
+		public boolean keyPressed(OrbitKey event) {
 			if (isFocused() && (event.key() == InputConstants.KEY_RETURN || event.key() == InputConstants.KEY_SPACE || event.key() == InputConstants.KEY_NUMPADENTER)) {
-				onClick(null, false);
+				onClick((OrbitClick) null, false);
 				return true;
 			}
 			return false;
