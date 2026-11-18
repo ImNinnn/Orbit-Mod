@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.client.platform.OrbitPlatform;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.Updates;
@@ -9,7 +10,6 @@ import dev.orbit.cosmetic.client.gui.ui.FlatButton;
 import dev.orbit.cosmetic.client.gui.ui.Hotspot;
 import dev.orbit.cosmetic.client.gui.ui.OrbitScreen;
 import dev.orbit.cosmetic.client.gui.ui.Theme;
-import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
@@ -50,13 +50,13 @@ public final class UpdatePromptScreen extends OrbitScreen {
 
 	/** Asks on the first title screen of a start, after the terms. */
 	public static void register() {
-		ScreenEvents.AFTER_INIT.register((client, screen, width, height) -> {
+		OrbitPlatform.onScreenOpened((screen, hooks) -> {
 			ClientConfig config = OrbitClient.get().config();
 			String version = Updates.available();
 			if (screen instanceof TitleScreen && !shown && version != null && !version.equals(config.updatePromptSkipped)
 				&& (config.hasAcceptedTerms() || !config.useBackend)) {
 				shown = true;
-				client.execute(() -> Compat.setScreen(new UpdatePromptScreen(screen)));
+				Minecraft.getInstance().execute(() -> Compat.setScreen(new UpdatePromptScreen(screen)));
 			}
 		});
 	}

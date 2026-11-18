@@ -1,10 +1,10 @@
 package dev.orbit.cosmetic.client.host;
 
+import dev.orbit.cosmetic.client.platform.OrbitPlatform;
 import com.google.gson.JsonObject;
 import dev.orbit.cosmetic.client.Notifications;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.compat.Compat;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.network.chat.Component;
@@ -35,7 +35,7 @@ public final class Hosting {
 
 	public static boolean e4mcInstalled() {
 		// Development runs can pretend it is there, to test the host window on LAN only (-Dorbit.testE4mc=true).
-		return FabricLoader.getInstance().isModLoaded("e4mc") || FabricLoader.getInstance().isDevelopmentEnvironment() && Boolean.getBoolean("orbit.testE4mc");
+		return OrbitPlatform.isModLoaded("e4mc") || OrbitPlatform.isDevelopment() && Boolean.getBoolean("orbit.testE4mc");
 	}
 
 	/** The online address of the hosted world, or null. */

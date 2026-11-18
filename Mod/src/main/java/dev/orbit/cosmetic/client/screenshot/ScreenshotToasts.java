@@ -1,12 +1,10 @@
 package dev.orbit.cosmetic.client.screenshot;
 
+import dev.orbit.cosmetic.client.platform.OrbitPlatform;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.compat.Compat;
 import dev.orbit.cosmetic.client.gui.ui.Theme;
-import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
-import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
-import net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -56,14 +54,14 @@ public final class ScreenshotToasts {
 	}
 
 	public static void register() {
-		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(OrbitClient.MOD_ID, "screenshots"), (graphics, tick) -> {
+		OrbitPlatform.hudOnTop(Identifier.fromNamespaceAndPath(OrbitClient.MOD_ID, "screenshots"), (graphics, partialTick) -> {
 			if (Compat.screen() == null && !Compat.hudHidden()) {
-				draw(OrbitGraphics.of(graphics), -1, -1);
+				draw(graphics, -1, -1);
 			}
 		});
-		ScreenEvents.AFTER_INIT.register((client, screen, width, height) -> {
-			ScreenEvents.afterExtract(screen).register((current, graphics, mouseX, mouseY, partialTick) -> draw(OrbitGraphics.of(graphics), mouseX, mouseY));
-			ScreenMouseEvents.allowMouseClick(screen).register((current, event) -> !click(current, event.x(), event.y()));
+		OrbitPlatform.onScreenOpened((screen, hooks) -> {
+			hooks.afterDraw((graphics, mouseX, mouseY, partialTick) -> draw(graphics, mouseX, mouseY));
+			hooks.onClick((x, y) -> click(screen, x, y));
 		});
 	}
 

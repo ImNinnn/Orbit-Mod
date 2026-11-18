@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.net;
 
+import dev.orbit.cosmetic.client.platform.OrbitPlatform;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -473,7 +474,7 @@ final class BackendClient {
 	 * {@code -Dorbit.backendUrl}); a development backend has no Mojang sign-in. Never set in released games.
 	 */
 	private static final String devPlayer = System.getProperty("orbit.backendUrl") != null
-		&& net.fabricmc.loader.api.FabricLoader.getInstance().isDevelopmentEnvironment() ? System.getProperty("orbit.devPlayer") : null;
+		&& OrbitPlatform.isDevelopment() ? System.getProperty("orbit.devPlayer") : null;
 
 	/** True when this is a development run identified by {@link #devPlayer} (no Mojang sign-in needed). */
 	static boolean hasDevPlayer() {

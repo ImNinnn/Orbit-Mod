@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client;
 
+import dev.orbit.cosmetic.client.platform.OrbitPlatform;
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.orbit.cosmetic.client.compat.Compat;
 import dev.orbit.cosmetic.client.gui.QuickMenuScreen;
@@ -8,7 +9,6 @@ import dev.orbit.cosmetic.client.host.HostScreen;
 import dev.orbit.cosmetic.client.library.EmoteLibrary;
 import dev.orbit.cosmetic.client.library.OrbitState;
 import dev.orbit.cosmetic.client.social.SocialScreen;
-import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
@@ -33,22 +33,22 @@ public final class OrbitKeys {
 	private OrbitKeys() {
 	}
 
-	static void register(KeyMapping.Category category) {
-		host = key("host", InputConstants.KEY_H, category);
-		social = key("social", InputConstants.KEY_J, category);
-		screenshots = key("screenshots", InputConstants.KEY_I, category);
-		chatPeek = key("chat_peek", InputConstants.KEY_Z, category);
-		quickMenu = key("quick_menu", InputConstants.UNKNOWN.getValue(), category);
-		toggleCosmetics = key("toggle_cosmetics", InputConstants.UNKNOWN.getValue(), category);
-		hud = key("hud", InputConstants.UNKNOWN.getValue(), category);
-		hudProfile = key("hud_profile", InputConstants.UNKNOWN.getValue(), category);
+	static void register() {
+		host = key("host", InputConstants.KEY_H);
+		social = key("social", InputConstants.KEY_J);
+		screenshots = key("screenshots", InputConstants.KEY_I);
+		chatPeek = key("chat_peek", InputConstants.KEY_Z);
+		quickMenu = key("quick_menu", InputConstants.UNKNOWN.getValue());
+		toggleCosmetics = key("toggle_cosmetics", InputConstants.UNKNOWN.getValue());
+		hud = key("hud", InputConstants.UNKNOWN.getValue());
+		hudProfile = key("hud_profile", InputConstants.UNKNOWN.getValue());
 		for (int slot = 0; slot < EMOTE_SLOTS.length; slot++) {
-			EMOTE_SLOTS[slot] = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.orbit_cosmetic.emote_slot_" + (slot + 1), InputConstants.UNKNOWN.getValue(), category));
+			EMOTE_SLOTS[slot] = OrbitPlatform.key("emote_slot_" + (slot + 1), InputConstants.UNKNOWN.getValue());
 		}
 	}
 
-	private static KeyMapping key(String name, int key, KeyMapping.Category category) {
-		return KeyMappingHelper.registerKeyMapping(new KeyMapping("key.orbit_cosmetic." + name, key, category));
+	private static KeyMapping key(String name, int key) {
+		return OrbitPlatform.key(name, key);
 	}
 
 	public static KeyMapping quickMenuKey() {

@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.client.platform.OrbitPlatform;
 import dev.orbit.cosmetic.client.input.OrbitClick;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.OrbitClient;
@@ -486,8 +487,7 @@ public final class OrbitSettingsScreen extends OrbitScreen {
 		graphics.fill(panelX + 1, panelY + HEADER, panelX + panelW - 1, panelY + HEADER + 1, Theme.BORDER);
 		graphics.text(font, title, panelX + 8, panelY + 7, Theme.TEXT, false);
 		graphics.text(font, category.label(), contentX, panelY + 7, Theme.MUTED, false);
-		String version = net.fabricmc.loader.api.FabricLoader.getInstance().getModContainer(OrbitClient.MOD_ID)
-			.map(container -> container.getMetadata().getVersion().getFriendlyString()).orElse("dev");
+		String version = OrbitPlatform.version();
 		graphics.text(font, Component.translatable("orbit_cosmetic.settings.version", version), panelX + 8, panelY + panelH - 12, Theme.FAINT, false);
 	}
 

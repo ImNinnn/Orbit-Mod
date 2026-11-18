@@ -1,11 +1,9 @@
 package dev.orbit.cosmetic.client.hud;
 
+import dev.orbit.cosmetic.client.platform.OrbitPlatform;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.compat.Compat;
-import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
-import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
-import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
 
@@ -24,17 +22,16 @@ public final class HudRenderer {
 		HudLayout.components();
 		HudTargets.register();
 		// Under the chat: screens (the inventory too), toasts and Orbit's popups go over the components.
-		HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, ID, (graphics, tick) -> {
+		OrbitPlatform.hudUnderChat(ID, (graphics, partialTick) -> {
 			if (Compat.hudHidden() || Compat.screen() instanceof HudEditorScreen) {
 				return;
 			}
 			// With a screen open, the ones shown in menus are drawn over it instead.
-			draw(OrbitGraphics.of(graphics), Compat.screen() == null ? Filter.ALL : Filter.NOT_IN_MENUS, tick.getGameTimeDeltaPartialTick(false));
+			draw(graphics, Compat.screen() == null ? Filter.ALL : Filter.NOT_IN_MENUS, partialTick);
 		});
-		ScreenEvents.AFTER_INIT.register((client, screen, width, height) -> {
+		OrbitPlatform.onScreenOpened((screen, hooks) -> {
 			if (!(screen instanceof HudEditorScreen)) {
-				ScreenEvents.afterExtract(screen).register((current, extractor, mouseX, mouseY, partialTick) -> {
-					OrbitGraphics graphics = OrbitGraphics.of(extractor);
+				hooks.afterDraw((graphics, mouseX, mouseY, partialTick) -> {
 					graphics.layer();
 					draw(graphics, Filter.IN_MENUS, partialTick);
 				});

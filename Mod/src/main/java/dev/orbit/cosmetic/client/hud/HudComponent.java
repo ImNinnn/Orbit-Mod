@@ -1,16 +1,15 @@
 package dev.orbit.cosmetic.client.hud;
 
+import dev.orbit.cosmetic.client.platform.OrbitPlatform;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import com.google.gson.JsonObject;
 import dev.orbit.cosmetic.client.gui.ui.Theme;
 import dev.orbit.cosmetic.client.mixin.MultiPlayerGameModeAccessor;
 import dev.orbit.cosmetic.client.zoom.Zoom;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -1046,7 +1045,7 @@ public final class HudComponent {
 		if (namespace.equals("minecraft")) {
 			return "Minecraft";
 		}
-		return FabricLoader.getInstance().getModContainer(namespace).map(container -> container.getMetadata().getName()).orElse(namespace);
+		return OrbitPlatform.modName(namespace);
 	}
 
 	private static String healthText(LivingEntity living) {

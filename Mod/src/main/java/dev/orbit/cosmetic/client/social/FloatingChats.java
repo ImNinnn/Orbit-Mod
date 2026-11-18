@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.social;
 
+import dev.orbit.cosmetic.client.platform.OrbitPlatform;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -7,9 +8,6 @@ import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.compat.Compat;
 import dev.orbit.cosmetic.client.gui.ui.Theme;
 import dev.orbit.cosmetic.client.hud.HudLayout;
-import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
-import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
-import net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -240,12 +238,12 @@ public final class FloatingChats {
 
 	public static void register() {
 		// With the HUD components, under the chat (screens and notifications go over them).
-		HudElementRegistry.attachElementAfter(dev.orbit.cosmetic.client.hud.HudRenderer.ID, Identifier.fromNamespaceAndPath(OrbitClient.MOD_ID, "floating_chats"), (graphics, tick) -> {
+		OrbitPlatform.hudAfter(dev.orbit.cosmetic.client.hud.HudRenderer.ID, Identifier.fromNamespaceAndPath(OrbitClient.MOD_ID, "floating_chats"), (graphics, partialTick) -> {
 			if (Compat.screen() == null && !Compat.hudHidden() && available()) {
-				draw(OrbitGraphics.of(graphics), -1, -1, false);
+				draw(graphics, -1, -1, false);
 			}
 		});
-		ScreenEvents.AFTER_INIT.register((client, screen, width, height) -> {
+		OrbitPlatform.onScreenOpened((screen, hooks) -> {
 			// A new screen ends any drag (its button release goes to the new screen).
 			dragging = null;
 			if (!interactive(screen)) {
@@ -259,18 +257,18 @@ public final class FloatingChats {
 			}
 			if (!(screen instanceof FloatingChatInput)) {
 				// The message box draws the windows itself, under its text field.
-				ScreenEvents.afterExtract(screen).register((current, graphics, mouseX, mouseY, partialTick) -> draw(OrbitGraphics.of(graphics), mouseX, mouseY, true));
+				hooks.afterDraw((graphics, mouseX, mouseY, partialTick) -> draw(graphics, mouseX, mouseY, true));
 			}
-			ScreenMouseEvents.allowMouseClick(screen).register((current, event) -> !click(current, event.x(), event.y()));
-			ScreenMouseEvents.allowMouseRelease(screen).register((current, event) -> {
+			hooks.onClick((x, y) -> click(screen, x, y));
+			hooks.onRelease((x, y) -> {
 				boolean was = dragging != null;
 				dragging = null;
 				if (was) {
 					HudLayout.save();
 				}
-				return !was;
+				return was;
 			});
-			ScreenMouseEvents.allowMouseScroll(screen).register((current, mouseX, mouseY, scrollX, scrollY) -> !scroll(mouseX, mouseY, scrollY));
+			hooks.onScroll((x, y, amount) -> scroll(x, y, amount));
 		});
 	}
 

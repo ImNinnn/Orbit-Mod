@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.client.platform.OrbitPlatform;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.OrbitClient;
@@ -14,9 +15,6 @@ import dev.orbit.cosmetic.client.library.OrbitState;
 import dev.orbit.cosmetic.client.social.Social;
 import dev.orbit.cosmetic.client.social.SocialScreen;
 import dev.orbit.cosmetic.common.protocol.AssetId;
-import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
-import net.fabricmc.fabric.api.client.screen.v1.Screens;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.client.gui.screens.Screen;
@@ -40,7 +38,7 @@ import java.util.WeakHashMap;
 public final class MenuPlayer {
 	private static final PreviewModel MODEL = new PreviewModel();
 	private static final Random RANDOM = new Random();
-	private static final boolean ESSENTIAL = FabricLoader.getInstance().isModLoaded("essential") || FabricLoader.getInstance().isModLoaded("essential-container");
+	private static final boolean ESSENTIAL = OrbitPlatform.isModLoaded("essential") || OrbitPlatform.isModLoaded("essential-container");
 	/**
 	 * The Options button of each screen, and Orbit's buttons on it. Other mods (Essential, Mod Menu) may move the
 	 * vanilla buttons after the screen is set up, so Orbit's follow the Options button every frame.
@@ -58,12 +56,12 @@ public final class MenuPlayer {
 	}
 
 	public static void register() {
-		ScreenEvents.AFTER_INIT.register((client, screen, width, height) -> {
+		OrbitPlatform.onScreenOpened((screen, hooks) -> {
 			if (screen instanceof TitleScreen || screen instanceof PauseScreen pause && pause.showsPauseMenu()) {
-				OPTIONS.put(screen, optionsButton(screen));
-				addButtons(screen);
-				ScreenEvents.beforeExtract(screen).register((current, graphics, mouseX, mouseY, partialTick) -> placeButtons(current));
-				ScreenEvents.afterExtract(screen).register((current, graphics, mouseX, mouseY, partialTick) -> draw(current, OrbitGraphics.of(graphics), mouseX, mouseY, partialTick));
+				OPTIONS.put(screen, optionsButton(hooks.widgets()));
+				addButtons(screen, hooks.widgets());
+				hooks.beforeDraw((graphics, mouseX, mouseY, partialTick) -> placeButtons(screen));
+				hooks.afterDraw((graphics, mouseX, mouseY, partialTick) -> draw(screen, graphics, mouseX, mouseY, partialTick));
 			}
 		});
 	}
@@ -76,8 +74,8 @@ public final class MenuPlayer {
 	}
 
 	/** The screen's Options button, or null if it has none. */
-	private static AbstractWidget optionsButton(Screen screen) {
-		for (var widget : Screens.getWidgets(screen)) {
+	private static AbstractWidget optionsButton(List<AbstractWidget> widgets) {
+		for (var widget : widgets) {
 			if (widget instanceof AbstractWidget button && button.getMessage().getContents() instanceof TranslatableContents text && "menu.options".equals(text.getKey())) {
 				return button;
 			}
@@ -140,7 +138,7 @@ public final class MenuPlayer {
 		return options.getY() + (screen instanceof PauseScreen ? 24 : 0);
 	}
 
-	private static void addButtons(Screen screen) {
+	private static void addButtons(Screen screen, List<AbstractWidget> widgets) {
 		List<FlatButton> buttons = new ArrayList<>();
 		int width = stackWidth(screen);
 		buttons.add(stackButton(width, "host", "orbit_cosmetic.menu.host", b -> Compat.setScreen(new HostScreen(screen))));
@@ -154,7 +152,7 @@ public final class MenuPlayer {
 		if (update != null) {
 			FlatButton arrow = FlatButton.icon(0, 0, 20, "download", Component.translatable("orbit_cosmetic.update.button", update), FlatButton.Style.PRIMARY,
 				b -> Compat.setScreen(new UpdatePromptScreen(screen)));
-			Screens.getWidgets(screen).add(arrow);
+			widgets.add(arrow);
 			UPDATE.put(screen, arrow);
 		}
 		buttons.add(stackButton(width, "account", "orbit_cosmetic.menu.stats", b -> Compat.setScreen(new StatsScreen(screen))));
@@ -167,9 +165,9 @@ public final class MenuPlayer {
 			players.active = PlayersScreen.available();
 			under.add(players);
 		}
-		Screens.getWidgets(screen).addAll(under);
-		Screens.getWidgets(screen).add(new Announcement(screen));
-		Screens.getWidgets(screen).addAll(buttons);
+		widgets.addAll(under);
+		widgets.add(new Announcement(screen));
+		widgets.addAll(buttons);
 		UNDER.put(screen, under);
 		BUTTONS.put(screen, buttons);
 		placeButtons(screen);

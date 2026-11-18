@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.hud;
 
+import dev.orbit.cosmetic.client.platform.OrbitPlatform;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -7,7 +8,6 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.social.FloatingChats;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.HumanoidArm;
 import org.jspecify.annotations.Nullable;
@@ -61,7 +61,7 @@ public final class HudLayout {
 	}
 
 	private static Path file() {
-		return FabricLoader.getInstance().getConfigDir().resolve("orbit_hud.json");
+		return OrbitPlatform.configDir().resolve("orbit_hud.json");
 	}
 
 	/** The components shown: the pinned ones and the active profile's. */

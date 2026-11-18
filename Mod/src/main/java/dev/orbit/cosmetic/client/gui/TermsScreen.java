@@ -1,5 +1,7 @@
 package dev.orbit.cosmetic.client.gui;
 
+import net.minecraft.client.Minecraft;
+import dev.orbit.cosmetic.client.platform.OrbitPlatform;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.compat.Compat;
@@ -8,7 +10,6 @@ import dev.orbit.cosmetic.client.gui.ui.FlatButton;
 import dev.orbit.cosmetic.client.gui.ui.OrbitScreen;
 import dev.orbit.cosmetic.client.gui.ui.Theme;
 import dev.orbit.cosmetic.client.net.OrbitCloud;
-import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
@@ -42,11 +43,11 @@ public final class TermsScreen extends OrbitScreen {
 
 	/** Shows the terms over the first title screen while they are not accepted. */
 	public static void register() {
-		ScreenEvents.AFTER_INIT.register((client, screen, width, height) -> {
+		OrbitPlatform.onScreenOpened((screen, hooks) -> {
 			ClientConfig config = OrbitClient.get().config();
 			if (screen instanceof TitleScreen && !shown && config.useBackend && !config.hasAcceptedTerms()) {
 				shown = true;
-				client.execute(() -> Compat.setScreen(new TermsScreen(screen)));
+				Minecraft.getInstance().execute(() -> Compat.setScreen(new TermsScreen(screen)));
 			}
 		});
 	}

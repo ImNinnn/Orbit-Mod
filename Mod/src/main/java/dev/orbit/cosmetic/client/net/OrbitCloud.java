@@ -1,6 +1,6 @@
 package dev.orbit.cosmetic.client.net;
 
-import net.fabricmc.loader.api.FabricLoader;
+import dev.orbit.cosmetic.client.platform.OrbitPlatform;
 
 /**
  * Where Orbit Cloud is. It is fixed: the mod only talks to the official, moderated Orbit Cloud. Development runs
@@ -23,7 +23,7 @@ public final class OrbitCloud {
 	/** Orbit Cloud's address, without a trailing slash. */
 	public static String url() {
 		String override = System.getProperty("orbit.backendUrl");
-		if (override != null && FabricLoader.getInstance().isDevelopmentEnvironment()) {
+		if (override != null && OrbitPlatform.isDevelopment()) {
 			return override.trim().replaceAll("/+$", "");
 		}
 		return URL;

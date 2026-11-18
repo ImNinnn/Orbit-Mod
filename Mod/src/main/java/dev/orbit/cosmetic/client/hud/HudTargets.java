@@ -1,7 +1,6 @@
 package dev.orbit.cosmetic.client.hud;
 
-import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
-import net.minecraft.world.InteractionResult;
+import dev.orbit.cosmetic.client.platform.OrbitPlatform;
 import net.minecraft.world.entity.LivingEntity;
 import org.jspecify.annotations.Nullable;
 
@@ -19,13 +18,12 @@ public final class HudTargets {
 	}
 
 	static void register() {
-		AttackEntityCallback.EVENT.register((player, level, hand, entity, hit) -> {
-			if (level.isClientSide() && entity instanceof LivingEntity living) {
+		OrbitPlatform.onAttack(entity -> {
+			if (entity instanceof LivingEntity living) {
 				lastHit = new WeakReference<>(living);
 				hitAt = System.currentTimeMillis();
 				diedAt = 0;
 			}
-			return InteractionResult.PASS;
 		});
 	}
 

@@ -1,11 +1,11 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.client.platform.OrbitPlatform;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import dev.orbit.cosmetic.client.Notifications;
-import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.compat.Compat;
 import dev.orbit.cosmetic.client.gui.preview.PreviewBatch;
 import dev.orbit.cosmetic.client.gui.preview.PreviewModel;
@@ -15,7 +15,6 @@ import dev.orbit.cosmetic.client.gui.ui.Theme;
 import dev.orbit.cosmetic.client.social.Profile;
 import dev.orbit.cosmetic.client.social.Social;
 import dev.orbit.cosmetic.common.protocol.AssetId;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Tooltip;
@@ -215,8 +214,7 @@ public final class StatsScreen extends OrbitScreen {
 
 		Component footer = own
 			? Component.translatable(orbit().config().shareStatistics ? "orbit_cosmetic.stats.shared" : "orbit_cosmetic.stats.not_shared").withStyle(ChatFormatting.GRAY)
-			: Component.translatable("orbit_cosmetic.account.version", FabricLoader.getInstance().getModContainer(OrbitClient.MOD_ID)
-				.map(mod -> mod.getMetadata().getVersion().getFriendlyString()).orElse("?")).withStyle(ChatFormatting.DARK_GRAY);
+			: Component.translatable("orbit_cosmetic.account.version", OrbitPlatform.version()).withStyle(ChatFormatting.DARK_GRAY);
 		// Up to two lines, from the bottom up (small windows wrap it).
 		List<FormattedCharSequence> footerLines = font.split(footer, contentW).stream().limit(2).toList();
 		for (int i = 0; i < footerLines.size(); i++) {

@@ -1,12 +1,11 @@
 package dev.orbit.cosmetic.client.social;
 
+import dev.orbit.cosmetic.client.platform.OrbitPlatform;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.gui.ui.Theme;
-import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import org.jspecify.annotations.Nullable;
@@ -33,15 +32,14 @@ public final class PartyBanner {
 	private static long lastFrame;
 
 	public static void register() {
-		ScreenEvents.AFTER_INIT.register((client, screen, width, height) -> ScreenEvents.afterExtract(screen).register((current, extractor, mouseX, mouseY, partialTick) -> {
+		OrbitPlatform.onScreenOpened((screen, hooks) -> hooks.afterDraw((graphics, mouseX, mouseY, partialTick) -> {
 			Component line = line();
 			if (line != null) {
-				OrbitGraphics graphics = OrbitGraphics.of(extractor);
 				graphics.layer();
 				Social.Party party = OrbitClient.get().social().party();
 				// Alone in it: grey ("No one in party").
 				int color = party != null && party.members().size() < 2 ? 0xA0A0A0 : GREEN;
-				draw(graphics, Minecraft.getInstance().font, current.width, line, mouseX, mouseY, color);
+				draw(graphics, Minecraft.getInstance().font, screen.width, line, mouseX, mouseY, color);
 			}
 		}));
 	}

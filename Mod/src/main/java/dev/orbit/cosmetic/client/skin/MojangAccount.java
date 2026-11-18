@@ -1,11 +1,11 @@
 package dev.orbit.cosmetic.client.skin;
 
+import dev.orbit.cosmetic.client.platform.OrbitPlatform;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import dev.orbit.cosmetic.client.OrbitClient;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 
 import java.io.ByteArrayOutputStream;
@@ -87,7 +87,7 @@ public final class MojangAccount {
 		this.changed = changed;
 		// Tests point this at a local fake of Mojang's API; only in a development environment.
 		String override = System.getProperty("orbit.mojangApi");
-		this.api = override != null && FabricLoader.getInstance().isDevelopmentEnvironment() ? override.replaceAll("/+$", "") : API;
+		this.api = override != null && OrbitPlatform.isDevelopment() ? override.replaceAll("/+$", "") : API;
 	}
 
 	/** The account as last fetched, or null before that. */

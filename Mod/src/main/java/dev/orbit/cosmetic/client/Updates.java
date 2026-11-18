@@ -1,6 +1,6 @@
 package dev.orbit.cosmetic.client;
 
-import net.fabricmc.loader.api.FabricLoader;
+import dev.orbit.cosmetic.client.platform.OrbitPlatform;
 import org.jspecify.annotations.Nullable;
 
 import java.util.function.Consumer;
@@ -102,7 +102,7 @@ public final class Updates {
 
 	/** This mod's version, such as 0.3.5. */
 	public static String modVersion() {
-		return FabricLoader.getInstance().getModContainer(OrbitClient.MOD_ID).map(mod -> mod.getMetadata().getVersion().getFriendlyString()).orElse("dev");
+		return OrbitPlatform.version();
 	}
 
 	/** True when version {@code a} (like 0.3.5) is older than {@code b}; false when either is not a version. */

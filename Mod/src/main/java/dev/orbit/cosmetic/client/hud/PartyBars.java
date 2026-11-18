@@ -1,11 +1,10 @@
 package dev.orbit.cosmetic.client.hud;
 
+import dev.orbit.cosmetic.client.platform.OrbitPlatform;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.gui.ui.Theme;
 import dev.orbit.cosmetic.client.social.PartyLink;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
@@ -59,7 +58,7 @@ final class PartyBars {
 	private static final int ARMOR = 0xFFC8CDD3;
 	private static final int AIR_COLOR = 0xFF4FA3FF;
 	/** With AppleSkin, members' saturation and exhaustion show on their hunger as AppleSkin shows the player's. */
-	static boolean appleSkin = FabricLoader.getInstance().isModLoaded("appleskin");
+	static boolean appleSkin = OrbitPlatform.isModLoaded("appleskin");
 	static final int SATURATION = 0xFFF5D24A;
 	private static final int HEALTH = 0xFFE03A3A;
 	private static final int POISONED = 0xFFA3A82B;

@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.net;
 
+import dev.orbit.cosmetic.client.platform.OrbitPlatform;
 import dev.orbit.cosmetic.client.Notifications;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.anim.Wearer;
@@ -306,8 +307,7 @@ public final class BackendSync {
 			return null;
 		}
 		try {
-			String version = net.fabricmc.loader.api.FabricLoader.getInstance().getModContainer(OrbitClient.MOD_ID)
-				.map(container -> container.getMetadata().getVersion().getFriendlyString()).orElse("dev");
+			String version = OrbitPlatform.version();
 			BackendClient candidate = client != null && client.baseUrl().equals(OrbitCloud.url()) ? client : new BackendClient(OrbitCloud.url(), version);
 			if (candidate != client) {
 				uploaded.clear();

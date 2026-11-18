@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.gui.servers;
 
+import dev.orbit.cosmetic.client.platform.OrbitPlatform;
 import dev.orbit.cosmetic.client.input.OrbitClick;
 import dev.orbit.cosmetic.client.input.OrbitKey;
 import dev.orbit.cosmetic.client.gui.ui.OrbitWidget;
@@ -8,8 +9,6 @@ import com.mojang.blaze3d.platform.InputConstants;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.compat.Compat;
 import dev.orbit.cosmetic.client.mixin.JoinMultiplayerScreenAccessor;
-import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
-import net.fabricmc.fabric.api.client.screen.v1.Screens;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.components.AbstractSelectionList;
@@ -18,7 +17,6 @@ import net.minecraft.client.gui.components.StringWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import org.jspecify.annotations.Nullable;
@@ -47,10 +45,10 @@ public final class ServerTabs {
 	}
 
 	public static void register() {
-		ScreenEvents.AFTER_INIT.register((client, screen, width, height) -> {
+		OrbitPlatform.onScreenOpened((screen, hooks) -> {
 			if (screen instanceof JoinMultiplayerScreen && OrbitClient.get().config().useBackend) {
 				// The tabs take the title's place.
-				for (var widget : Screens.getWidgets(screen)) {
+				for (var widget : hooks.widgets()) {
 					if (widget instanceof StringWidget text && text.getMessage().getString().equals(screen.getTitle().getString())) {
 						text.visible = false;
 					}
@@ -65,7 +63,7 @@ public final class ServerTabs {
 				}
 				List<AbstractWidget> tabs = tabs(screen.width, FAVORITES, parent);
 				underTabs(multiplayer.orbit$serverList(), tabs);
-				Screens.getWidgets(screen).addAll(tabs);
+				hooks.widgets().addAll(tabs);
 			}
 		});
 	}

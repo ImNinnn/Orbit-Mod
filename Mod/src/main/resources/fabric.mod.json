@@ -11,7 +11,7 @@
 			"dev.orbit.cosmetic.client.update.UpdateCheck"
 		],
 		"client": [
-			"dev.orbit.cosmetic.client.OrbitClient"
+			"dev.orbit.cosmetic.client.platform.OrbitFabric"
 		],
 		"modmenu": [
 			"dev.orbit.cosmetic.client.gui.OrbitModMenu"

@@ -1,5 +1,7 @@
 package dev.orbit.cosmetic.client;
 
+import net.minecraft.world.phys.Vec3;
+import dev.orbit.cosmetic.client.platform.OrbitPlatform;
 import dev.orbit.cosmetic.client.render.PlayerFrame;
 import dev.orbit.cosmetic.client.gfx.PlayerState;
 import dev.orbit.cosmetic.client.gfx.PlayerBody;
@@ -9,7 +11,6 @@ import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.orbit.cosmetic.client.anim.Wearer;
 import dev.orbit.cosmetic.client.compat.Compat;
-import dev.orbit.cosmetic.client.compat.PreviewRenderer;
 import dev.orbit.cosmetic.client.config.ClientConfig;
 import dev.orbit.cosmetic.client.emote.EmoteController;
 import dev.orbit.cosmetic.client.gui.EmoteWheelScreen;
@@ -24,7 +25,6 @@ import dev.orbit.cosmetic.client.library.OrbitState;
 import dev.orbit.cosmetic.client.net.AssetCache;
 import dev.orbit.cosmetic.client.net.BackendSync;
 import dev.orbit.cosmetic.client.net.RemotePlayers;
-import dev.orbit.cosmetic.client.render.CosmeticLayer;
 import dev.orbit.cosmetic.client.render.CosmeticRegistry;
 import dev.orbit.cosmetic.client.render.CosmeticRenderer;
 import dev.orbit.cosmetic.client.render.RenderPiece;
@@ -36,19 +36,12 @@ import dev.orbit.cosmetic.common.emote.BodyPose;
 import dev.orbit.cosmetic.common.model.Anchor;
 import dev.orbit.cosmetic.common.protocol.AssetId;
 import dev.orbit.cosmetic.common.protocol.EquippedCosmetic;
-import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
-import net.fabricmc.fabric.api.client.rendering.v1.LivingEntityRenderLayerRegistrationCallback;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.client.renderer.entity.player.AvatarRenderer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FontDescription;
 import net.minecraft.resources.Identifier;
@@ -58,9 +51,6 @@ import dev.orbit.cosmetic.client.render.BakedCosmetic;
 import dev.orbit.cosmetic.client.anim.ParticleSystem;
 import dev.orbit.cosmetic.common.anim.ParticleSettings;
 import dev.orbit.cosmetic.common.model.Bone;
-import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext;
-import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
-import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.util.Mth;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
@@ -72,17 +62,18 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.WeakHashMap;
 import java.util.function.Supplier;
 
-/** Client entrypoint and the hub connecting the libraries, Orbit Cloud, emotes, animation and rendering. */
-public final class OrbitClient implements ClientModInitializer {
+/**
+ * The hub connecting the libraries, Orbit Cloud, emotes, animation and rendering. Started by the loader's entrypoint
+ * (platform/OrbitFabric on Fabric).
+ */
+public final class OrbitClient {
 	public static final String MOD_ID = "orbit_cosmetic";
 	public static final Logger LOGGER = LoggerFactory.getLogger("Orbit");
 
@@ -121,15 +112,14 @@ public final class OrbitClient implements ClientModInitializer {
 	private final AnimationClock clock = new AnimationClock();
 	private ClientLevel clockLevel;
 	/** Own cosmetics already announced as shared (or worn when the Orbit Cloud session started). */
-	private final Set<Object> layeredRenderers = Collections.newSetFromMap(new WeakHashMap<>());
 	private Supplier<OrbitSkin> menuSkin;
 
 	public static OrbitClient get() {
 		return instance;
 	}
 
-	@Override
-	public void onInitializeClient() {
+	/** Starts Orbit, once, when the game starts. */
+	public void start() {
 		instance = this;
 		OrbitLog.install();
 		Minecraft minecraft = Minecraft.getInstance();
@@ -162,35 +152,28 @@ public final class OrbitClient implements ClientModInitializer {
 			backend.markDirty();
 		});
 
-		ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
+		OrbitPlatform.onJoin(() -> {
 			backend.onJoin();
 			updateLocalWearer();
 		});
-		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> client.execute(() -> {
+		OrbitPlatform.onLeave(() -> {
 			emoteController.stop();
 			backend.onDisconnect();
 			clockLevel = null;
 			localWearer = null;
-		}));
-
-		LivingEntityRenderLayerRegistrationCallback.EVENT.register((entityType, renderer, helper, context) -> {
-			// Player and mannequin renderers; only players ever get cosmetic data. Guard against double registration.
-			if (renderer instanceof AvatarRenderer<?> avatar && layeredRenderers.add(avatar)) {
-				helper.register(new CosmeticLayer(avatar));
-			}
 		});
-		PreviewRenderer.register();
 
-		KeyMapping.Category category = KeyMapping.Category.register(Identifier.fromNamespaceAndPath(MOD_ID, "main"));
-		openMenu = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.orbit_cosmetic.open_menu", InputConstants.KEY_B, category));
-		emoteWheel = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.orbit_cosmetic.emote_wheel", InputConstants.KEY_R, category));
-		dev.orbit.cosmetic.client.zoom.Zoom.setKey(KeyMappingHelper.registerKeyMapping(new KeyMapping("key.orbit_cosmetic.zoom", InputConstants.KEY_C, category)));
-		OrbitKeys.register(category);
+		OrbitPlatform.registerRenderers();
 
-		ClientTickEvents.END_CLIENT_TICK.register(this::tick);
+		openMenu = OrbitPlatform.key("open_menu", InputConstants.KEY_B);
+		emoteWheel = OrbitPlatform.key("emote_wheel", InputConstants.KEY_R);
+		dev.orbit.cosmetic.client.zoom.Zoom.setKey(OrbitPlatform.key("zoom", InputConstants.KEY_C));
+		OrbitKeys.register();
+
+		OrbitPlatform.onTick(() -> tick(minecraft));
 		// Particles live in the world, so they are drawn with it rather than with their player.
-		LevelRenderEvents.COLLECT_SUBMITS.register(this::submitParticles);
-		ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
+		OrbitPlatform.onWorldDraw(this::submitParticles);
+		OrbitPlatform.onStopping(() -> {
 			backend.onStop();
 			backend.shutdown();
 			registry.releaseAll();
@@ -516,13 +499,12 @@ public final class OrbitClient implements ClientModInitializer {
 	}
 
 	/** Draws every player's particles in the world (and starts the local player's in first person, where they are not drawn). */
-	private void submitParticles(LevelRenderContext context) {
-		CameraRenderState camera = context.levelState().cameraRenderState;
+	private void submitParticles(OrbitCanvas canvas, PoseStack poseStack, Vec3 camera, Quaternionf orientation) {
 		if (Minecraft.getInstance().options.getCameraType().isFirstPerson() && localWearer != null) {
 			emitFirstPerson();
 		}
-		Vector3f right = new Vector3f(1, 0, 0).rotate(camera.orientation);
-		Vector3f up = new Vector3f(0, 1, 0).rotate(camera.orientation);
+		Vector3f right = new Vector3f(1, 0, 0).rotate(orientation);
+		Vector3f up = new Vector3f(0, 1, 0).rotate(orientation);
 		Matrix4f identity = new Matrix4f();
 		List<Wearer> wearers = new ArrayList<>(remotes.wearers().values());
 		if (localWearer != null) {
@@ -533,7 +515,7 @@ public final class OrbitClient implements ClientModInitializer {
 			system.update();
 			if (!system.isEmpty()) {
 				// Lit from above in the world, like the top of a block.
-				ParticleRenderer.submit(system, camera.pos.x, camera.pos.y, camera.pos.z, identity, right, up, new Vector3f(0, 1, 0), context.poseStack(), OrbitCanvas.of(context.submitNodeCollector()));
+				ParticleRenderer.submit(system, camera.x, camera.y, camera.z, identity, right, up, new Vector3f(0, 1, 0), poseStack, canvas);
 			}
 		}
 	}

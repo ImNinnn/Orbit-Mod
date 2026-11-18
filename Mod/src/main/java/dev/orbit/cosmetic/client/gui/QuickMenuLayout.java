@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.client.platform.OrbitPlatform;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -16,7 +17,6 @@ import dev.orbit.cosmetic.client.library.EmoteLibrary;
 import dev.orbit.cosmetic.client.library.OrbitState;
 import dev.orbit.cosmetic.client.skin.SkinLibrary;
 import dev.orbit.cosmetic.client.social.SocialScreen;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import org.jspecify.annotations.Nullable;
@@ -248,7 +248,7 @@ public final class QuickMenuLayout {
 	}
 
 	private static Path file() {
-		return FabricLoader.getInstance().getConfigDir().resolve("orbit_quick_menu.json");
+		return OrbitPlatform.configDir().resolve("orbit_quick_menu.json");
 	}
 
 	/** The square at this index (row by row). */

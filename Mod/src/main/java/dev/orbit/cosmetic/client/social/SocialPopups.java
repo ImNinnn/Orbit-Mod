@@ -1,13 +1,11 @@
 package dev.orbit.cosmetic.client.social;
 
+import dev.orbit.cosmetic.client.platform.OrbitPlatform;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import com.google.gson.JsonObject;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.compat.Compat;
 import dev.orbit.cosmetic.client.gui.ui.Theme;
-import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
-import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
-import net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -130,14 +128,14 @@ public final class SocialPopups {
 	}
 
 	public static void register() {
-		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(OrbitClient.MOD_ID, "social_popups"), (graphics, tick) -> {
+		OrbitPlatform.hudOnTop(Identifier.fromNamespaceAndPath(OrbitClient.MOD_ID, "social_popups"), (graphics, partialTick) -> {
 			if (Compat.screen() == null && !Compat.hudHidden()) {
-				draw(OrbitGraphics.of(graphics), -1, -1);
+				draw(graphics, -1, -1);
 			}
 		});
-		ScreenEvents.AFTER_INIT.register((client, screen, width, height) -> {
-			ScreenEvents.afterExtract(screen).register((current, graphics, mouseX, mouseY, partialTick) -> draw(OrbitGraphics.of(graphics), mouseX, mouseY));
-			ScreenMouseEvents.allowMouseClick(screen).register((current, event) -> !click(current, event.x(), event.y()));
+		OrbitPlatform.onScreenOpened((screen, hooks) -> {
+			hooks.afterDraw((graphics, mouseX, mouseY, partialTick) -> draw(graphics, mouseX, mouseY));
+			hooks.onClick((x, y) -> click(screen, x, y));
 		});
 	}
 
