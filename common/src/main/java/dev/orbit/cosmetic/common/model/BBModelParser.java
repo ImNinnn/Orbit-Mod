@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.common.model;
 
+import dev.orbit.cosmetic.common.util.Clamp;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -236,7 +237,7 @@ public final class BBModelParser {
 			}
 			// Blockbench's animated textures: frames stacked in the image, each shown this many ticks (the cosmetic's
 			// settings can change it; see TextureAnimation).
-			int frameTime = texture.has("frame_time") ? (int) Math.clamp(Math.round(number(texture, "frame_time", 1)), 1, 200) : 0;
+			int frameTime = texture.has("frame_time") ? (int) Clamp.clamp(Math.round(number(texture, "frame_time", 1)), 1, 200) : 0;
 			textureSlots.add(new TextureSlot(textureName, uuid, png, info, uvWidth, uvHeight, frameTime, problem));
 		}
 	}

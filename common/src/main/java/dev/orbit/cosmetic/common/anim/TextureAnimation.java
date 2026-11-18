@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.common.anim;
 
+import dev.orbit.cosmetic.common.util.Clamp;
 import dev.orbit.cosmetic.common.model.TextureData;
 
 import java.util.ArrayList;
@@ -18,9 +19,9 @@ public record TextureAnimation(int texture, int frameWidth, int frameHeight, int
 	public static final int MAX_PER_COSMETIC = 16;
 
 	public TextureAnimation {
-		frameWidth = Math.clamp(frameWidth, 1, 4096);
-		frameHeight = Math.clamp(frameHeight, 1, 4096);
-		frameTicks = Math.clamp(frameTicks, 1, MAX_TICKS);
+		frameWidth = Clamp.clamp(frameWidth, 1, 4096);
+		frameHeight = Clamp.clamp(frameHeight, 1, 4096);
+		frameTicks = Clamp.clamp(frameTicks, 1, MAX_TICKS);
 	}
 
 	/** How many frames the image holds (1: not animated). */

@@ -1,5 +1,11 @@
 // Pure Java: no Minecraft or Fabric classes may be referenced from here, so it is shared by every Minecraft version.
 // Gson is provided at runtime by Minecraft.
+
+// Java 17: the oldest Minecraft versions Orbit runs on (1.20.1) use it. Java 21 APIs such as Math.clamp have their
+// own copy here (util/Clamp).
+tasks.withType(JavaCompile).configureEach {
+	options.release = 17
+}
 dependencies {
 	compileOnly "com.google.code.gson:gson:${gson_version}"
 

@@ -79,7 +79,7 @@ public final class Molang {
 			return MolangExpression.constant(0);
 		}
 		if (statements.size() == 1) {
-			return statements.getFirst();
+			return statements.get(0);
 		}
 		MolangExpression[] array = statements.toArray(new MolangExpression[0]);
 		// Bedrock: a multi-statement program without return evaluates to 0. Blockbench returns the last value

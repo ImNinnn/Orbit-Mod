@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.common.model;
 
+import dev.orbit.cosmetic.common.util.Clamp;
 import java.util.List;
 import java.util.Locale;
 
@@ -30,6 +31,6 @@ public final class ParticleEmitters {
 	 */
 	public static float rate(float scaleX, float scaleY, float scaleZ) {
 		float size = (Math.abs(scaleX) + Math.abs(scaleY) + Math.abs(scaleZ)) / 3;
-		return Float.isFinite(size) ? Math.clamp(size, 0, 1) : 1;
+		return Float.isFinite(size) ? Clamp.clamp(size, 0, 1) : 1;
 	}
 }

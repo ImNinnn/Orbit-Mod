@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.common.anim;
 
+import dev.orbit.cosmetic.common.util.Clamp;
 /**
  * How one axis of a part reacts to movement.
  *
@@ -31,7 +32,7 @@ public record AxisDrive(PhysicsSource source, float strength, float min, float m
 	public AxisDrive clamped(boolean rotation) {
 		float strengthLimit = rotation ? MAX_ROTATION_STRENGTH : MAX_POSITION_STRENGTH;
 		float limit = rotation ? MAX_ROTATION : MAX_POSITION;
-		return new AxisDrive(source, Math.clamp(strength, -strengthLimit, strengthLimit), Math.clamp(min, -limit, limit), Math.clamp(max, -limit, limit), resistance);
+		return new AxisDrive(source, Clamp.clamp(strength, -strengthLimit, strengthLimit), Clamp.clamp(min, -limit, limit), Clamp.clamp(max, -limit, limit), resistance);
 	}
 
 	public boolean active() {
@@ -40,7 +41,7 @@ public record AxisDrive(PhysicsSource source, float strength, float min, float m
 
 	/** {@code value} kept between the minimum and the maximum. */
 	public double limit(double value) {
-		return Math.clamp(value, Math.min(min, max), Math.max(min, max));
+		return Clamp.clamp(value, Math.min(min, max), Math.max(min, max));
 	}
 
 	public AxisDrive withSource(PhysicsSource value) {

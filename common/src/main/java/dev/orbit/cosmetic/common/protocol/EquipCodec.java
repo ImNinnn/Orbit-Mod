@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.common.protocol;
 
+import dev.orbit.cosmetic.common.util.Clamp;
 import dev.orbit.cosmetic.common.anim.AnimationSettings;
 import dev.orbit.cosmetic.common.anim.ParticleSettings;
 import dev.orbit.cosmetic.common.anim.AnimationTrigger;
@@ -73,14 +74,14 @@ public final class EquipCodec {
 					out.writeInt(Float.floatToIntBits(drive.resistance()));
 				}
 			}
-			out.writeByte(Math.clamp(cosmetic.style(), 0, TextureStyles.MAX - 1));
+			out.writeByte(Clamp.clamp(cosmetic.style(), 0, TextureStyles.MAX - 1));
 			out.writeByte(cosmetic.replaces());
 			ParticleCodec.write(out, cosmetic.particles());
 			int textures = Math.min(cosmetic.textures().size(), TextureAnimation.MAX_PER_COSMETIC);
 			out.writeByte(textures);
 			for (int t = 0; t < textures; t++) {
 				TextureAnimation animation = cosmetic.textures().get(t);
-				out.writeByte(Math.clamp(animation.texture(), 0, 255));
+				out.writeByte(Clamp.clamp(animation.texture(), 0, 255));
 				out.writeShort(animation.frameWidth());
 				out.writeShort(animation.frameHeight());
 				out.writeByte(animation.frameTicks());

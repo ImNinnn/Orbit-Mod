@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.common.anim;
 
+import dev.orbit.cosmetic.common.util.Clamp;
 /**
  * How one particle emitter of a cosmetic or emote behaves. Any group of the model can be an emitter; its particles
  * appear where that group is, then live in the world. These settings are shared with other players (every client
@@ -66,8 +67,8 @@ public record ParticleSettings(
 	public static final float MAX_ROTATION = 180;
 
 	public ParticleSettings {
-		bone = Math.clamp(bone, 0, 0xFFFF);
-		texture = Math.clamp(texture, -1, 255);
+		bone = Clamp.clamp(bone, 0, 0xFFFF);
+		texture = Clamp.clamp(texture, -1, 255);
 		spinMin = clamp(spinMin, MAX_SPIN);
 		spinMax = clamp(spinMax, MAX_SPIN);
 		speedX = clamp(speedX, MAX_SPEED);
@@ -82,13 +83,13 @@ public record ParticleSettings(
 		turnChangeX = clamp(turnChangeX, MAX_TURN_CHANGE);
 		turnChangeY = clamp(turnChangeY, MAX_TURN_CHANGE);
 		turnChangeZ = clamp(turnChangeZ, MAX_TURN_CHANGE);
-		spawnMin = Math.clamp(spawnMin, 1, MAX_SPAWN_TICKS);
-		spawnMax = Math.clamp(spawnMax, spawnMin, MAX_SPAWN_TICKS);
-		sizeStart = Float.isFinite(sizeStart) ? Math.clamp(sizeStart, 0, MAX_SIZE) : 2;
-		sizeEnd = Float.isFinite(sizeEnd) ? Math.clamp(sizeEnd, 0, MAX_SIZE) : sizeStart;
-		lifetime = Float.isFinite(lifetime) ? Math.clamp(lifetime, MIN_LIFETIME, MAX_LIFETIME) : 2;
-		fadeOut = Float.isFinite(fadeOut) ? Math.clamp(fadeOut, 0, lifetime) : 0;
-		opacity = Float.isFinite(opacity) ? Math.clamp(opacity, 0, 1) : 1;
+		spawnMin = Clamp.clamp(spawnMin, 1, MAX_SPAWN_TICKS);
+		spawnMax = Clamp.clamp(spawnMax, spawnMin, MAX_SPAWN_TICKS);
+		sizeStart = Float.isFinite(sizeStart) ? Clamp.clamp(sizeStart, 0, MAX_SIZE) : 2;
+		sizeEnd = Float.isFinite(sizeEnd) ? Clamp.clamp(sizeEnd, 0, MAX_SIZE) : sizeStart;
+		lifetime = Float.isFinite(lifetime) ? Clamp.clamp(lifetime, MIN_LIFETIME, MAX_LIFETIME) : 2;
+		fadeOut = Float.isFinite(fadeOut) ? Clamp.clamp(fadeOut, 0, lifetime) : 0;
+		opacity = Float.isFinite(opacity) ? Clamp.clamp(opacity, 0, 1) : 1;
 		offsetX = spread(offsetX, MAX_OFFSET);
 		offsetY = spread(offsetY, MAX_OFFSET);
 		offsetZ = spread(offsetZ, MAX_OFFSET);
@@ -101,12 +102,12 @@ public record ParticleSettings(
 	}
 
 	private static float clamp(float value, float limit) {
-		return Float.isFinite(value) ? Math.clamp(value, -limit, limit) : 0;
+		return Float.isFinite(value) ? Clamp.clamp(value, -limit, limit) : 0;
 	}
 
 	/** A random range either way: 0 to {@code limit}. */
 	private static float spread(float value, float limit) {
-		return Float.isFinite(value) ? Math.clamp(value, 0, limit) : 0;
+		return Float.isFinite(value) ? Clamp.clamp(value, 0, limit) : 0;
 	}
 
 	/** The values as an array, in the order of {@link #VALUE_NAMES} (for menus and files). */
