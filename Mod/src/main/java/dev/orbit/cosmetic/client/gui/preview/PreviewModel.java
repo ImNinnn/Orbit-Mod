@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.gui.preview;
 
+import dev.orbit.cosmetic.client.gfx.OrbitSkin;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.anim.Wearer;
 import dev.orbit.cosmetic.client.render.ParticleRenderData;
@@ -15,7 +16,6 @@ import dev.orbit.cosmetic.common.protocol.EquippedCosmetic;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.world.entity.player.PlayerModelPart;
-import net.minecraft.world.entity.player.PlayerSkin;
 import org.joml.Quaternionf;
 
 import dev.orbit.cosmetic.client.render.BakedCosmetic;
@@ -50,7 +50,7 @@ public final class PreviewModel {
 	private final Wearer wearer;
 	private List<EquippedCosmetic> worn = List.of();
 	/** The skin shown; null for the local player's. */
-	private PlayerSkin skin;
+	private OrbitSkin skin;
 	private long lastTick = Long.MIN_VALUE;
 	private int emoteSeq;
 	/** The made-up movement shown (blocks per second, relative to the body); at rest by default. */
@@ -76,7 +76,7 @@ public final class PreviewModel {
 	}
 
 	/** Shows this skin instead of the local player's (null: the local player's again). */
-	public void setSkin(PlayerSkin skin) {
+	public void setSkin(OrbitSkin skin) {
 		this.skin = skin;
 	}
 
@@ -234,7 +234,7 @@ public final class PreviewModel {
 			lastTick = tick;
 			wearer.tickMoving(tick, moving, orbit.registry()::get);
 		}
-		state.skin = skin != null ? skin : orbit.menuSkin();
+		state.skin = (skin != null ? skin : orbit.menuSkin()).raw();
 		state.lightCoords = FULL_BRIGHT;
 		state.boundingBoxWidth = 0.6F;
 		state.boundingBoxHeight = 1.8F;
@@ -271,7 +271,7 @@ public final class PreviewModel {
 		state.setData(CosmeticRenderData.KEY, pieces.isEmpty() ? null : new CosmeticRenderData(pieces));
 		state.setData(ParticleRenderData.KEY, new ParticleRenderData(wearer.particles(), true));
 		Wearer.Emote emote = wearer.emote();
-		state.skin = orbit.skinMasks().apply(state.skin, pieces, emote == null ? null : emote.baked());
+		state.skin = orbit.skinMasks().apply(OrbitSkin.of(state.skin), pieces, emote == null ? null : emote.baked()).raw();
 		BodyPose body = wearer.body();
 		if (body.isEmpty()) {
 			state.setData(EmoteRenderData.KEY, null);

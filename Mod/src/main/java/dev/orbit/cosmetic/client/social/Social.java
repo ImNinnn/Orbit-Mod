@@ -1,5 +1,8 @@
 package dev.orbit.cosmetic.client.social;
 
+import dev.orbit.cosmetic.client.gfx.OrbitTextures;
+import dev.orbit.cosmetic.client.gfx.OrbitSkin;
+import dev.orbit.cosmetic.client.gfx.OrbitImage;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -10,10 +13,8 @@ import com.mojang.authlib.GameProfile;
 import dev.orbit.cosmetic.client.Notifications;
 import dev.orbit.cosmetic.client.OrbitClient;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.resources.DefaultPlayerSkin;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Util;
-import net.minecraft.world.entity.player.PlayerSkin;
 import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
@@ -91,7 +92,7 @@ public final class Social {
 	private final Set<String> seenBroadcasts = new HashSet<>();
 	/** Conversations whose messages are end-to-end encrypted. */
 	private final Set<UUID> encryptedChats = new HashSet<>();
-	private final Map<UUID, Supplier<PlayerSkin>> skins = new HashMap<>();
+	private final Map<UUID, Supplier<OrbitSkin>> skins = new HashMap<>();
 	private final Set<UUID> skinsRequested = new HashSet<>();
 	/** When a face's lookup may be tried again, and how many times it was tried. */
 	private final Map<UUID, Long> skinRetryAt = new HashMap<>();
@@ -461,12 +462,12 @@ public final class Social {
 	}
 
 	/** The group's picture from an edited image (the screenshot editor's result, which this closes). */
-	public void setGroupPicture(UUID group, com.mojang.blaze3d.platform.NativeImage image) {
+	public void setGroupPicture(UUID group, OrbitImage image) {
 		Path file = OrbitClient.get().paths().cache().resolve("group-picture.png");
 		Util.ioPool().execute(() -> {
 			try (image) {
 				Files.createDirectories(file.getParent());
-				image.writeToFile(file);
+				image.writePng(file);
 				Minecraft.getInstance().execute(() -> setGroupPicture(group, file));
 			} catch (IOException e) {
 				Minecraft.getInstance().execute(() -> Notifications.error(Component.translatable("orbit_cosmetic.social.failed"), Component.literal(String.valueOf(e.getMessage()))));
@@ -515,9 +516,9 @@ public final class Social {
 		}
 		OrbitClient.get().backend().socialDownloadPath("/v1/social/groups/" + group.id() + "/picture", png -> Minecraft.getInstance().execute(() -> {
 			try {
-				com.mojang.blaze3d.platform.NativeImage image = com.mojang.blaze3d.platform.NativeImage.read(png);
+				OrbitImage image = OrbitImage.read(png);
 				net.minecraft.resources.Identifier id = net.minecraft.resources.Identifier.fromNamespaceAndPath(OrbitClient.MOD_ID, "group/" + group.id() + "/" + group.picture());
-				Minecraft.getInstance().getTextureManager().register(id, new net.minecraft.client.renderer.texture.DynamicTexture(() -> "Orbit group " + group.id(), image));
+				OrbitTextures.register(id, "Orbit group " + group.id(), image);
 				groupPictures.put(key, id);
 			} catch (IOException | RuntimeException e) {
 				OrbitClient.LOGGER.debug("Friends: group picture not shown: {}", e.toString());
@@ -1671,16 +1672,16 @@ public final class Social {
 	 * Orbit. Mojang's profile service refuses requests that come too fast: a lookup that failed, or whose skin did
 	 * not load, is tried again a little later.
 	 */
-	public PlayerSkin skin(UUID player, String name) {
+	public OrbitSkin skin(UUID player, String name) {
 		Minecraft minecraft = Minecraft.getInstance();
 		if (player.equals(minecraft.getUser().getProfileId())) {
 			return OrbitClient.get().menuSkin();
 		}
 		long now = System.currentTimeMillis();
-		Supplier<PlayerSkin> known = skins.get(player);
+		Supplier<OrbitSkin> known = skins.get(player);
 		if (known != null) {
-			PlayerSkin skin = known.get();
-			if (!skin.equals(DefaultPlayerSkin.get(player)) || now < skinRetryAt.getOrDefault(player, Long.MAX_VALUE)) {
+			OrbitSkin skin = known.get();
+			if (!skin.equals(OrbitSkin.fallback(player)) || now < skinRetryAt.getOrDefault(player, Long.MAX_VALUE)) {
 				return skin;
 			}
 			// Still the default skin a while after the profile arrived: the skin's download may have failed.
@@ -1706,14 +1707,14 @@ public final class Social {
 						skinRetryAt.put(player, System.currentTimeMillis() + wait);
 						return;
 					}
-					skins.put(player, minecraft.getSkinManager().createLookup(found, false));
+					skins.put(player, OrbitSkin.lookup(found));
 					boolean textured = !found.properties().get("textures").isEmpty();
 					// A player without a skin of their own keeps the default one.
 					skinRetryAt.put(player, textured ? System.currentTimeMillis() + Math.max(20_000L, wait) : Long.MAX_VALUE);
 				});
 			});
 		}
-		return known != null ? known.get() : DefaultPlayerSkin.get(player);
+		return known != null ? known.get() : OrbitSkin.fallback(player);
 	}
 
 	/** Every conversation partner seen, by name (for screens). */

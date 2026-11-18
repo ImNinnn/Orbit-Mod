@@ -1,12 +1,11 @@
 package dev.orbit.cosmetic.client.skin;
 
+import dev.orbit.cosmetic.client.gfx.OrbitSkin;
 import dev.orbit.cosmetic.client.Notifications;
 import dev.orbit.cosmetic.client.library.OrbitState;
 import net.minecraft.client.Minecraft;
-import net.minecraft.core.ClientAsset;
+import net.minecraft.resources.Identifier;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.entity.player.PlayerModelType;
-import net.minecraft.world.entity.player.PlayerSkin;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -141,7 +140,7 @@ public final class OrbitSkins {
 	 * How a player looks with Orbit's skins: {@code original} (as Minecraft has it) with the chosen skin and cape in
 	 * place. Main thread.
 	 */
-	public PlayerSkin apply(UUID player, PlayerSkin original) {
+	public OrbitSkin apply(UUID player, OrbitSkin original) {
 		Minecraft minecraft = Minecraft.getInstance();
 		boolean local = minecraft.player != null ? player.equals(minecraft.player.getUUID()) : player.equals(minecraft.getUser().getProfileId());
 		if (local) {
@@ -151,8 +150,8 @@ public final class OrbitSkins {
 		if (signal == null) {
 			return original;
 		}
-		ClientAsset.Texture body = signal.texture() == null ? null : textures.mojangSkin(signal.texture());
-		ClientAsset.Texture cape = signal.noCape() ? null : signal.cape() != null ? textures.mojangCape(signal.cape()) : original.cape();
+		Identifier body = signal.texture() == null ? null : textures.mojangSkin(signal.texture());
+		Identifier cape = signal.noCape() ? null : signal.cape() != null ? textures.mojangCape(signal.cape()) : original.cape();
 		if (signal.cape() != null && cape == null && !signal.noCape()) {
 			cape = original.cape(); // still loading
 		}
@@ -160,28 +159,25 @@ public final class OrbitSkins {
 	}
 
 	/** The local player as they look with their chosen skin and cape. */
-	public PlayerSkin own(PlayerSkin original) {
+	public OrbitSkin own(OrbitSkin original) {
 		return with(original, skin(), state.cape());
 	}
 
 	/** {@code original} wearing a skin from Orbit/Skins (null: unchanged) and a cape (ID, "" for none, null: unchanged). */
-	public PlayerSkin with(PlayerSkin original, SkinLibrary.LocalSkin skin, String capeId) {
-		ClientAsset.Texture body = skin == null ? null : textures.local(skin);
-		ClientAsset.Texture cape = original.cape();
+	public OrbitSkin with(OrbitSkin original, SkinLibrary.LocalSkin skin, String capeId) {
+		Identifier body = skin == null ? null : textures.local(skin);
+		Identifier cape = original.cape();
 		if (capeId != null) {
 			MojangAccount.Profile profile = account.profile();
 			MojangAccount.Cape owned = capeId.isEmpty() || profile == null ? null : profile.cape(capeId);
-			ClientAsset.Texture loaded = owned == null ? null : textures.mojangCape(owned.hash());
+			Identifier loaded = owned == null ? null : textures.mojangCape(owned.hash());
 			// While the cape loads (or the account's capes are not known yet), the current one stays.
 			cape = capeId.isEmpty() ? null : loaded != null ? loaded : original.cape();
 		}
 		return patch(original, body, skin != null && skin.slim(), cape);
 	}
 
-	private static PlayerSkin patch(PlayerSkin original, ClientAsset.Texture body, boolean slim, ClientAsset.Texture cape) {
-		if (body == null) {
-			return new PlayerSkin(original.body(), cape, cape, original.model(), original.secure());
-		}
-		return new PlayerSkin(body, cape, cape, slim ? PlayerModelType.SLIM : PlayerModelType.WIDE, false);
+	private static OrbitSkin patch(OrbitSkin original, Identifier body, boolean slim, Identifier cape) {
+		return (body == null ? original : original.withBody(body, slim)).withCape(cape);
 	}
 }

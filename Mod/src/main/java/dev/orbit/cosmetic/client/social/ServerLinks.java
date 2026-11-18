@@ -1,10 +1,11 @@
 package dev.orbit.cosmetic.client.social;
 
-import com.mojang.blaze3d.platform.NativeImage;
+import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.compat.Compat;
+import dev.orbit.cosmetic.client.gfx.OrbitImage;
+import dev.orbit.cosmetic.client.gfx.OrbitTextures;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.ConnectScreen;
-import net.minecraft.client.gui.screens.FaviconTexture;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.multiplayer.ServerData;
@@ -47,8 +48,9 @@ public final class ServerLinks {
 	private final ServerStatusPinger pinger = new ServerStatusPinger();
 	private final Map<String, ServerData> servers = new HashMap<>();
 	private final Map<String, Long> pingedAt = new HashMap<>();
-	/** Server icons by address, and the icon bytes each shows. */
-	private final Map<String, FaviconTexture> icons = new HashMap<>();
+	/** Server icons by address (textures), and the icon bytes each shows. */
+	private final Map<String, Identifier> icons = new HashMap<>();
+	private int nextIcon;
 	private final Map<String, byte[]> iconBytes = new HashMap<>();
 
 	/** Server addresses in a text, at most three. */
@@ -110,18 +112,24 @@ public final class ServerLinks {
 		if (bytes == null) {
 			return null;
 		}
-		FaviconTexture icon = icons.get(address);
+		Identifier icon = icons.get(address);
 		if (icon != null && Arrays.equals(iconBytes.get(address), bytes)) {
-			return icon.textureLocation();
+			return icon;
 		}
 		iconBytes.put(address, bytes);
-		try (NativeImage image = NativeImage.read(bytes)) {
+		try {
+			OrbitImage image = OrbitImage.read(bytes);
+			if (image.width() != 64 || image.height() != 64) {
+				image.close();
+				return null;
+			}
 			if (icon == null) {
-				icon = FaviconTexture.forServer(Minecraft.getInstance().getTextureManager(), "orbit/" + address);
+				icon = Identifier.fromNamespaceAndPath(OrbitClient.MOD_ID, "server_icon/" + nextIcon++);
 				icons.put(address, icon);
 			}
-			icon.upload(image);
-			return icon.textureLocation();
+			// A new picture under the same name replaces the old one.
+			OrbitTextures.register(icon, "Orbit server icon " + address, image);
+			return icon;
 		} catch (IOException | RuntimeException e) {
 			// Not a 64x64 PNG: no icon.
 			return null;
@@ -136,7 +144,7 @@ public final class ServerLinks {
 		pinger.removeAll();
 		servers.clear();
 		pingedAt.clear();
-		icons.values().forEach(FaviconTexture::close);
+		icons.values().forEach(OrbitTextures::release);
 		icons.clear();
 		iconBytes.clear();
 	}

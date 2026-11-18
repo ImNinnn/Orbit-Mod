@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.mixin;
 
+import dev.orbit.cosmetic.client.gfx.OrbitSkin;
 import dev.orbit.cosmetic.client.OrbitClient;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.world.entity.player.PlayerSkin;
@@ -19,7 +20,7 @@ public abstract class PlayerInfoMixin {
 	private void orbit$skin(CallbackInfoReturnable<PlayerSkin> cir) {
 		OrbitClient orbit = OrbitClient.get();
 		if (orbit != null && orbit.skins() != null) {
-			cir.setReturnValue(orbit.skins().apply(((PlayerInfo) (Object) this).getProfile().id(), cir.getReturnValue()));
+			cir.setReturnValue(orbit.skins().apply(((PlayerInfo) (Object) this).getProfile().id(), OrbitSkin.of(cir.getReturnValue())).raw());
 		}
 	}
 }

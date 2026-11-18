@@ -1,10 +1,10 @@
 package dev.orbit.cosmetic.client.screenshot;
 
-import com.mojang.blaze3d.platform.NativeImage;
+import dev.orbit.cosmetic.client.gfx.OrbitTextures;
+import dev.orbit.cosmetic.client.gfx.OrbitImage;
 import dev.orbit.cosmetic.client.Notifications;
 import dev.orbit.cosmetic.client.OrbitClient;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Util;
@@ -166,7 +166,7 @@ public final class ScreenshotLibrary {
 		}
 		if (loading.add(path)) {
 			Util.ioPool().execute(() -> {
-				NativeImage image = readScaled(path, maxSize);
+				OrbitImage image = readScaled(path, maxSize);
 				Minecraft.getInstance().execute(() -> {
 					loading.remove(path);
 					if (image == null) {
@@ -174,9 +174,9 @@ public final class ScreenshotLibrary {
 					}
 					forget(path);
 					Identifier id = Identifier.fromNamespaceAndPath(OrbitClient.MOD_ID, "screenshot/" + nextTexture++);
-					int width = image.getWidth();
-					int height = image.getHeight();
-					Minecraft.getInstance().getTextureManager().register(id, new DynamicTexture(() -> "Orbit screenshot " + path.getFileName(), image));
+					int width = image.width();
+					int height = image.height();
+					OrbitTextures.register(id, "Orbit screenshot " + path.getFileName(), image);
 					thumbnails.put(path, new Thumbnail(id, width, height));
 					thumbnailSizes.put(path, maxSize);
 				});
@@ -186,12 +186,12 @@ public final class ScreenshotLibrary {
 	}
 
 	/** Reads an image and shrinks it to fit {@code maxSize} (averaging pixels). Any thread. */
-	public static @Nullable NativeImage readScaled(Path path, int maxSize) {
-		try (InputStream in = Files.newInputStream(path); NativeImage full = NativeImage.read(in)) {
-			int step = Math.max(1, (int) Math.ceil(Math.max(full.getWidth(), full.getHeight()) / (double) maxSize));
-			int width = Math.max(1, full.getWidth() / step);
-			int height = Math.max(1, full.getHeight() / step);
-			NativeImage small = new NativeImage(width, height, false);
+	public static @Nullable OrbitImage readScaled(Path path, int maxSize) {
+		try (InputStream in = Files.newInputStream(path); OrbitImage full = OrbitImage.read(in)) {
+			int step = Math.max(1, (int) Math.ceil(Math.max(full.width(), full.height()) / (double) maxSize));
+			int width = Math.max(1, full.width() / step);
+			int height = Math.max(1, full.height() / step);
+			OrbitImage small = OrbitImage.create(width, height);
 			for (int y = 0; y < height; y++) {
 				for (int x = 0; x < width; x++) {
 					long a = 0;
@@ -201,7 +201,7 @@ public final class ScreenshotLibrary {
 					int count = 0;
 					for (int dy = 0; dy < step; dy++) {
 						for (int dx = 0; dx < step; dx++) {
-							int pixel = full.getPixel(x * step + dx, y * step + dy);
+							int pixel = full.pixel(x * step + dx, y * step + dy);
 							a += pixel >>> 24;
 							r += pixel >> 16 & 0xFF;
 							g += pixel >> 8 & 0xFF;
@@ -224,7 +224,7 @@ public final class ScreenshotLibrary {
 		Thumbnail thumbnail = thumbnails.remove(path);
 		thumbnailSizes.remove(path);
 		if (thumbnail != null) {
-			Minecraft.getInstance().getTextureManager().release(thumbnail.id());
+			OrbitTextures.release(thumbnail.id());
 		}
 	}
 

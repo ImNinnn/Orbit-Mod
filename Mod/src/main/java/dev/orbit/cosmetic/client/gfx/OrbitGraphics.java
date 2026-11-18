@@ -7,7 +7,6 @@ import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
-import net.minecraft.world.entity.player.PlayerSkin;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.List;
@@ -127,8 +126,8 @@ public final class OrbitGraphics {
 	}
 
 	/** A player's face (with their hat layer), {@code size} pixels square. */
-	public void face(PlayerSkin skin, int x, int y, int size) {
-		PlayerFaceExtractor.extractRenderState(graphics, skin, x, y, size);
+	public void face(OrbitSkin skin, int x, int y, int size) {
+		PlayerFaceExtractor.extractRenderState(graphics, skin.raw(), x, y, size);
 	}
 
 	/** An item as in an inventory slot (16 by 16 pixels). */

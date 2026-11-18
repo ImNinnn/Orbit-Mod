@@ -826,7 +826,7 @@ public final class OrbitMenuScreen extends OrbitScreen {
 	}
 
 	/** How the player looks in an outfit: its skin and cape, or what is worn now where it has none. */
-	private net.minecraft.world.entity.player.PlayerSkin outfitSkin(OrbitState.Outfit outfit) {
+	private dev.orbit.cosmetic.client.gfx.OrbitSkin outfitSkin(OrbitState.Outfit outfit) {
 		SkinLibrary.LocalSkin skin = outfit.skin == null ? orbit().skins().skin() : orbit().skins().library().find(outfit.skin);
 		return orbit().skins().with(orbit().accountSkin(), skin, outfit.cape != null ? outfit.cape : orbit().skins().cape());
 	}

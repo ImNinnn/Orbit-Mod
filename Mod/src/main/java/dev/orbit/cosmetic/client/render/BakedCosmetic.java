@@ -1,6 +1,7 @@
 package dev.orbit.cosmetic.client.render;
 
-import com.mojang.blaze3d.platform.NativeImage;
+import dev.orbit.cosmetic.client.gfx.OrbitTextures;
+import dev.orbit.cosmetic.client.gfx.OrbitImage;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.common.model.Anchor;
 import dev.orbit.cosmetic.common.model.Bone;
@@ -8,11 +9,8 @@ import dev.orbit.cosmetic.common.model.CosmeticModel;
 import dev.orbit.cosmetic.common.model.Quad;
 import dev.orbit.cosmetic.common.model.TextureStyles;
 import dev.orbit.cosmetic.common.protocol.AssetId;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
-import net.minecraft.client.renderer.texture.DynamicTexture;
-import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.resources.Identifier;
 
 import java.util.ArrayList;
@@ -108,15 +106,14 @@ public final class BakedCosmetic {
 	 * Uploads the decoded images and builds the cosmetic. Takes ownership of the images.
 	 * Must run on the render thread.
 	 */
-	static BakedCosmetic create(AssetId id, CosmeticModel model, NativeImage[] images, boolean[] translucent, TextureStyles styles, int[] styleColors) {
-		TextureManager textures = Minecraft.getInstance().getTextureManager();
+	static BakedCosmetic create(AssetId id, CosmeticModel model, OrbitImage[] images, boolean[] translucent, TextureStyles styles, int[] styleColors) {
 		Identifier[] ids = new Identifier[images.length];
 		RenderType[] types = new RenderType[images.length];
 		boolean[] skinSlots = skinSlots(model, images);
 		for (int i = 0; i < images.length; i++) {
 			ids[i] = Identifier.fromNamespaceAndPath(OrbitClient.MOD_ID, "cosmetic/" + id.hex() + "/" + i);
 			String label = "Orbit cosmetic " + id.shortHex() + " #" + i;
-			textures.register(ids[i], new DynamicTexture(() -> label, images[i]));
+			OrbitTextures.register(ids[i], label, images[i]);
 			types[i] = translucent[i] ? RenderTypes.entityTranslucent(ids[i]) : RenderTypes.entityCutout(ids[i]);
 		}
 		BakedCosmetic baked = new BakedCosmetic(id, model, ids, types, styles, styleColors);
@@ -128,17 +125,17 @@ public final class BakedCosmetic {
 	 * Which textures the wearer's skin replaces: named and sized for it (TextureData#isSkinSlot) and empty, so a
 	 * file can never carry a skin of its own this way. Checked before the images are uploaded.
 	 */
-	static boolean[] skinSlots(CosmeticModel model, NativeImage[] images) {
+	static boolean[] skinSlots(CosmeticModel model, OrbitImage[] images) {
 		boolean[] slots = new boolean[images.length];
 		for (int i = 0; i < images.length && i < model.textures().size(); i++) {
-			NativeImage image = images[i];
-			if (image == null || !model.textures().get(i).isSkinSlot() || image.getWidth() != 64 || image.getHeight() != 64) {
+			OrbitImage image = images[i];
+			if (image == null || !model.textures().get(i).isSkinSlot() || image.width() != 64 || image.height() != 64) {
 				continue;
 			}
 			boolean empty = true;
 			for (int y = 0; y < 64 && empty; y++) {
 				for (int x = 0; x < 64 && empty; x++) {
-					empty = image.getPixel(x, y) >>> 24 == 0;
+					empty = image.pixel(x, y) >>> 24 == 0;
 				}
 			}
 			slots[i] = empty;
@@ -201,9 +198,8 @@ public final class BakedCosmetic {
 			return;
 		}
 		released = true;
-		TextureManager textures = Minecraft.getInstance().getTextureManager();
 		for (Identifier textureId : textureIds) {
-			textures.release(textureId);
+			OrbitTextures.release(textureId);
 		}
 	}
 }

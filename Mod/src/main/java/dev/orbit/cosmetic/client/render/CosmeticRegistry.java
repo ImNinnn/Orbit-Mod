@@ -1,6 +1,6 @@
 package dev.orbit.cosmetic.client.render;
 
-import com.mojang.blaze3d.platform.NativeImage;
+import dev.orbit.cosmetic.client.gfx.OrbitImage;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.common.model.BBModelParser;
 import dev.orbit.cosmetic.common.model.CosmeticModel;
@@ -117,14 +117,14 @@ public final class CosmeticRegistry {
 	}
 
 	private void decode(AssetId id, Holder holder, CosmeticModel model) {
-		NativeImage[] images = new NativeImage[model.textures().size()];
+		OrbitImage[] images = new OrbitImage[model.textures().size()];
 		boolean[] translucent = new boolean[images.length];
 		TextureStyles styles = TextureStyles.of(model.textures());
 		int[] styleColors = new int[styles.count()];
 		try {
 			for (int i = 0; i < images.length; i++) {
 				TextureData texture = model.textures().get(i);
-				images[i] = NativeImage.read(texture.png());
+				images[i] = OrbitImage.read(texture.png());
 				translucent[i] = hasPartialAlpha(images[i]);
 			}
 			for (int style = 0; style < styleColors.length; style++) {
@@ -153,10 +153,10 @@ public final class CosmeticRegistry {
 		});
 	}
 
-	private static boolean hasPartialAlpha(NativeImage image) {
-		for (int y = 0; y < image.getHeight(); y++) {
-			for (int x = 0; x < image.getWidth(); x++) {
-				int alpha = image.getPixel(x, y) >>> 24;
+	private static boolean hasPartialAlpha(OrbitImage image) {
+		for (int y = 0; y < image.height(); y++) {
+			for (int x = 0; x < image.width(); x++) {
+				int alpha = image.pixel(x, y) >>> 24;
 				if (alpha > 0 && alpha < 255) {
 					return true;
 				}
@@ -166,14 +166,14 @@ public final class CosmeticRegistry {
 	}
 
 	/** The average colour of a texture's visible pixels, as opaque ARGB. */
-	private static int averageColor(NativeImage image) {
+	private static int averageColor(OrbitImage image) {
 		long red = 0;
 		long green = 0;
 		long blue = 0;
 		long weight = 0;
-		for (int y = 0; y < image.getHeight(); y++) {
-			for (int x = 0; x < image.getWidth(); x++) {
-				int argb = image.getPixel(x, y);
+		for (int y = 0; y < image.height(); y++) {
+			for (int x = 0; x < image.width(); x++) {
+				int argb = image.pixel(x, y);
 				int alpha = argb >>> 24;
 				red += (long) (argb >> 16 & 0xFF) * alpha;
 				green += (long) (argb >> 8 & 0xFF) * alpha;
@@ -187,8 +187,8 @@ public final class CosmeticRegistry {
 		return 0xFF000000 | (int) (red / weight) << 16 | (int) (green / weight) << 8 | (int) (blue / weight);
 	}
 
-	private static void closeAll(NativeImage[] images) {
-		for (NativeImage image : images) {
+	private static void closeAll(OrbitImage[] images) {
+		for (OrbitImage image : images) {
 			if (image != null) {
 				image.close();
 			}

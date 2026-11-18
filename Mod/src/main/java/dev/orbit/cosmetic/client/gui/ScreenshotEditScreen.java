@@ -1,9 +1,10 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.client.gfx.OrbitTextures;
+import dev.orbit.cosmetic.client.gfx.OrbitImage;
 import dev.orbit.cosmetic.client.input.OrbitClick;
 import dev.orbit.cosmetic.client.input.OrbitKey;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
-import com.mojang.blaze3d.platform.NativeImage;
 import dev.orbit.cosmetic.client.Notifications;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.compat.Compat;
@@ -14,7 +15,6 @@ import dev.orbit.cosmetic.client.screenshot.ScreenshotLibrary;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Util;
@@ -27,7 +27,6 @@ import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.function.Consumer;
-import java.util.function.IntUnaryOperator;
 
 /**
  * Edits a screenshot: draw on it (colour, opacity and brush size), crop it with the handles on its corners and
@@ -45,12 +44,12 @@ public final class ScreenshotEditScreen extends OrbitScreen {
 
 	private final ScreenshotLibrary.Shot shot;
 	/** Picking a square picture: gets the edited image (its owner closes it); null when editing a screenshot. */
-	private final @Nullable Consumer<NativeImage> picked;
-	private @Nullable NativeImage image;
+	private final @Nullable Consumer<OrbitImage> picked;
+	private @Nullable OrbitImage image;
 	private @Nullable Identifier textureId;
 	private int textureCount;
-	private final Deque<NativeImage> undo = new ArrayDeque<>();
-	private final Deque<NativeImage> redo = new ArrayDeque<>();
+	private final Deque<OrbitImage> undo = new ArrayDeque<>();
+	private final Deque<OrbitImage> redo = new ArrayDeque<>();
 	/** The kept part of the image: x0, y0, x1, y1 in image pixels. */
 	private final int[] crop = new int[4];
 	private float hue;
@@ -73,18 +72,18 @@ public final class ScreenshotEditScreen extends OrbitScreen {
 	}
 
 	/** Crops (square), rotates and draws on a screenshot for a picture; {@code picked} gets the result. */
-	public ScreenshotEditScreen(@Nullable Screen parent, ScreenshotLibrary.Shot shot, @Nullable Consumer<NativeImage> picked) {
+	public ScreenshotEditScreen(@Nullable Screen parent, ScreenshotLibrary.Shot shot, @Nullable Consumer<OrbitImage> picked) {
 		super(Component.translatable(picked != null ? "orbit_cosmetic.screenshots.edit.picture" : "orbit_cosmetic.screenshots.edit.title"), parent);
 		this.shot = shot;
 		this.picked = picked;
 		Util.ioPool().execute(() -> {
-			NativeImage loaded = null;
+			OrbitImage loaded = null;
 			try (InputStream in = Files.newInputStream(shot.path())) {
-				loaded = NativeImage.read(in);
+				loaded = OrbitImage.read(in);
 			} catch (IOException e) {
 				OrbitClient.LOGGER.warn("Could not open {}", shot.path(), e);
 			}
-			NativeImage result = loaded;
+			OrbitImage result = loaded;
 			Minecraft.getInstance().execute(() -> {
 				if (result == null) {
 					Notifications.error(Component.translatable("orbit_cosmetic.screenshots.failed"), Component.literal(shot.name()));
@@ -93,8 +92,8 @@ public final class ScreenshotEditScreen extends OrbitScreen {
 				setImage(result);
 				crop[0] = 0;
 				crop[1] = 0;
-				crop[2] = result.getWidth();
-				crop[3] = result.getHeight();
+				crop[2] = result.width();
+				crop[3] = result.height();
 				squareCrop();
 			});
 		});
@@ -136,8 +135,8 @@ public final class ScreenshotEditScreen extends OrbitScreen {
 			if (image != null) {
 				crop[0] = 0;
 				crop[1] = 0;
-				crop[2] = image.getWidth();
-				crop[3] = image.getHeight();
+				crop[2] = image.width();
+				crop[3] = image.height();
 				squareCrop();
 			}
 		}));
@@ -167,37 +166,31 @@ public final class ScreenshotEditScreen extends OrbitScreen {
 
 	// ---------------------------------------------------------------- the image
 
-	private void setImage(NativeImage value) {
+	private void setImage(OrbitImage value) {
 		if (textureId != null) {
-			Minecraft.getInstance().getTextureManager().release(textureId);
+			OrbitTextures.release(textureId);
 		}
 		image = value;
 		textureId = Identifier.fromNamespaceAndPath(OrbitClient.MOD_ID, "screenshot_edit/" + textureCount++);
 		// The texture takes the image; edits change its pixels and upload them again.
-		Minecraft.getInstance().getTextureManager().register(textureId, new DynamicTexture(() -> "Orbit screenshot editor", copy(value)));
+		OrbitTextures.register(textureId, "Orbit screenshot editor", value.copy());
 	}
 
 	private void upload() {
-		if (image != null && textureId != null && Minecraft.getInstance().getTextureManager().getTexture(textureId) instanceof DynamicTexture texture
-			&& texture.getPixels() != null) {
-			texture.getPixels().copyFrom(image);
-			texture.upload();
+		if (image != null && textureId != null) {
+			OrbitTextures.update(textureId, image);
 		}
-	}
-
-	private static NativeImage copy(NativeImage source) {
-		return source.mappedCopy(IntUnaryOperator.identity());
 	}
 
 	private void remember() {
 		if (image == null) {
 			return;
 		}
-		undo.push(copy(image));
+		undo.push(image.copy());
 		while (undo.size() > MAX_UNDO) {
 			undo.removeLast().close();
 		}
-		redo.forEach(NativeImage::close);
+		redo.forEach(OrbitImage::close);
 		redo.clear();
 	}
 
@@ -206,7 +199,7 @@ public final class ScreenshotEditScreen extends OrbitScreen {
 			return;
 		}
 		redo.push(image);
-		NativeImage previous = undo.pop();
+		OrbitImage previous = undo.pop();
 		replace(previous);
 		rebuildWidgets();
 	}
@@ -221,15 +214,15 @@ public final class ScreenshotEditScreen extends OrbitScreen {
 	}
 
 	/** Shows another version of the image (after undo, redo or rotate); the crop is kept inside it. */
-	private void replace(NativeImage next) {
-		boolean resized = image == null || image.getWidth() != next.getWidth() || image.getHeight() != next.getHeight();
-		NativeImage old = image;
+	private void replace(OrbitImage next) {
+		boolean resized = image == null || image.width() != next.width() || image.height() != next.height();
+		OrbitImage old = image;
 		setImage(next);
 		if (resized) {
 			crop[0] = 0;
 			crop[1] = 0;
-			crop[2] = next.getWidth();
-			crop[3] = next.getHeight();
+			crop[2] = next.width();
+			crop[3] = next.height();
 			squareCrop();
 		}
 		if (old != null && !undo.contains(old) && !redo.contains(old)) {
@@ -243,19 +236,19 @@ public final class ScreenshotEditScreen extends OrbitScreen {
 			return;
 		}
 		remember();
-		NativeImage turned = new NativeImage(image.getHeight(), image.getWidth(), false);
-		for (int y = 0; y < image.getHeight(); y++) {
-			for (int x = 0; x < image.getWidth(); x++) {
-				turned.setPixel(image.getHeight() - 1 - y, x, image.getPixel(x, y));
+		OrbitImage turned = OrbitImage.create(image.height(), image.width());
+		for (int y = 0; y < image.height(); y++) {
+			for (int x = 0; x < image.width(); x++) {
+				turned.setPixel(image.height() - 1 - y, x, image.pixel(x, y));
 			}
 		}
-		NativeImage old = image;
+		OrbitImage old = image;
 		image = null;
 		setImage(turned);
 		crop[0] = 0;
 		crop[1] = 0;
-		crop[2] = turned.getWidth();
-		crop[3] = turned.getHeight();
+		crop[2] = turned.width();
+		crop[3] = turned.height();
 		squareCrop();
 		if (!undo.contains(old)) {
 			old.close();
@@ -272,9 +265,9 @@ public final class ScreenshotEditScreen extends OrbitScreen {
 		if (image == null) {
 			return new float[] {areaX, areaY, areaW, areaH, 1};
 		}
-		float scale = Math.min(areaW / (float) image.getWidth(), areaH / (float) image.getHeight());
-		float w = image.getWidth() * scale;
-		float h = image.getHeight() * scale;
+		float scale = Math.min(areaW / (float) image.width(), areaH / (float) image.height());
+		float w = image.width() * scale;
+		float h = image.height() * scale;
 		return new float[] {areaX + (areaW - w) / 2, areaY + (areaH - h) / 2, w, h, scale};
 	}
 
@@ -304,13 +297,13 @@ public final class ScreenshotEditScreen extends OrbitScreen {
 		int alpha = color >>> 24;
 		for (int y = (int) Math.floor(cy - radius); y <= Math.ceil(cy + radius); y++) {
 			for (int x = (int) Math.floor(cx - radius); x <= Math.ceil(cx + radius); x++) {
-				if (x < 0 || y < 0 || x >= image.getWidth() || y >= image.getHeight() || (x + 0.5 - cx) * (x + 0.5 - cx) + (y + 0.5 - cy) * (y + 0.5 - cy) > radius * radius) {
+				if (x < 0 || y < 0 || x >= image.width() || y >= image.height() || (x + 0.5 - cx) * (x + 0.5 - cx) + (y + 0.5 - cy) * (y + 0.5 - cy) > radius * radius) {
 					continue;
 				}
 				if (alpha >= 255) {
 					image.setPixel(x, y, color);
 				} else {
-					int under = image.getPixel(x, y);
+					int under = image.pixel(x, y);
 					image.setPixel(x, y, blend(under, color, alpha / 255F));
 				}
 			}
@@ -330,10 +323,10 @@ public final class ScreenshotEditScreen extends OrbitScreen {
 		}
 		int w = crop[2] - crop[0];
 		int h = crop[3] - crop[1];
-		NativeImage out = new NativeImage(w, h, false);
+		OrbitImage out = OrbitImage.create(w, h);
 		for (int y = 0; y < h; y++) {
 			for (int x = 0; x < w; x++) {
-				out.setPixel(x, y, image.getPixel(crop[0] + x, crop[1] + y));
+				out.setPixel(x, y, image.pixel(crop[0] + x, crop[1] + y));
 			}
 		}
 		if (picked != null) {
@@ -344,7 +337,7 @@ public final class ScreenshotEditScreen extends OrbitScreen {
 		Path target = ScreenshotLibrary.unique(shot.path().getParent(), (name.isEmpty() ? stripPng(shot.name()) + " (edited)" : name) + ".png");
 		Util.ioPool().execute(() -> {
 			try (out) {
-				out.writeToFile(target);
+				out.writePng(target);
 				Minecraft.getInstance().execute(() -> {
 					Notifications.success(Component.translatable("orbit_cosmetic.screenshots.edit.saved"), Component.literal(target.getFileName().toString()));
 					Compat.setScreen(new ScreenshotViewScreen(parent, orbit().screenshots().shot(target)));
@@ -472,7 +465,7 @@ public final class ScreenshotEditScreen extends OrbitScreen {
 			boolean top = handle == 0 || handle == 1;
 			int ax = left ? crop[2] : crop[0];
 			int ay = top ? crop[3] : crop[1];
-			int room = Math.min(left ? ax : image.getWidth() - ax, top ? ay : image.getHeight() - ay);
+			int room = Math.min(left ? ax : image.width() - ax, top ? ay : image.height() - ay);
 			int side = (int) Math.round(Math.clamp(Math.max(Math.abs(ix - ax), Math.abs(iy - ay)), 16, Math.max(16, room)));
 			crop[0] = left ? ax - side : ax;
 			crop[2] = left ? ax : ax + side;
@@ -481,8 +474,8 @@ public final class ScreenshotEditScreen extends OrbitScreen {
 			return true;
 		}
 		if (drag == Drag.HANDLE) {
-			int x = (int) Math.round(Math.clamp(ix, 0, image.getWidth()));
-			int y = (int) Math.round(Math.clamp(iy, 0, image.getHeight()));
+			int x = (int) Math.round(Math.clamp(ix, 0, image.width()));
+			int y = (int) Math.round(Math.clamp(iy, 0, image.height()));
 			int min = 16;
 			boolean left = handle == 0 || handle == 2 || handle == 6;
 			boolean right = handle == 1 || handle == 3 || handle == 7;
@@ -531,13 +524,13 @@ public final class ScreenshotEditScreen extends OrbitScreen {
 	@Override
 	public void removed() {
 		if (textureId != null) {
-			Minecraft.getInstance().getTextureManager().release(textureId);
+			OrbitTextures.release(textureId);
 		}
 		if (image != null) {
 			image.close();
 		}
-		undo.forEach(NativeImage::close);
-		redo.forEach(NativeImage::close);
+		undo.forEach(OrbitImage::close);
+		redo.forEach(OrbitImage::close);
 		undo.clear();
 		redo.clear();
 	}

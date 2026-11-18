@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client;
 
+import dev.orbit.cosmetic.client.gfx.OrbitSkin;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.orbit.cosmetic.client.anim.Wearer;
@@ -53,7 +54,6 @@ import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FontDescription;
 import net.minecraft.resources.Identifier;
-import net.minecraft.world.entity.player.PlayerModelType;
 import dev.orbit.cosmetic.client.render.SkinMasks;
 import dev.orbit.cosmetic.client.render.ParticleRenderData;
 import dev.orbit.cosmetic.client.render.ParticleRenderer;
@@ -70,7 +70,6 @@ import org.joml.Quaternionf;
 import org.joml.Vector3f;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.entity.player.PlayerSkin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -126,7 +125,7 @@ public final class OrbitClient implements ClientModInitializer {
 	private ClientLevel clockLevel;
 	/** Own cosmetics already announced as shared (or worn when the Orbit Cloud session started). */
 	private final Set<Object> layeredRenderers = Collections.newSetFromMap(new WeakHashMap<>());
-	private Supplier<PlayerSkin> menuSkin;
+	private Supplier<OrbitSkin> menuSkin;
 
 	public static OrbitClient get() {
 		return instance;
@@ -310,15 +309,15 @@ public final class OrbitClient implements ClientModInitializer {
 	}
 
 	/** The local player's skin (with the skin and cape chosen in Orbit), for previews in menus. */
-	public PlayerSkin menuSkin() {
+	public OrbitSkin menuSkin() {
 		return skins.own(accountSkin());
 	}
 
 	/** The local player's skin as their Minecraft account has it. */
-	public PlayerSkin accountSkin() {
+	public OrbitSkin accountSkin() {
 		if (menuSkin == null) {
 			Minecraft minecraft = Minecraft.getInstance();
-			menuSkin = minecraft.getSkinManager().createLookup(minecraft.getGameProfile(), false);
+			menuSkin = OrbitSkin.lookup(minecraft.getGameProfile());
 		}
 		return menuSkin.get();
 	}
@@ -479,7 +478,9 @@ public final class OrbitClient implements ClientModInitializer {
 			state.setData(CosmeticRenderData.KEY, new CosmeticRenderData(pieces));
 			state.setData(ParticleRenderData.KEY, new ParticleRenderData(wearer.particles(), false));
 			// The skin's outer layer would poke through cosmetics that sit close to the body.
-			state.skin = skinMasks.apply(state.skin, pieces, emote == null ? null : emote.baked());
+			if (state.skin != null) {
+				state.skin = skinMasks.apply(OrbitSkin.of(state.skin), pieces, emote == null ? null : emote.baked()).raw();
+			}
 		}
 		BodyPose body = wearer.body();
 		if (!body.isEmpty()) {
@@ -510,7 +511,7 @@ public final class OrbitClient implements ClientModInitializer {
 		float partial = minecraft.getDeltaTracker().getGameTimeDeltaPartialTick(false);
 		List<RenderPiece> pieces = localWearer.pieces(null, clock.at(partial), partial, config.playAnimations, config.maxFacesPerPlayer, registry::get);
 		Wearer.Emote emote = localWearer.emote();
-		Identifier masked = skinMasks.texture(skin, minecraft.player.getSkin().model() == PlayerModelType.SLIM, pieces, emote == null ? null : emote.baked());
+		Identifier masked = skinMasks.texture(skin, OrbitSkin.of(minecraft.player).slim(), pieces, emote == null ? null : emote.baked());
 		return masked == null ? skin : masked;
 	}
 
@@ -595,7 +596,7 @@ public final class OrbitClient implements ClientModInitializer {
 			return List.of();
 		}
 		float partial = minecraft.getDeltaTracker().getGameTimeDeltaPartialTick(false);
-		Identifier skin = minecraft.player.getSkin().body().texturePath();
+		Identifier skin = OrbitSkin.of(minecraft.player).texture();
 		return localWearer.pieces(null, clock.at(partial), partial, config.playAnimations, config.maxFacesPerPlayer, registry::get).stream()
 			.map(piece -> piece.withSkin(skin)).toList();
 	}

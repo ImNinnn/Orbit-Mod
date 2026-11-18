@@ -1,6 +1,8 @@
 package dev.orbit.cosmetic.client.render;
 
-import com.mojang.blaze3d.platform.NativeImage;
+import dev.orbit.cosmetic.client.gfx.OrbitTextures;
+import dev.orbit.cosmetic.client.gfx.OrbitSkin;
+import dev.orbit.cosmetic.client.gfx.OrbitImage;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.mixin.ModelPartAccessor;
 import dev.orbit.cosmetic.common.model.Anchor;
@@ -8,31 +10,22 @@ import dev.orbit.cosmetic.common.model.Bone;
 import dev.orbit.cosmetic.common.model.CosmeticModel;
 import dev.orbit.cosmetic.common.model.Quad;
 import dev.orbit.cosmetic.common.protocol.AssetId;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.model.geom.PartPose;
 import net.minecraft.client.model.player.PlayerModel;
-import net.minecraft.client.renderer.texture.AbstractTexture;
-import net.minecraft.client.renderer.texture.DynamicTexture;
-import net.minecraft.core.ClientAsset;
 import net.minecraft.resources.Identifier;
-import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.util.Util;
-import net.minecraft.world.entity.player.PlayerModelType;
-import net.minecraft.world.entity.player.PlayerSkin;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -92,12 +85,12 @@ public final class SkinMasks {
 	 * {@code skin} itself when they cover none (or are still being measured). {@code skip} (an emote's own props)
 	 * hides nothing.
 	 */
-	public PlayerSkin apply(PlayerSkin skin, List<RenderPiece> pieces, BakedCosmetic skip) {
+	public OrbitSkin apply(OrbitSkin skin, List<RenderPiece> pieces, BakedCosmetic skip) {
 		if (skin == null || pieces.isEmpty()) {
 			return skin;
 		}
-		Identifier masked = texture(skin.body().texturePath(), skin.model() == PlayerModelType.SLIM, pieces, skip);
-		return masked == null ? skin : new PlayerSkin(new ClientAsset.ResourceTexture(masked, masked), skin.cape(), skin.elytra(), skin.model(), skin.secure());
+		Identifier masked = texture(skin.texture(), skin.slim(), pieces, skip);
+		return masked == null ? skin : skin.withTexture(masked);
 	}
 
 	/** The masked copy of a skin texture for these cosmetics (first-person arms), or null for the texture itself. */
@@ -141,7 +134,7 @@ public final class SkinMasks {
 			Masked masked = it.next();
 			if (now - masked.lastUsed > TEXTURE_UNUSED_MS) {
 				if (masked.id != null) {
-					Minecraft.getInstance().getTextureManager().release(masked.id);
+					OrbitTextures.release(masked.id);
 				}
 				it.remove();
 			}
@@ -171,12 +164,12 @@ public final class SkinMasks {
 	// ---------------------------------------------------------------- the masked skin
 
 	private Identifier create(Identifier skin, long[] mask) {
-		NativeImage pixels = pixels(skin);
+		OrbitImage pixels = pixels(skin);
 		if (pixels == null) {
 			return null;
 		}
-		int scale = pixels.getWidth() / SIZE;
-		if (scale < 1 || pixels.getWidth() % SIZE != 0 || pixels.getHeight() != pixels.getWidth()) {
+		int scale = pixels.width() / SIZE;
+		if (scale < 1 || pixels.width() % SIZE != 0 || pixels.height() != pixels.width()) {
 			pixels.close();
 			return null;
 		}
@@ -192,33 +185,21 @@ public final class SkinMasks {
 			for (int dy = 0; dy < scale; dy++) {
 				for (int dx = 0; dx < scale; dx++) {
 					// The layer's pixel is painted onto the skin under it, then removed from the layer.
-					int layer = pixels.getPixel(x + dx, y + dy);
-					pixels.setPixel(baseX + dx, baseY + dy, over(layer, pixels.getPixel(baseX + dx, baseY + dy)));
+					int layer = pixels.pixel(x + dx, y + dy);
+					pixels.setPixel(baseX + dx, baseY + dy, over(layer, pixels.pixel(baseX + dx, baseY + dy)));
 					pixels.setPixel(x + dx, y + dy, layer & 0x00FFFFFF);
 				}
 			}
 		}
 		Identifier id = Identifier.fromNamespaceAndPath(OrbitClient.MOD_ID, "skin_mask/" + nextTexture++);
-		Minecraft.getInstance().getTextureManager().register(id, new DynamicTexture(id::toString, pixels));
+		OrbitTextures.register(id, id.toString(), pixels);
 		return id;
 	}
 
 	/** A copy of a skin's pixels: downloaded skins keep theirs; the default skins are read from the resources. */
-	private static NativeImage pixels(Identifier skin) {
-		Minecraft minecraft = Minecraft.getInstance();
-		AbstractTexture texture = minecraft.getTextureManager().getTexture(skin);
-		if (texture instanceof DynamicTexture dynamic && dynamic.getPixels() != null) {
-			NativeImage source = dynamic.getPixels();
-			NativeImage copy = new NativeImage(source.getWidth(), source.getHeight(), false);
-			copy.copyFrom(source);
-			return copy;
-		}
-		Optional<Resource> resource = minecraft.getResourceManager().getResource(skin);
-		if (resource.isEmpty()) {
-			return null;
-		}
-		try (InputStream in = resource.get().open()) {
-			return NativeImage.read(in);
+	private static OrbitImage pixels(Identifier skin) {
+		try {
+			return OrbitTextures.pixels(skin);
 		} catch (IOException e) {
 			OrbitClient.LOGGER.debug("Could not read skin {}: {}", skin, e.getMessage());
 			return null;
@@ -500,14 +481,14 @@ public final class SkinMasks {
 	private static Alpha[] alpha(CosmeticModel model) {
 		Alpha[] result = new Alpha[model.textures().size()];
 		for (int i = 0; i < result.length; i++) {
-			try (NativeImage image = NativeImage.read(model.textures().get(i).png())) {
-				boolean[] visible = new boolean[image.getWidth() * image.getHeight()];
-				for (int y = 0; y < image.getHeight(); y++) {
-					for (int x = 0; x < image.getWidth(); x++) {
-						visible[y * image.getWidth() + x] = image.getPixel(x, y) >>> 24 != 0;
+			try (OrbitImage image = OrbitImage.read(model.textures().get(i).png())) {
+				boolean[] visible = new boolean[image.width() * image.height()];
+				for (int y = 0; y < image.height(); y++) {
+					for (int x = 0; x < image.width(); x++) {
+						visible[y * image.width() + x] = image.pixel(x, y) >>> 24 != 0;
 					}
 				}
-				result[i] = new Alpha(image.getWidth(), image.getHeight(), visible);
+				result[i] = new Alpha(image.width(), image.height(), visible);
 			} catch (IOException | RuntimeException e) {
 				result[i] = null; // counted as covering everywhere
 			}
