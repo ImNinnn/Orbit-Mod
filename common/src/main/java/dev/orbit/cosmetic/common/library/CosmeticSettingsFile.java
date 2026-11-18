@@ -1,13 +1,11 @@
 package dev.orbit.cosmetic.common.library;
 
+import dev.orbit.cosmetic.common.util.Json;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
-import com.google.gson.JsonParser;
-import com.google.gson.Strictness;
-import com.google.gson.stream.JsonReader;
 import dev.orbit.cosmetic.common.anim.AnimationClip;
 import dev.orbit.cosmetic.common.anim.AnimationSettings;
 import dev.orbit.cosmetic.common.anim.AnimationTrigger;
@@ -23,7 +21,6 @@ import dev.orbit.cosmetic.common.model.ParticleEmitters;
 import dev.orbit.cosmetic.common.protocol.EquipCodec;
 
 import java.io.IOException;
-import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
@@ -135,10 +132,7 @@ public final class CosmeticSettingsFile {
 
 	/** Parses settings JSON (also used for imported files). Returns null if it is not a JSON object. */
 	public static JsonObject parse(String text) {
-		JsonReader reader = new JsonReader(new StringReader(text));
-		reader.setStrictness(Strictness.LENIENT);
-		reader.setNestingLimit(32);
-		JsonElement element = JsonParser.parseReader(reader);
+		JsonElement element = Json.parseLenient(text, 32);
 		return element.isJsonObject() ? element.getAsJsonObject() : null;
 	}
 

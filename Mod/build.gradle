@@ -16,10 +16,12 @@ stonecutter {
 			replace('\\bGuiGraphicsExtractor\\b', 'GuiGraphics', '\\bGuiGraphics\\b', 'GuiGraphicsExtractor')
 		}
 		def pre26 = stonecutter.eval(stonecutter.current.version, '<26.1')
-		// Each pair: the newest name (in the shared code) and the one before 26.1, as regexes and replacements.
-		def renames = { List<List<String>> pairs, String file = null ->
+		def pre1_21_11 = stonecutter.eval(stonecutter.current.version, '<1.21.11')
+		// Each pair: the newer name (in the shared code) and the older one, as regexes and replacements, for the
+		// versions where "older" is true (optionally in one file only).
+		def renames = { boolean older, List<List<String>> pairs, String file = null ->
 			pairs.each { pair ->
-				regex(pre26) {
+				regex(older) {
 					if (file != null) {
 						include file
 					}
@@ -28,7 +30,7 @@ stonecutter {
 			}
 		}
 		// 26.1 renamed the GUI's "render" methods "extract".
-		renames([
+		renames(pre26, [
 			['\\bextractWidgetRenderState\\b', 'renderWidget', '\\brenderWidget\\b', 'extractWidgetRenderState'],
 			['\\bextractContent\\b', 'renderContent', '\\brenderContent\\b', 'extractContent'],
 			['\\bextractBackground\\b', 'renderBackground', '\\brenderBackground\\b', 'extractBackground'],
@@ -53,14 +55,25 @@ stonecutter {
 			['\\bclient\\.keymapping\\.v1\\.KeyMappingHelper\\b', 'client.keybinding.v1.KeyBindingHelper', '\\bclient\\.keybinding\\.v1\\.KeyBindingHelper\\b', 'client.keymapping.v1.KeyMappingHelper'],
 			['\\bLivingEntityRenderLayerRegistrationCallback\\b', 'LivingEntityFeatureRendererRegistrationCallback', '\\bLivingEntityFeatureRendererRegistrationCallback\\b', 'LivingEntityRenderLayerRegistrationCallback'],
 		])
+		// 1.21.11 renamed ResourceLocation "Identifier" and moved Util and the player models.
+		renames(pre1_21_11, [
+			['\\bIdentifier\\b', 'ResourceLocation', '\\bResourceLocation\\b', 'Identifier'],
+			['net\\.minecraft\\.util\\.Util\\b', 'net.minecraft.Util', 'net\\.minecraft\\.Util\\b', 'net.minecraft.util.Util'],
+			['net\\.minecraft\\.world\\.entity\\.animal\\.cow\\.Cow\\b', 'net.minecraft.world.entity.animal.Cow', 'net\\.minecraft\\.world\\.entity\\.animal\\.Cow\\b', 'net.minecraft.world.entity.animal.cow.Cow'],
+			['net\\.minecraft\\.client\\.model\\.player\\.(PlayerModel|PlayerCapeModel)\\b', 'net.minecraft.client.model.$1',
+			 'net\\.minecraft\\.client\\.model\\.(PlayerModel|PlayerCapeModel)\\b', 'net.minecraft.client.model.player.$1'],
+		])
+		// Ctrl, or Cmd on a Mac: what hasControlDown meant before 1.21.11.
+		renames(pre1_21_11, [['\\.hasControlDownWithQuirk\\(\\)', '.hasControlDown(/*withQuirk*/)', '\\.hasControlDown\\(/\\*withQuirk\\*/\\)', '.hasControlDownWithQuirk()']],
+			'**/input/OrbitKey.java')
 		// A screen's and a toast's own drawing method.
 		['**/gui/ui/OrbitBaseScreen.java', '**/gui/OrbitToast.java'].each { file ->
-			renames([['\\bextractRenderState\\(', 'render(', '\\brender\\(', 'extractRenderState(']], file)
+			renames(pre26, [['\\bextractRenderState\\(', 'render(', '\\brender\\(', 'extractRenderState(']], file)
 		}
-		renames([['\\bPlayerFaceExtractor\\.extractRenderState\\(', 'PlayerFaceRenderer.draw(', '\\bPlayerFaceRenderer\\.draw\\(', 'PlayerFaceExtractor.extractRenderState('],
+		renames(pre26, [['\\bPlayerFaceExtractor\\.extractRenderState\\(', 'PlayerFaceRenderer.draw(', '\\bPlayerFaceRenderer\\.draw\\(', 'PlayerFaceExtractor.extractRenderState('],
 			['\\bPlayerFaceExtractor\\b', 'PlayerFaceRenderer', '\\bPlayerFaceRenderer\\b', 'PlayerFaceExtractor']], '**/gfx/OrbitGraphics.java')
 		// OrbitGraphics calls GuiGraphics by older names (only its field "graphics" is Minecraft's object).
-		[['text', 'drawString'], ['centeredText', 'drawCenteredString'], ['outline', 'renderOutline'], ['item', 'renderItem'],
+		[['text', 'drawString'], ['centeredText', 'drawCenteredString'], ['item', 'renderItem'],
 		 ['itemDecorations', 'renderItemDecorations']].each { names ->
 			regex(pre26) {
 				include '**/gfx/OrbitGraphics.java'
@@ -172,6 +185,8 @@ dependencies {
 	}
 
 	implementation project(':common')
+	// Nullness annotations: Minecraft brings them since 1.21.11; older versions only need them to compile.
+	compileOnly 'org.jspecify:jspecify:1.0.0'
 }
 
 processResources {
@@ -193,13 +208,18 @@ ext.releaseJar = obfuscated ? 'remapJar' : 'jar'
 
 // The game as players run it, with the jar players get and Fabric API only (no development names, no harness), on
 // the Java that Minecraft version uses: ./gradlew :Mod:<version>:prodClient. ORBIT_PROD_SERVER joins a server at once;
-// ORBIT_RUN_DIR picks the game folder (run/prod-<version> otherwise).
+// ORBIT_RUN_DIR picks the game folder (run/prod-<version> otherwise). ORBIT_PROD_MINECRAFT and ORBIT_PROD_FABRIC_API
+// run another release the jar is for (1.21.9 for the 1.21.10 jar) with that release's Fabric API.
 tasks.register('prodClient', net.fabricmc.loom.task.prod.ClientProductionRunTask) {
 	group = 'fabric'
 	description = 'Runs the release jar in a normal (non-development) game.'
 	mods.from(tasks.named(releaseJar))
-	mods.from(configurations.detachedConfiguration(dependencies.create("net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}")).setTransitive(false))
-	runDir = file(System.getenv('ORBIT_RUN_DIR') ?: "../../../run/prod-${project.minecraft_version}")
+	def gameVersion = System.getenv('ORBIT_PROD_MINECRAFT') ?: project.minecraft_version
+	mods.from(configurations.detachedConfiguration(dependencies.create("net.fabricmc.fabric-api:fabric-api:${System.getenv('ORBIT_PROD_FABRIC_API') ?: project.fabric_api_version}")).setTransitive(false))
+	if (gameVersion != project.minecraft_version) {
+		minecraftVersion = gameVersion
+	}
+	runDir = file(System.getenv('ORBIT_RUN_DIR') ?: "../../../run/prod-${gameVersion}")
 	javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of((project.findProperty('java_release') ?: '25') as int) }
 	programArgs.addAll('--username', System.getenv('ORBIT_TEST_USERNAME') ?: 'OrbitTester')
 	if (System.getenv('ORBIT_PROD_SERVER')) {

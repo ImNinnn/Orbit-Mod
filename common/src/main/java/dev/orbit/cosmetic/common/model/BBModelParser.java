@@ -1,14 +1,12 @@
 package dev.orbit.cosmetic.common.model;
 
+import dev.orbit.cosmetic.common.util.Json;
 import dev.orbit.cosmetic.common.util.Clamp;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
-import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
-import com.google.gson.Strictness;
-import com.google.gson.stream.JsonReader;
 import dev.orbit.cosmetic.common.anim.AnimationClip;
 import dev.orbit.cosmetic.common.anim.BoneTrack;
 import dev.orbit.cosmetic.common.anim.Channel;
@@ -21,7 +19,6 @@ import dev.orbit.cosmetic.common.anim.molang.MolangExpression;
 import dev.orbit.cosmetic.common.util.DataUrls;
 import dev.orbit.cosmetic.common.util.PngInfo;
 
-import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -124,10 +121,7 @@ public final class BBModelParser {
 			text = text.substring(1);
 		}
 		try {
-			JsonReader reader = new JsonReader(new StringReader(text));
-			reader.setStrictness(Strictness.LENIENT);
-			reader.setNestingLimit(64);
-			JsonElement root = JsonParser.parseReader(reader);
+			JsonElement root = Json.parseLenient(text, 64);
 			if (!root.isJsonObject()) {
 				throw new InvalidModelException("not_object", "The file is not a Blockbench model (expected a JSON object)");
 			}

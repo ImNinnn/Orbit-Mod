@@ -12,6 +12,7 @@ import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.client.multiplayer.ServerStatusPinger;
 import net.minecraft.client.multiplayer.resolver.ServerAddress;
 import net.minecraft.resources.Identifier;
+//? if >=1.21.11
 import net.minecraft.server.network.EventLoopGroupHolder;
 import org.jspecify.annotations.Nullable;
 
@@ -85,8 +86,13 @@ public final class ServerLinks {
 			boolean nativeTransport = Minecraft.getInstance().options.useNativeTransport();
 			PINGS.execute(() -> {
 				try {
+					//? if >=1.21.11 {
 					pinger.pingServer(data, () -> {
 					}, () -> data.setState(ServerData.State.SUCCESSFUL), EventLoopGroupHolder.remote(nativeTransport));
+					//?} else {
+					/*pinger.pingServer(data, () -> {
+					}, () -> data.setState(ServerData.State.SUCCESSFUL));
+					*///?}
 				} catch (Exception e) {
 					data.setState(ServerData.State.UNREACHABLE);
 				}

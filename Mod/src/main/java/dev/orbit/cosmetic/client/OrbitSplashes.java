@@ -46,7 +46,12 @@ public final class OrbitSplashes {
 		if (current.isEmpty() || RANDOM.nextInt(5) != 0) {
 			return null;
 		}
+		//? if >=1.21.11 {
 		return new SplashRenderer(Component.literal(current.get(RANDOM.nextInt(current.size()))).withColor(COLOR));
+		//?} else {
+		/*// Splashes are plain text before 1.21.11: red by its formatting code (the same colour).
+		return new SplashRenderer(net.minecraft.ChatFormatting.RED + current.get(RANDOM.nextInt(current.size())));
+		*///?}
 	}
 
 	/** The texts Orbit Cloud has now (any thread): used at once, and kept for the next start. */

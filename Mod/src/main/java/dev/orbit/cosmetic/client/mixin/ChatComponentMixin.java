@@ -41,9 +41,18 @@ abstract class ChatComponentMixin {
 	private void orbit$systemLine(Component message, CallbackInfo ci) {
 		Hosting.chatLine(message);
 	}
+	*///?}
 
-	// The first flag is "focused" (the chat screen passes true): every line, with its background.
-	@ModifyVariable(method = "render(Lnet/minecraft/client/gui/GuiGraphics;Lnet/minecraft/client/gui/Font;IIIZZ)V", at = @At("HEAD"), argsOnly = true, ordinal = 0)
+	//? if >=26.1 {
+	//?} else if >=1.21.11 {
+	/*// The first flag is "focused" (the chat screen passes true): every line, with its background.
+	@ModifyVariable(method = "render(Lnet/minecraft/client/gui/GuiGraphicsExtractor;Lnet/minecraft/client/gui/Font;IIIZZ)V", at = @At("HEAD"), argsOnly = true, ordinal = 0)
+	private boolean orbit$peek(boolean focused) {
+		return focused || OrbitKeys.peekingChat();
+	}
+	*///?} else {
+	/*// The flag is "focused" (the chat screen passes true): every line, with its background.
+	@ModifyVariable(method = "render(Lnet/minecraft/client/gui/GuiGraphicsExtractor;IIIZ)V", at = @At("HEAD"), argsOnly = true, ordinal = 0)
 	private boolean orbit$peek(boolean focused) {
 		return focused || OrbitKeys.peekingChat();
 	}

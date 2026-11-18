@@ -50,7 +50,13 @@ public final class OrbitGraphics {
 
 	/** A rectangle's 1-pixel border. */
 	public void outline(int x, int y, int width, int height, int color) {
+		//? if >=26.1 {
 		graphics.outline(x, y, width, height, color);
+		//?} else if >=1.21.11 {
+		/*graphics.renderOutline(x, y, width, height, color);
+		*///?} else {
+		/*graphics.submitOutline(x, y, width, height, color);
+		*///?}
 	}
 
 	/** A rectangle fading from one colour at the top to another at the bottom. */

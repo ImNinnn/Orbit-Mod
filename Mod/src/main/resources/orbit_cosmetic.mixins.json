@@ -1,6 +1,7 @@
 {
 	"required": true,
 	"package": "dev.orbit.cosmetic.client.mixin",
+	"plugin": "dev.orbit.cosmetic.client.mixin.OrbitMixinPlugin",
 	"compatibilityLevel": "JAVA_${java}",
 	"client": [
 		"SplashManagerMixin",
@@ -18,6 +19,7 @@
 		"InventoryScreenMixin",
 		"JoinMultiplayerScreenAccessor",
 		"KeyMappingMixin",
+		"LevelRendererMixin",
 		"LivingEntityRendererMixin",
 		"MouseHandlerMixin",
 		"MultiPlayerGameModeAccessor",

@@ -2,8 +2,12 @@ package dev.orbit.cosmetic.client.gfx;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.SubmitNodeCollector;
+//? if >=1.21.11 {
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
+//?} else {
+/*import net.minecraft.client.renderer.RenderType;
+*///?}
 import net.minecraft.resources.Identifier;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
@@ -61,10 +65,19 @@ public final class OrbitCanvas {
 	}
 
 	private static RenderType type(Identifier texture, Look look) {
+		//? if >=1.21.11 {
 		return switch (look) {
 			case CUTOUT -> RenderTypes.entityCutout(texture);
 			case TRANSLUCENT -> RenderTypes.entityTranslucent(texture);
 			case GLOWING -> RenderTypes.entityTranslucentEmissive(texture);
 		};
+		//?} else {
+		/*// Before 1.21.11 the render types make themselves.
+		return switch (look) {
+			case CUTOUT -> RenderType.entityCutout(texture);
+			case TRANSLUCENT -> RenderType.entityTranslucent(texture);
+			case GLOWING -> RenderType.entityTranslucentEmissive(texture);
+		};
+		*///?}
 	}
 }

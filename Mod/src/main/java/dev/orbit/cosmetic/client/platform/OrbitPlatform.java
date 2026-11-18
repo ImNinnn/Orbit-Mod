@@ -6,6 +6,7 @@ import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.compat.PreviewRenderer;
 import dev.orbit.cosmetic.client.gfx.OrbitCanvas;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
+import dev.orbit.cosmetic.client.mixin.OrbitMixinPlugin;
 import dev.orbit.cosmetic.client.render.CosmeticLayer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -133,13 +134,40 @@ public final class OrbitPlatform {
 			draw.draw(OrbitCanvas.of(context.submitNodeCollector()), context.poseStack(), camera.pos, camera.orientation);
 		});
 		//?} else {
-		/*// Before entities are drawn: what is submitted then is drawn with them.
-		WorldRenderEvents.BEFORE_ENTITIES.register(context -> {
-			CameraRenderState camera = context.worldState().cameraRenderState;
-			draw.draw(OrbitCanvas.of(context.commandQueue()), context.matrices(), camera.pos, camera.orientation);
-		});
+		/*if (OrbitMixinPlugin.hasFabricWorldEvents()) {
+			FabricWorldEvents.register(draw);
+		} else {
+			// Fabric API for 1.21.9 has no world render events: Orbit's own hook calls drawWorld.
+			worldDraw = draw;
+		}
 		*///?}
 	}
+
+	//? if <26.1 {
+	/*private static @Nullable WorldDraw worldDraw;
+
+	/^* Called by LevelRendererMixin where Fabric API cannot tell Orbit when the world is drawn. ^/
+	public static void drawWorld(OrbitCanvas canvas, PoseStack poseStack, Vec3 camera, Quaternionf orientation) {
+		if (worldDraw != null) {
+			worldDraw.draw(canvas, poseStack, camera, orientation);
+		}
+	}
+
+	/^* Fabric API's world events, in a class of their own so nothing loads them where they do not exist. ^/
+	private static final class FabricWorldEvents {
+		static void register(WorldDraw draw) {
+			// Before entities are drawn: what is submitted then is drawn with them.
+			WorldRenderEvents.BEFORE_ENTITIES.register(context -> {
+				CameraRenderState camera = context.worldState().cameraRenderState;
+				draw.draw(OrbitCanvas.of(context.commandQueue()), context.matrices(), camera.pos, camera.orientation);
+			});
+		}
+	}
+	*///?} else {
+	/** Called by LevelRendererMixin, which is never applied since 26.1 (Fabric API has the event). */
+	public static void drawWorld(OrbitCanvas canvas, PoseStack poseStack, Vec3 camera, Quaternionf orientation) {
+	}
+	//?}
 
 	/** Adds Orbit's cosmetic layer to the player renderers and its preview renderers to the GUI. */
 	public static void registerRenderers() {
