@@ -11,6 +11,8 @@ pluginManagement {
 
 plugins {
 	id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+	// One source tree for every Minecraft version (https://stonecutter.kikugie.dev).
+	id 'dev.kikugie.stonecutter' version '0.10'
 }
 
 rootProject.name = 'orbit-cosmetic'
@@ -18,8 +20,16 @@ rootProject.name = 'orbit-cosmetic'
 // Platform-independent code: model parsing, animation, and the encoding of what players wear.
 include 'common'
 
-// The client mod, built once per supported Minecraft version from the same sources (see Mod/version.gradle).
-['26.1', '26.2', '26.3'].each { version ->
-	include "client-${version}"
-	project(":client-${version}").projectDir = file("Mod/versions/${version}")
+// The client mod, built once per supported Minecraft version from the same sources (Mod/build.gradle). Stonecutter
+// makes a project per version, Mod/versions/<version> (its gradle.properties picks Minecraft and Fabric API, and
+// its src/ holds the classes that differ for it); the code in Mod/src is shared, with //? comments where it differs.
+include 'Mod'
+stonecutter {
+	centralScript = 'build.gradle'
+	kotlinController = false
+	create(':Mod') {
+		versions('26.1', '26.2', '26.3')
+		// The version the shared sources are written for in git (switch with the "Set active project" tasks).
+		vcsVersion = '26.3'
+	}
 }

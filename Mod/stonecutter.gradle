@@ -1,0 +1,7 @@
+// The controller of the client's versions (see settings.gradle): which version the shared sources are written for
+// right now. Change it with ./gradlew "Set active project to <version>", not by hand.
+plugins {
+	id 'dev.kikugie.stonecutter'
+}
+
+stonecutter.active '26.3'

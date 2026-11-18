@@ -1,0 +1,21 @@
+// What every Java project of the build shares (common/ and each Minecraft version of the client). Applied by each
+// project itself rather than from the root build, so Stonecutter's version projects are set up in their own order.
+group = project.maven_group
+version = project.mod_version
+
+apply plugin: 'java'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(25)
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	options.encoding = 'UTF-8'
+	options.release = 25
+}
+
+repositories {
+	mavenCentral()
+}

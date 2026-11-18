@@ -1,26 +1,22 @@
-// Build of the Orbit client for one Minecraft version. Every project in versions/ applies this script: the code in
-// ../../src is shared, and versions/<version>/src holds the few classes that differ between Minecraft versions
-// (dev.orbit.cosmetic.client.compat.Compat). The version's gradle.properties picks Minecraft and Fabric API.
+// Build of the Orbit client for one Minecraft version: every project Stonecutter makes in versions/ (see
+// settings.gradle) runs this script. The code in ../../src is shared; versions/<version>/src holds the classes that
+// differ for that version (dev.orbit.cosmetic.client.compat), and the version's gradle.properties picks Minecraft
+// and Fabric API. Stonecutter adds the shared sources itself, as processed for the version.
+apply from: rootProject.file('gradle/java.gradle')
 apply plugin: 'net.fabricmc.fabric-loom'
 
-def shared = file('../../src')
 // The development test harness (screenshots, diagnostics) is only on the maintainer's computer, not in the repository.
-def harness = new File(shared, 'testmod').isDirectory()
+def harness = file('../../src/testmod').isDirectory()
 
 base {
 	archivesName = "orbit-mod-mc${project.minecraft_version}"
 }
 
 sourceSets {
-	main {
-		java.srcDirs = [new File(shared, 'main/java'), 'src/main/java']
-		resources.srcDirs = [new File(shared, 'main/resources')]
-	}
+	// Each source set keeps its default folders here (src/main/java...): Stonecutter adds the shared ones in Mod/src.
 	// Development-only test harness (screenshots and diagnostics); never part of the released jar.
 	if (harness) {
 		testmod {
-			java.srcDirs = [new File(shared, 'testmod/java')]
-			resources.srcDirs = [new File(shared, 'testmod/resources')]
 			compileClasspath += main.compileClasspath + main.output
 			runtimeClasspath += main.runtimeClasspath + main.output
 		}

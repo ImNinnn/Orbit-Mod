@@ -1,3 +1,5 @@
+apply from: rootProject.file('gradle/java.gradle')
+
 // Pure Java: no Minecraft or Fabric classes may be referenced from here, so it is shared by every Minecraft version.
 // Gson is provided at runtime by Minecraft.
 

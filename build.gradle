@@ -2,27 +2,7 @@ plugins {
 	id 'net.fabricmc.fabric-loom' version "${loom_version}" apply false
 }
 
-subprojects {
-	group = project.maven_group
-	version = project.mod_version
-
-	apply plugin: 'java'
-
-	java {
-		toolchain {
-			languageVersion = JavaLanguageVersion.of(25)
-		}
-	}
-
-	tasks.withType(JavaCompile).configureEach {
-		options.encoding = 'UTF-8'
-		options.release = 25
-	}
-
-	repositories {
-		mavenCentral()
-	}
-}
+// The Java settings every project shares are in gradle/java.gradle (each project applies it).
 
 // ---------------------------------------------------------------- releases
 //
@@ -42,7 +22,8 @@ subprojects {
 
 def releaseKeyFile = file(System.getenv('ORBIT_RELEASE_KEY') ?: "${System.getProperty('user.home')}/.config/orbit-release.key")
 def publicKeyFile = file('Mod/src/main/resources/orbit-release.pub')
-def clientProjects = ['26.1', '26.2', '26.3'].collect { ":client-${it}" }
+// The client's version projects, as Stonecutter made them (settings.gradle lists the versions).
+def clientProjects = project(':Mod').subprojects.collect { it.path }.sort()
 
 tasks.register('releaseKey') {
 	group = 'orbit'
