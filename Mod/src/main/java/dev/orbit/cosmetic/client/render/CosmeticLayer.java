@@ -8,7 +8,11 @@ import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.client.model.geom.builders.CubeDeformation;
 import net.minecraft.client.model.geom.builders.LayerDefinition;
 import net.minecraft.client.model.player.PlayerModel;
+//? if >=1.21.9 {
 import net.minecraft.client.renderer.SubmitNodeCollector;
+//?} else {
+/*import net.minecraft.client.renderer.MultiBufferSource;
+*///?}
 import net.minecraft.client.renderer.entity.RenderLayerParent;
 import net.minecraft.client.renderer.entity.layers.RenderLayer;
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;
@@ -25,8 +29,13 @@ public final class CosmeticLayer extends RenderLayer<AvatarRenderState, PlayerMo
 		super(parent);
 	}
 
+	//? if >=1.21.9 {
 	@Override
 	public void submit(PoseStack poseStack, SubmitNodeCollector collector, int light, AvatarRenderState state, float yRot, float xRot) {
+	//?} else {
+	/*@Override
+	public void render(PoseStack poseStack, MultiBufferSource collector, int light, AvatarRenderState state, float yRot, float xRot) {
+	*///?}
 		if (state.isInvisible) {
 			return;
 		}

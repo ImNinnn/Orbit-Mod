@@ -5,9 +5,11 @@ import dev.orbit.cosmetic.client.input.OrbitChar;
 import dev.orbit.cosmetic.client.input.OrbitClick;
 import dev.orbit.cosmetic.client.input.OrbitKey;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+//? if >=1.21.9 {
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
+//?}
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
@@ -56,6 +58,7 @@ public abstract class OrbitBaseScreen extends Screen {
 
 	// ---------------------------------------------------------------- input
 
+	//? if >=1.21.9 {
 	@Override
 	public final boolean keyPressed(KeyEvent event) {
 		return keyPressed(new OrbitKey(event));
@@ -109,4 +112,59 @@ public abstract class OrbitBaseScreen extends Screen {
 	public boolean mouseDragged(OrbitClick click, double dragX, double dragY) {
 		return super.mouseDragged(click.raw(), dragX, dragY);
 	}
+	//?} else {
+	/*@Override
+	public final boolean keyPressed(int key, int scanCode, int modifiers) {
+		return keyPressed(new OrbitKey(key, scanCode, modifiers));
+	}
+
+	public boolean keyPressed(OrbitKey key) {
+		return super.keyPressed(key.key(), key.scanCode(), key.modifiers());
+	}
+
+	@Override
+	public final boolean keyReleased(int key, int scanCode, int modifiers) {
+		return keyReleased(new OrbitKey(key, scanCode, modifiers));
+	}
+
+	public boolean keyReleased(OrbitKey key) {
+		return super.keyReleased(key.key(), key.scanCode(), key.modifiers());
+	}
+
+	@Override
+	public final boolean charTyped(char character, int modifiers) {
+		return charTyped(new OrbitChar(character, modifiers));
+	}
+
+	public boolean charTyped(OrbitChar character) {
+		return super.charTyped(character.character(), character.modifiers());
+	}
+
+	@Override
+	public final boolean mouseClicked(double x, double y, int button) {
+		return mouseClicked(new OrbitClick(x, y, button), OrbitClick.isDoubleClick());
+	}
+
+	public boolean mouseClicked(OrbitClick click, boolean doubleClick) {
+		return super.mouseClicked(click.x(), click.y(), click.button());
+	}
+
+	@Override
+	public final boolean mouseReleased(double x, double y, int button) {
+		return mouseReleased(new OrbitClick(x, y, button));
+	}
+
+	public boolean mouseReleased(OrbitClick click) {
+		return super.mouseReleased(click.x(), click.y(), click.button());
+	}
+
+	@Override
+	public final boolean mouseDragged(double x, double y, int button, double dragX, double dragY) {
+		return mouseDragged(new OrbitClick(x, y, button), dragX, dragY);
+	}
+
+	public boolean mouseDragged(OrbitClick click, double dragX, double dragY) {
+		return super.mouseDragged(click.x(), click.y(), click.button(), dragX, dragY);
+	}
+	*///?}
 }

@@ -6,6 +6,7 @@ import net.minecraft.client.model.geom.builders.LayerDefinition;
 import net.minecraft.client.model.player.PlayerCapeModel;
 import net.minecraft.client.model.player.PlayerModel;
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;
+//? if >=1.21.9
 import net.minecraft.world.entity.player.PlayerModelType;
 import net.minecraft.world.entity.player.PlayerSkin;
 
@@ -39,7 +40,11 @@ public final class VanillaPlayerModels {
 	}
 
 	public static PlayerModel forSkin(PlayerSkin skin) {
+		//? if >=1.21.9 {
 		return model(skin.model() == PlayerModelType.SLIM);
+		//?} else {
+		/*return model(skin.model() == PlayerSkin.Model.SLIM);
+		*///?}
 	}
 
 	public static PlayerModel model(boolean isSlim) {

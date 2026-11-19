@@ -17,8 +17,10 @@ import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 //? if >=26.1 {
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
-//?} else {
+//?} else if >=1.21.9 {
 /*import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents;
+*///?} else {
+/*import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 *///?}
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents;
@@ -29,6 +31,7 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.entity.player.AvatarRenderer;
+//? if >=1.21.9
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.InteractionResult;
@@ -52,7 +55,9 @@ import java.util.function.Consumer;
  */
 public final class OrbitPlatform {
 	private static final Set<Object> LAYERED_RENDERERS = Collections.newSetFromMap(new WeakHashMap<>());
+	//? if >=1.21.9 {
 	private static KeyMapping.@Nullable Category keyCategory;
+	//?}
 
 	private OrbitPlatform() {
 	}
@@ -168,7 +173,9 @@ public final class OrbitPlatform {
 		}
 	}
 
-	/^* Fabric API's world events, in a class of their own so nothing loads them where they do not exist. ^/
+	*///?}
+	//? if >=1.21.9 <26.1 {
+	/*/^* Fabric API's world events, in a class of their own so nothing loads them where they do not exist. ^/
 	private static final class FabricWorldEvents {
 		static void register(WorldDraw draw) {
 			// Before entities are drawn: what is submitted then is drawn with them.
@@ -178,7 +185,21 @@ public final class OrbitPlatform {
 			});
 		}
 	}
-	*///?} else {
+	*///?} else if <1.21.9 {
+	/*/^* Fabric API's world events before 1.21.9: drawn into the frame's buffers once the entities are (the pose stack only
+	 * exists from then on). ^/
+	private static final class FabricWorldEvents {
+		static void register(WorldDraw draw) {
+			WorldRenderEvents.AFTER_ENTITIES.register(context -> {
+				if (context.matrixStack() != null && context.consumers() != null) {
+					net.minecraft.client.Camera camera = context.camera();
+					draw.draw(OrbitCanvas.of(context.consumers()), context.matrixStack(), camera.getPosition(), camera.rotation());
+				}
+			});
+		}
+	}
+	*///?}
+	//? if >=26.1 {
 	/** Called by LevelRendererMixin, which is never applied since 26.1 (Fabric API has the event). */
 	public static void drawWorld(OrbitCanvas canvas, PoseStack poseStack, Vec3 camera, Quaternionf orientation) {
 	}
@@ -202,10 +223,15 @@ public final class OrbitPlatform {
 	 * (a GLFW key code; {@link InputConstants#UNKNOWN} for none).
 	 */
 	public static KeyMapping key(String name, int defaultKey) {
+		//? if >=1.21.9 {
 		if (keyCategory == null) {
 			keyCategory = KeyMapping.Category.register(Identifier.fromNamespaceAndPath(OrbitClient.MOD_ID, "main"));
 		}
 		return KeyMappingHelper.registerKeyMapping(new KeyMapping("key.orbit_cosmetic." + name, defaultKey, keyCategory));
+		//?} else {
+		/*// Before 1.21.9 a category is its translation key (the same one 1.21.9 makes from Orbit's category).
+		return KeyMappingHelper.registerKeyMapping(new KeyMapping("key.orbit_cosmetic." + name, defaultKey, "key.category.orbit_cosmetic.main"));
+		*///?}
 	}
 
 	// ---------------------------------------------------------------- the HUD
@@ -280,6 +306,7 @@ public final class OrbitPlatform {
 			ScreenEvents.afterExtract(screen).register((current, graphics, mouseX, mouseY, partialTick) -> draw.draw(OrbitGraphics.of(graphics), mouseX, mouseY, partialTick));
 		}
 
+		//? if >=1.21.9 {
 		public void onClick(ScreenMouse handler) {
 			ScreenMouseEvents.allowMouseClick(screen).register((current, event) -> !handler.handle(event.x(), event.y()));
 		}
@@ -287,6 +314,15 @@ public final class OrbitPlatform {
 		public void onRelease(ScreenMouse handler) {
 			ScreenMouseEvents.allowMouseRelease(screen).register((current, event) -> !handler.handle(event.x(), event.y()));
 		}
+		//?} else {
+		/*public void onClick(ScreenMouse handler) {
+			ScreenMouseEvents.allowMouseClick(screen).register((current, mouseX, mouseY, button) -> !handler.handle(mouseX, mouseY));
+		}
+
+		public void onRelease(ScreenMouse handler) {
+			ScreenMouseEvents.allowMouseRelease(screen).register((current, mouseX, mouseY, button) -> !handler.handle(mouseX, mouseY));
+		}
+		*///?}
 
 		public void onScroll(ScreenScroll handler) {
 			ScreenMouseEvents.allowMouseScroll(screen).register((current, mouseX, mouseY, scrollX, scrollY) -> !handler.handle(mouseX, mouseY, scrollY));

@@ -43,6 +43,7 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.chat.Component;
+//? if >=1.21.9
 import net.minecraft.network.chat.FontDescription;
 import net.minecraft.resources.Identifier;
 import dev.orbit.cosmetic.client.render.SkinMasks;
@@ -82,7 +83,11 @@ public final class OrbitClient {
 	 * their own icon beside the measured name text (such as Essential) therefore end up to the left of it.
 	 */
 	private static final Component NAMEPLATE_ICON = Component.literal("")
+		//? if >=1.21.9 {
 		.withStyle(style -> style.withFont(new FontDescription.Resource(Identifier.fromNamespaceAndPath(MOD_ID, "nameplate"))).withColor(ChatFormatting.WHITE));
+		//?} else {
+		/*.withStyle(style -> style.withFont(Identifier.fromNamespaceAndPath(MOD_ID, "nameplate")).withColor(ChatFormatting.WHITE));
+		*///?}
 	private static final long MENU_EPOCH = System.nanoTime();
 
 	private static OrbitClient instance;

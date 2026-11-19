@@ -177,9 +177,15 @@ public final class PlayerBody {
 				}
 				float[] corners = new float[20];
 				for (int i = 0; i < 4; i++) {
+					//? if >=1.21.9 {
 					corners[i * 5] = v[i].x();
 					corners[i * 5 + 1] = v[i].y();
 					corners[i * 5 + 2] = v[i].z();
+					//?} else {
+					/*corners[i * 5] = v[i].pos().x();
+					corners[i * 5 + 1] = v[i].pos().y();
+					corners[i * 5 + 2] = v[i].pos().z();
+					*///?}
 					corners[i * 5 + 3] = v[i].u();
 					corners[i * 5 + 4] = v[i].v();
 				}

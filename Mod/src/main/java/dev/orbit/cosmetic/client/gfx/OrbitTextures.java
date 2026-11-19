@@ -4,6 +4,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.AbstractTexture;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.client.renderer.texture.SkinTextureDownloader;
+//? if >=1.21.9
 import net.minecraft.core.ClientAsset;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.Resource;
@@ -74,10 +75,15 @@ public final class OrbitTextures {
 	 * URL. A skin ({@code skin} true) in the old 64 by 32 layout is converted, as Minecraft does for players.
 	 */
 	public static CompletableFuture<Identifier> downloadSkin(Identifier id, Path localCopy, String url, boolean skin) {
+		//? if >=1.21.9 {
 		if (downloader == null) {
 			Minecraft minecraft = Minecraft.getInstance();
 			downloader = new SkinTextureDownloader(minecraft.getProxy(), minecraft.getTextureManager(), minecraft);
 		}
 		return downloader.downloadAndRegisterSkin(id, localCopy, url, skin).thenApply(ClientAsset.Texture::texturePath);
+		//?} else {
+		/*// Before 1.21.9 the downloader is static and gives the texture's name itself.
+		return SkinTextureDownloader.downloadAndRegisterSkin(id, localCopy, url, skin);
+		*///?}
 	}
 }

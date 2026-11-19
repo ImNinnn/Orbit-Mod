@@ -10,10 +10,15 @@ import dev.orbit.cosmetic.client.OrbitClient;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.model.player.PlayerModel;
 import net.minecraft.client.player.AbstractClientPlayer;
+//? if >=1.21.9 {
 import net.minecraft.client.renderer.SubmitNodeCollector;
+//?} else {
+/*import net.minecraft.client.renderer.MultiBufferSource;
+*///?}
 import net.minecraft.client.renderer.entity.player.AvatarRenderer;
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.resources.Identifier;
+//? if >=1.21.9
 import net.minecraft.world.entity.Avatar;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -24,6 +29,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(AvatarRenderer.class)
 public abstract class AvatarRendererMixin {
+	//? if >=1.21.9 {
 	/** Attaches this frame's cosmetics (and the nameplate icon) to the player's render state. */
 	@Inject(
 		method = "extractRenderState(Lnet/minecraft/world/entity/Avatar;Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;F)V",
@@ -42,6 +48,15 @@ public abstract class AvatarRendererMixin {
 			cir.setReturnValue(true);
 		}
 	}
+	//?} else {
+	/*/^* Attaches this frame's cosmetics (and the nameplate icon) to the player's render state. ^/
+	@Inject(method = "extractRenderState(Lnet/minecraft/client/player/AbstractClientPlayer;Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;F)V",
+		at = @At("TAIL"))
+	private void orbit$extractCosmetics(AbstractClientPlayer player, AvatarRenderState state, float partialTicks, CallbackInfo ci) {
+		OrbitClient.get().extract(player, PlayerState.of(state), partialTicks);
+	}
+	// The own nameplate: LivingEntityRendererMixin (players have no shouldShowName of their own before 1.21.9).
+	*///?}
 
 	/** First-person arms: the sleeve pixels that arm cosmetics cover are hidden, as in third person. */
 	@ModifyVariable(method = "renderHand", at = @At("HEAD"), argsOnly = true)
@@ -49,6 +64,7 @@ public abstract class AvatarRendererMixin {
 		return OrbitClient.get().firstPersonSkin(skin);
 	}
 
+	//? if >=1.21.9 {
 	/** A first-person arm a body part replaces: only the body part is drawn (with the arm's cosmetics). */
 	@Inject(method = "renderHand", at = @At("HEAD"), cancellable = true)
 	private void orbit$replaceArm(PoseStack poseStack, SubmitNodeCollector collector, int light, Identifier skin, ModelPart arm, boolean sleeve, CallbackInfo ci) {
@@ -70,6 +86,29 @@ public abstract class AvatarRendererMixin {
 		PlayerModel model = ((AvatarRenderer<?>) (Object) this).getModel();
 		OrbitClient.get().renderFirstPersonArm(PlayerBody.of(model), poseStack, OrbitCanvas.of(collector), light, orbit$anchor(model, arm));
 	}
+	//?} else {
+	/*/^* A first-person arm a body part replaces: only the body part is drawn (with the arm's cosmetics). ^/
+	@Inject(method = "renderHand", at = @At("HEAD"), cancellable = true)
+	private void orbit$replaceArm(PoseStack poseStack, MultiBufferSource collector, int light, Identifier skin, ModelPart arm, boolean sleeve, CallbackInfo ci) {
+		PlayerModel model = ((AvatarRenderer<?>) (Object) this).getModel();
+		Anchor anchor = orbit$anchor(model, arm);
+		if (OrbitClient.get().replacesFirstPersonArm(anchor)) {
+			// The game resets the arm's pose before drawing it; the body part follows the same pose.
+			arm.resetPose();
+			model.leftArm.zRot = -0.1F;
+			model.rightArm.zRot = 0.1F;
+			OrbitClient.get().renderFirstPersonArm(PlayerBody.of(model), poseStack, OrbitCanvas.of(collector), light, anchor);
+			ci.cancel();
+		}
+	}
+
+	/^* First-person arms are rendered without render layers, so arm cosmetics are drawn here. ^/
+	@Inject(method = "renderHand", at = @At("TAIL"))
+	private void orbit$renderArmCosmetics(PoseStack poseStack, MultiBufferSource collector, int light, Identifier skin, ModelPart arm, boolean sleeve, CallbackInfo ci) {
+		PlayerModel model = ((AvatarRenderer<?>) (Object) this).getModel();
+		OrbitClient.get().renderFirstPersonArm(PlayerBody.of(model), poseStack, OrbitCanvas.of(collector), light, orbit$anchor(model, arm));
+	}
+	*///?}
 
 	/** Which arm the game draws; ROOT for any other part (nothing is drawn on it then). */
 	@Unique

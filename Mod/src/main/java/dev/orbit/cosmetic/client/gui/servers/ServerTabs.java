@@ -46,7 +46,7 @@ public final class ServerTabs {
 
 	public static void register() {
 		OrbitPlatform.onScreenOpened((screen, hooks) -> {
-			if (screen instanceof JoinMultiplayerScreen && OrbitClient.get().config().useBackend) {
+			if (shownOn(screen)) {
 				// The tabs take the title's place.
 				for (var widget : hooks.widgets()) {
 					if (widget instanceof StringWidget text && text.getMessage().getString().equals(screen.getTitle().getString())) {
@@ -56,16 +56,30 @@ public final class ServerTabs {
 				JoinMultiplayerScreenAccessor multiplayer = (JoinMultiplayerScreenAccessor) screen;
 				Screen parent = multiplayer.orbit$lastScreen();
 				// The top bar holds the tabs: as high as they are, with the list right under it.
+				//? if >=1.21.9 {
 				multiplayer.orbit$layout().setHeaderHeight(TAB_HEIGHT);
 				multiplayer.orbit$layout().arrangeElements();
 				if (multiplayer.orbit$serverList() != null) {
 					multiplayer.orbit$serverList().updateSize(screen.width, multiplayer.orbit$layout());
 				}
+				//?} else {
+				/*// Before 1.21.9 the list sits at a fixed place: it starts under the tabs instead, ending where it did (the
+				// title is not drawn: MultiplayerTitleMixin).
+				var list = multiplayer.orbit$serverList();
+				if (list != null) {
+					list.updateSizeAndPosition(screen.width, list.getY() + list.getHeight() - TAB_HEIGHT, TAB_HEIGHT);
+				}
+				*///?}
 				List<AbstractWidget> tabs = tabs(screen.width, FAVORITES, parent);
 				underTabs(multiplayer.orbit$serverList(), tabs);
 				hooks.widgets().addAll(tabs);
 			}
 		});
+	}
+
+	/** Whether Orbit's tabs are on this screen (the Multiplayer screen, while Orbit Cloud is used). */
+	public static boolean shownOn(Screen screen) {
+		return screen instanceof JoinMultiplayerScreen && OrbitClient.get().config().useBackend;
 	}
 
 	/**

@@ -2,7 +2,7 @@ package dev.orbit.cosmetic.client.gfx;
 
 import dev.orbit.cosmetic.client.anim.PlayerMotion;
 import dev.orbit.cosmetic.client.render.PlayerFrame;
-import net.fabricmc.fabric.api.client.rendering.v1.RenderStateDataKey;
+import dev.orbit.cosmetic.client.render.PlayerFrameHolder;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.network.chat.Component;
@@ -16,8 +16,6 @@ import org.jspecify.annotations.Nullable;
  * Render thread.
  */
 public final class PlayerState {
-	/** Orbit's frame on a render state (Fabric keeps it with the state). */
-	private static final RenderStateDataKey<PlayerFrame> FRAME = RenderStateDataKey.create(() -> "orbit_cosmetic:frame");
 	/** Full brightness, so menu players look the same everywhere. */
 	private static final int FULL_BRIGHT = 0xF000F0;
 
@@ -44,11 +42,11 @@ public final class PlayerState {
 
 	/** What Orbit draws on this player this frame, or null for nothing. */
 	public @Nullable PlayerFrame frame() {
-		return state.getData(FRAME);
+		return ((PlayerFrameHolder) state).orbit$frame();
 	}
 
 	public void setFrame(@Nullable PlayerFrame frame) {
-		state.setData(FRAME, frame);
+		((PlayerFrameHolder) state).orbit$setFrame(frame);
 	}
 
 	public @Nullable OrbitSkin skin() {
@@ -112,7 +110,10 @@ public final class PlayerState {
 	public void poseForMenu(OrbitSkin skin, double time, float yaw, float pitch, float walkSpeed) {
 		Minecraft minecraft = Minecraft.getInstance();
 		state.skin = skin.raw();
+		//? if >=1.21.9 {
 		state.lightCoords = FULL_BRIGHT;
+		//?}
+		// (Before 1.21.9 the light is given when drawing: see compat/PreviewRenderer.)
 		state.boundingBoxWidth = 0.6F;
 		state.boundingBoxHeight = 1.8F;
 		state.eyeHeight = 1.62F;

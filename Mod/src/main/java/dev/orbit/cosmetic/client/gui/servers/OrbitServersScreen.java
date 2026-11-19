@@ -19,6 +19,7 @@ import net.minecraft.client.gui.components.ObjectSelectionList;
 import net.minecraft.client.gui.layouts.HeaderAndFooterLayout;
 import net.minecraft.client.gui.layouts.LinearLayout;
 import net.minecraft.client.gui.screens.Screen;
+//? if >=1.21.9
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.client.multiplayer.ServerList;
@@ -223,11 +224,30 @@ public final class OrbitServersScreen extends OrbitBaseScreen {
 			this.server = server;
 		}
 
+		//? if >=1.21.9 {
 		@Override
 		public void extractContent(GuiGraphicsExtractor extractor, int mouseX, int mouseY, boolean hovered, float partialTick) {
-			OrbitGraphics graphics = OrbitGraphics.of(extractor);
-			int x = getContentX();
-			int y = getContentY();
+			draw(OrbitGraphics.of(extractor), getContentX(), getContentY(), getContentWidth());
+		}
+
+		@Override
+		public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+			return clicked(doubleClick);
+		}
+		//?} else {
+		/*@Override
+		public void render(GuiGraphicsExtractor extractor, int index, int top, int left, int width, int height, int mouseX, int mouseY, boolean hovered, float partialTick) {
+			draw(OrbitGraphics.of(extractor), left, top, width);
+		}
+
+		@Override
+		public boolean mouseClicked(double mouseX, double mouseY, int button) {
+			return clicked(dev.orbit.cosmetic.client.input.OrbitClick.isDoubleClick());
+		}
+		*///?}
+
+		/** The row: its content starts at (x, y) and is {@code width} wide. */
+		private void draw(OrbitGraphics graphics, int x, int y, int width) {
 			ServerData data = links.status(server.address(), server.name());
 			Identifier icon = links.icon(server.address(), null);
 			graphics.image(icon != null ? icon : NO_ICON, x, y, x + 32, y + 32, 0, 1, 0, 1);
@@ -238,11 +258,11 @@ public final class OrbitServersScreen extends OrbitBaseScreen {
 			Component motd = data.state() == ServerData.State.SUCCESSFUL && data.motd != null ? data.motd
 				: data.state() == ServerData.State.UNREACHABLE ? Component.translatable("multiplayer.status.cannot_connect").withStyle(ChatFormatting.DARK_RED)
 				: server.motd() != null ? Component.literal(server.motd()) : Component.literal(server.address());
-			List<FormattedCharSequence> lines = font.split(motd, getContentWidth() - 34);
+			List<FormattedCharSequence> lines = font.split(motd, width - 34);
 			for (int i = 0; i < Math.min(2, lines.size()); i++) {
 				graphics.text(font, lines.get(i), x + 35, y + 12 + 9 * i, -8355712);
 			}
-			int statusX = getContentRight() - 15;
+			int statusX = x + width - 15;
 			Identifier status;
 			if (data.state() == ServerData.State.PINGING) {
 				status = PINGING[(int) (System.currentTimeMillis() / 100 % 5)];
@@ -258,8 +278,7 @@ public final class OrbitServersScreen extends OrbitBaseScreen {
 			}
 		}
 
-		@Override
-		public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+		private boolean clicked(boolean doubleClick) {
 			list.setSelected(this);
 			if (doubleClick) {
 				joinSelected();

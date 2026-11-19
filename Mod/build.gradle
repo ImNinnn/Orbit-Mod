@@ -17,6 +17,7 @@ stonecutter {
 		}
 		def pre26 = stonecutter.eval(stonecutter.current.version, '<26.1')
 		def pre1_21_11 = stonecutter.eval(stonecutter.current.version, '<1.21.11')
+		def pre1_21_9 = stonecutter.eval(stonecutter.current.version, '<1.21.9')
 		// Each pair: the newer name (in the shared code) and the older one, as regexes and replacements, for the
 		// versions where "older" is true (optionally in one file only).
 		def renames = { boolean older, List<List<String>> pairs, String file = null ->
@@ -66,6 +67,20 @@ stonecutter {
 		// Ctrl, or Cmd on a Mac: what hasControlDown meant before 1.21.11.
 		renames(pre1_21_11, [['\\.hasControlDownWithQuirk\\(\\)', '.hasControlDown(/*withQuirk*/)', '\\.hasControlDown\\(/\\*withQuirk\\*/\\)', '.hasControlDownWithQuirk()']],
 			'**/input/OrbitKey.java')
+		// 1.21.9 made players "avatars" (mannequins draw like them) and moved PlayerSkin.
+		renames(pre1_21_9, [
+			['\\bAvatarRenderState\\b', 'PlayerRenderState', '\\bPlayerRenderState\\b', 'AvatarRenderState'],
+			// PlayerRenderer is not generic: AvatarRenderer<?> becomes plain PlayerRenderer.
+			['\\bAvatarRenderer(?:<\\?>|\\b)', 'PlayerRenderer', '\\bPlayerRenderer\\b', 'AvatarRenderer'],
+			['net\\.minecraft\\.world\\.entity\\.player\\.PlayerSkin\\b', 'net.minecraft.client.resources.PlayerSkin',
+			 'net\\.minecraft\\.client\\.resources\\.PlayerSkin\\b', 'net.minecraft.world.entity.player.PlayerSkin'],
+		])
+		// GameProfile was a class with getters before 1.21.9, and the session service hung off Minecraft itself.
+		renames(pre1_21_9, [
+			['\\b(getProfile|getGameProfile)\\(\\)\\.id\\(\\)', '$1().getId()', '\\b(getProfile|getGameProfile)\\(\\)\\.getId\\(\\)', '$1().id()'],
+			['\\b(getProfile|getGameProfile)\\(\\)\\.name\\(\\)', '$1().getName()', '\\b(getProfile|getGameProfile)\\(\\)\\.getName\\(\\)', '$1().name()'],
+			['\\.services\\(\\)\\.sessionService\\(\\)', '.getMinecraftSessionService()', '\\.getMinecraftSessionService\\(\\)', '.services().sessionService()'],
+		])
 		// A screen's and a toast's own drawing method.
 		['**/gui/ui/OrbitBaseScreen.java', '**/gui/OrbitToast.java'].each { file ->
 			renames(pre26, [['\\bextractRenderState\\(', 'render(', '\\brender\\(', 'extractRenderState(']], file)

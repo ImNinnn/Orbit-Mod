@@ -12,8 +12,9 @@ import java.util.Set;
  * only where Fabric API has no world render events.
  */
 public final class OrbitMixinPlugin implements IMixinConfigPlugin {
-	/** Fabric API's world render events: "world" before 26.1, "level" since. */
+	/** Fabric API's world render events: in rendering/v1 before 1.21.9, "world" until 26.1, "level" since. */
 	private static final String[] FABRIC_WORLD_EVENTS = {
+		"net/fabricmc/fabric/api/client/rendering/v1/WorldRenderEvents.class",
 		"net/fabricmc/fabric/api/client/rendering/v1/world/WorldRenderEvents.class",
 		"net/fabricmc/fabric/api/client/rendering/v1/level/LevelRenderEvents.class"};
 

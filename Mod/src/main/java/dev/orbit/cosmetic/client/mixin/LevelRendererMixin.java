@@ -4,7 +4,9 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import dev.orbit.cosmetic.client.gfx.OrbitCanvas;
 import dev.orbit.cosmetic.client.platform.OrbitPlatform;
 import net.minecraft.client.renderer.LevelRenderer;
+//? if >=1.21.9
 import net.minecraft.client.renderer.SubmitNodeCollector;
+//? if >=1.21.9
 import net.minecraft.client.renderer.state.level.LevelRenderState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -18,9 +20,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  */
 @Mixin(LevelRenderer.class)
 abstract class LevelRendererMixin {
+	//? if >=1.21.9 {
 	@Inject(method = "submitEntities(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/state/level/LevelRenderState;Lnet/minecraft/client/renderer/SubmitNodeCollector;)V",
 		at = @At("HEAD"))
 	private void orbit$worldDraw(PoseStack poseStack, LevelRenderState state, SubmitNodeCollector collector, CallbackInfo ci) {
 		OrbitPlatform.drawWorld(OrbitCanvas.of(collector), poseStack, state.cameraRenderState.pos, state.cameraRenderState.orientation);
 	}
+	//?}
+	// Before 1.21.9 every Fabric API has world render events: nothing to hook (OrbitMixinPlugin never applies this).
 }

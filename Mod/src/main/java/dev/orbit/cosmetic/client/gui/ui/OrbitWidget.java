@@ -6,9 +6,11 @@ import dev.orbit.cosmetic.client.input.OrbitClick;
 import dev.orbit.cosmetic.client.input.OrbitKey;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
+//? if >=1.21.9 {
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.input.MouseButtonInfo;
+//?}
 import net.minecraft.network.chat.Component;
 
 /**
@@ -31,6 +33,7 @@ public abstract class OrbitWidget extends AbstractWidget {
 
 	// ---------------------------------------------------------------- input
 
+	//? if >=1.21.9 {
 	@Override
 	public final void onClick(MouseButtonEvent event, boolean doubleClick) {
 		onClick(new OrbitClick(event), doubleClick);
@@ -72,6 +75,70 @@ public abstract class OrbitWidget extends AbstractWidget {
 	protected final boolean isValidClickButton(MouseButtonInfo button) {
 		return acceptsButton(button.button());
 	}
+	//?} else {
+	/*// Before 1.21.9 a widget hears a click without its button: the button is noted here first.
+	private int button = InputConstants.MOUSE_BUTTON_LEFT;
+
+	@Override
+	public boolean mouseClicked(double x, double y, int button) {
+		this.button = button;
+		return super.mouseClicked(x, y, button);
+	}
+
+	@Override
+	public boolean mouseReleased(double x, double y, int button) {
+		this.button = button;
+		return super.mouseReleased(x, y, button);
+	}
+
+	@Override
+	public boolean mouseDragged(double x, double y, int button, double dragX, double dragY) {
+		this.button = button;
+		return super.mouseDragged(x, y, button, dragX, dragY);
+	}
+
+	@Override
+	public final void onClick(double x, double y) {
+		onClick(new OrbitClick(x, y, button), OrbitClick.isDoubleClick());
+	}
+
+	/^* A click on the widget, with a button it accepts (see {@link #acceptsButton}). ^/
+	public void onClick(OrbitClick click, boolean doubleClick) {
+		super.onClick(click.x(), click.y());
+	}
+
+	@Override
+	public final void onRelease(double x, double y) {
+		onRelease(new OrbitClick(x, y, button));
+	}
+
+	public void onRelease(OrbitClick click) {
+		super.onRelease(click.x(), click.y());
+	}
+
+	@Override
+	protected final void onDrag(double x, double y, double dragX, double dragY) {
+		onDrag(new OrbitClick(x, y, button), dragX, dragY);
+	}
+
+	protected void onDrag(OrbitClick click, double dragX, double dragY) {
+		super.onDrag(click.x(), click.y(), dragX, dragY);
+	}
+
+	@Override
+	public final boolean keyPressed(int key, int scanCode, int modifiers) {
+		return keyPressed(new OrbitKey(key, scanCode, modifiers));
+	}
+
+	public boolean keyPressed(OrbitKey key) {
+		return super.keyPressed(key.key(), key.scanCode(), key.modifiers());
+	}
+
+	@Override
+	protected final boolean isValidClickButton(int button) {
+		return acceptsButton(button);
+	}
+	*///?}
 
 	/** Which mouse buttons click the widget: the left one, as Minecraft's widgets (a button of InputConstants). */
 	protected boolean acceptsButton(int button) {

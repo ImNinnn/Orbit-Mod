@@ -14,6 +14,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.ObjectSelectionList;
 import net.minecraft.client.gui.screens.Screen;
+//? if >=1.21.9
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
@@ -139,10 +140,31 @@ public final class PartTreeScreen extends OrbitScreen {
 				this.depth = depth;
 			}
 
+			//? if >=1.21.9 {
 			@Override
 			public void extractContent(GuiGraphicsExtractor extractor, int mouseX, int mouseY, boolean hovered, float a) {
-				OrbitGraphics graphics = OrbitGraphics.of(extractor);
-				int x = getContentX() + 2 + depth * 12;
+				draw(OrbitGraphics.of(extractor), getContentX(), getContentY());
+			}
+
+			@Override
+			public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+				return clicked(doubleClick);
+			}
+			//?} else {
+			/*@Override
+			public void render(GuiGraphicsExtractor extractor, int index, int top, int left, int width, int height, int mouseX, int mouseY, boolean hovered, float a) {
+				draw(OrbitGraphics.of(extractor), left, top);
+			}
+
+			@Override
+			public boolean mouseClicked(double mouseX, double mouseY, int button) {
+				return clicked(dev.orbit.cosmetic.client.input.OrbitClick.isDoubleClick());
+			}
+			*///?}
+
+			/** The row, its content starting at (left, top). */
+			private void draw(OrbitGraphics graphics, int left, int top) {
+				int x = left + 2 + depth * 12;
 				Component label = Component.literal((depth > 0 ? "└ " : "") + bone.name());
 				if (depth == 0) {
 					boolean anchor = Anchor.fromGroupName(bone.name()) != null;
@@ -154,11 +176,10 @@ public final class PartTreeScreen extends OrbitScreen {
 				if (configured.test(bone.index())) {
 					label = label.copy().append(Component.literal("  ✔").withStyle(ChatFormatting.GREEN));
 				}
-				graphics.text(font, label, x, getContentY() + 2, Theme.TEXT);
+				graphics.text(font, label, x, top + 2, Theme.TEXT);
 			}
 
-			@Override
-			public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+			private boolean clicked(boolean doubleClick) {
 				PartList.this.setSelected(this);
 				if (doubleClick) {
 					choose();

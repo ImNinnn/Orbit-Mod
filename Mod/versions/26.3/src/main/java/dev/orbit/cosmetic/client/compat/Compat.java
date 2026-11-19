@@ -73,6 +73,11 @@ public final class Compat {
 		return event.shortcutKey() == letter;
 	}
 
+	/** The game window's GLFW handle (what Minecraft's input callbacks are called with). */
+	public static long windowHandle() {
+		return Minecraft.getInstance().getWindow().handle();
+	}
+
 	/** Whether a keyboard key (a GLFW key code) is held. */
 	public static boolean keyDown(int key) {
 		return com.mojang.blaze3d.platform.InputConstants.isKeyDown(key);

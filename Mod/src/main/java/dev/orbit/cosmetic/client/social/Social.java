@@ -1711,7 +1711,11 @@ public final class Social {
 						return;
 					}
 					skins.put(player, OrbitSkin.lookup(found));
+					//? if >=1.21.9 {
 					boolean textured = !found.properties().get("textures").isEmpty();
+					//?} else {
+					/*boolean textured = !found.getProperties().get("textures").isEmpty();
+					*///?}
 					// A player without a skin of their own keeps the default one.
 					skinRetryAt.put(player, textured ? System.currentTimeMillis() + Math.max(20_000L, wait) : Long.MAX_VALUE);
 				});

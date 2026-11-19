@@ -1,7 +1,12 @@
 package dev.orbit.cosmetic.client.gfx;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+//? if >=1.21.9 {
 import net.minecraft.client.renderer.SubmitNodeCollector;
+//?} else {
+/*import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.renderer.MultiBufferSource;
+*///?}
 //? if >=1.21.11 {
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
@@ -44,6 +49,7 @@ public final class OrbitCanvas {
 		void emit(Matrix4f pose, Matrix3f normal, Vertices out);
 	}
 
+	//? if >=1.21.9 {
 	private final SubmitNodeCollector collector;
 
 	private OrbitCanvas(SubmitNodeCollector collector) {
@@ -63,6 +69,29 @@ public final class OrbitCanvas {
 	public void draw(PoseStack poseStack, Identifier texture, Look look, Geometry geometry) {
 		collector.submitCustomGeometry(poseStack, type(texture, look), (posed, consumer) -> geometry.emit(posed.pose(), posed.normal(), consumer::addVertex));
 	}
+	//?} else {
+	/*// Before 1.21.9 geometry goes into the frame's buffers at once.
+	private final MultiBufferSource buffers;
+
+	private OrbitCanvas(MultiBufferSource buffers) {
+		this.buffers = buffers;
+	}
+
+	public static OrbitCanvas of(MultiBufferSource buffers) {
+		return new OrbitCanvas(buffers);
+	}
+
+	/^* Minecraft's own object, for version-specific code. ^/
+	public MultiBufferSource raw() {
+		return buffers;
+	}
+
+	/^* Draws quads with a texture, from where the pose stack is now. ^/
+	public void draw(PoseStack poseStack, Identifier texture, Look look, Geometry geometry) {
+		VertexConsumer consumer = buffers.getBuffer(type(texture, look));
+		geometry.emit(poseStack.last().pose(), poseStack.last().normal(), consumer::addVertex);
+	}
+	*///?}
 
 	/**
 	 * Every look draws both sides of each face, as cosmetic models expect. Since 26.1 that is what "entity cutout"
