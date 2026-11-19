@@ -13,8 +13,13 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.LivingEntityRenderLayerRegistrationCallback;
+//? if >=1.21.6 {
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
+//?} else {
+/*import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///?}
 //? if >=26.1 {
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
 //?} else if >=1.21.9 {
@@ -242,6 +247,7 @@ public final class OrbitPlatform {
 		void draw(OrbitGraphics graphics, float partialTick);
 	}
 
+	//? if >=1.21.6 {
 	/** A HUD layer right under the chat (so screens, toasts and the chat go over it). */
 	public static void hudUnderChat(Identifier id, HudLayer layer) {
 		HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, id, (graphics, tick) -> layer.draw(OrbitGraphics.of(graphics), tick.getGameTimeDeltaPartialTick(false)));
@@ -256,6 +262,50 @@ public final class OrbitPlatform {
 	public static void hudOnTop(Identifier id, HudLayer layer) {
 		HudElementRegistry.addLast(id, (graphics, tick) -> layer.draw(OrbitGraphics.of(graphics), tick.getGameTimeDeltaPartialTick(false)));
 	}
+	//?} else {
+	/*// Before 1.21.6 Fabric API only calls back after the whole HUD: Orbit keeps its layers in order itself, and draws
+	// the ones under the chat from GuiChatMixin.
+	private record NamedLayer(Identifier id, HudLayer layer) {
+	}
+
+	private static final List<NamedLayer> UNDER_CHAT = new java.util.ArrayList<>();
+	private static final List<NamedLayer> ON_TOP = new java.util.ArrayList<>();
+
+	public static void hudUnderChat(Identifier id, HudLayer layer) {
+		UNDER_CHAT.add(new NamedLayer(id, layer));
+	}
+
+	public static void hudAfter(Identifier after, Identifier id, HudLayer layer) {
+		for (List<NamedLayer> layers : List.of(UNDER_CHAT, ON_TOP)) {
+			for (int i = 0; i < layers.size(); i++) {
+				if (layers.get(i).id().equals(after)) {
+					layers.add(i + 1, new NamedLayer(id, layer));
+					return;
+				}
+			}
+		}
+		hudOnTop(id, layer);
+	}
+
+	public static void hudOnTop(Identifier id, HudLayer layer) {
+		if (ON_TOP.isEmpty()) {
+			HudRenderCallback.EVENT.register((graphics, tick) -> drawHud(ON_TOP, graphics, tick.getGameTimeDeltaPartialTick(false)));
+		}
+		ON_TOP.add(new NamedLayer(id, layer));
+	}
+
+	/^* Called by GuiChatMixin just before the chat is drawn. ^/
+	public static void drawUnderChat(GuiGraphicsExtractor graphics, float partialTick) {
+		drawHud(UNDER_CHAT, graphics, partialTick);
+	}
+
+	private static void drawHud(List<NamedLayer> layers, GuiGraphicsExtractor graphics, float partialTick) {
+		OrbitGraphics orbit = OrbitGraphics.of(graphics);
+		for (NamedLayer layer : layers) {
+			layer.layer().draw(orbit, partialTick);
+		}
+	}
+	*///?}
 
 	// ---------------------------------------------------------------- every screen
 

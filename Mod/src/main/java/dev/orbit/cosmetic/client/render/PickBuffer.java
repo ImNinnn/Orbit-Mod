@@ -25,6 +25,23 @@ public final class PickBuffer {
 		faces.clear();
 	}
 
+	/**
+	 * Moves every face kept by this transform. Before 1.21.6 a preview is drawn straight onto the screen, not into a
+	 * picture of its own: its faces are brought back into the picture's pixels (see compat/PreviewRenderer).
+	 */
+	public void transform(Matrix4f matrix) {
+		Vector3f p = new Vector3f();
+		for (Face face : faces) {
+			float[] c = face.corners;
+			for (int i = 0; i < 12; i += 3) {
+				matrix.transformPosition(c[i], c[i + 1], c[i + 2], p);
+				c[i] = p.x;
+				c[i + 1] = p.y;
+				c[i + 2] = p.z;
+			}
+		}
+	}
+
 	/** Adds a face from four corners at {@code positions[offset]}, every {@code stride} floats, drawn with {@code pose}. */
 	void add(AssetId asset, Matrix4f pose, float[] positions, int offset, int stride) {
 		float[] corners = new float[12];

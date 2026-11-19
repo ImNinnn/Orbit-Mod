@@ -13,16 +13,31 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 abstract class CameraMixin {
 	@Inject(method = "calculateFov", at = @At("RETURN"), cancellable = true)
 	private void orbit$zoom(float partialTicks, CallbackInfoReturnable<Float> cir) {
-//?} else {
+		cir.setReturnValue(orbit$zoomed(cir.getReturnValueF()));
+	}
+//?} else if >=1.21.2 {
 /*// Before 26.1 the game renderer works the field of view out.
 @Mixin(net.minecraft.client.renderer.GameRenderer.class)
 abstract class CameraMixin {
 	@Inject(method = "getFov", at = @At("RETURN"), cancellable = true)
 	private void orbit$zoom(Camera camera, float partialTicks, boolean useFovSetting, CallbackInfoReturnable<Float> cir) {
+		cir.setReturnValue(orbit$zoomed(cir.getReturnValueF()));
+	}
+*///?} else {
+/*// Before 1.21.2 the field of view is a double.
+@Mixin(net.minecraft.client.renderer.GameRenderer.class)
+abstract class CameraMixin {
+	@Inject(method = "getFov", at = @At("RETURN"), cancellable = true)
+	private void orbit$zoom(Camera camera, float partialTicks, boolean useFovSetting, CallbackInfoReturnable<Double> cir) {
+		cir.setReturnValue((double) orbit$zoomed((float) cir.getReturnValueD()));
+	}
 *///?}
+
+	@org.spongepowered.asm.mixin.Unique
+	private static float orbit$zoomed(float fov) {
 		Zoom.update();
-		float fov = Zoom.apply(cir.getReturnValueF());
-		Zoom.lastFov = fov;
-		cir.setReturnValue(fov);
+		float zoomed = Zoom.apply(fov);
+		Zoom.lastFov = zoomed;
+		return zoomed;
 	}
 }

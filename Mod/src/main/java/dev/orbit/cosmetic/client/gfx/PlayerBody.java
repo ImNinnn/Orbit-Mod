@@ -2,6 +2,9 @@ package dev.orbit.cosmetic.client.gfx;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.orbit.cosmetic.client.mixin.ModelPartAccessor;
+//? if <1.21.2 {
+/*import dev.orbit.cosmetic.client.mixin.ModelPartCubeAccessor;
+*///?}
 import dev.orbit.cosmetic.client.render.VanillaPlayerModels;
 import dev.orbit.cosmetic.common.model.Anchor;
 import net.minecraft.client.model.HumanoidModel;
@@ -27,6 +30,10 @@ import java.util.WeakHashMap;
  */
 public final class PlayerBody {
 	private static final Map<ModelPart, Map<ModelPart, List<ModelPart>>> PATHS = Collections.synchronizedMap(new WeakHashMap<>());
+	//? if <1.21.2 {
+	/*/^* Before 1.21.2 a model keeps no root part: its parts hang from one that never moves, which this stands for. ^/
+	private static final ModelPart NO_ROOT = new ModelPart(List.of(), Map.of());
+	*///?}
 
 	private final HumanoidModel<?> model;
 
@@ -56,6 +63,10 @@ public final class PlayerBody {
 	 * the hierarchy (renamed or detached) gets its own transform only, which is what vanilla does.
 	 */
 	public void moveTo(Anchor anchor, PoseStack poseStack) {
+		//? if <1.21.2 {
+		/*// Before 1.21.2 every part hangs straight from a root that never moves.
+		part(anchor).translateAndRotate(poseStack);
+		*///?} else {
 		ModelPart root = model.root();
 		ModelPart target = part(anchor);
 		if (target == root) {
@@ -71,6 +82,7 @@ public final class PlayerBody {
 		for (ModelPart part : path) {
 			part.translateAndRotate(poseStack);
 		}
+		//?}
 	}
 
 	/** Moves a pose stack by a body part's own transform only (first-person arms, drawn without the rest of the body). */
@@ -83,7 +95,13 @@ public final class PlayerBody {
 	 * each box's transform and its two opposite corners, in model pixels.
 	 */
 	public void boxes(PoseStack poseStack, BoxVisitor visitor) {
+		//? if >=1.21.2 {
 		model.root().visit(poseStack, (pose, path, index, cube) -> visitor.box(pose.pose(), cube.minX, cube.minY, cube.minZ, cube.maxX, cube.maxY, cube.maxZ));
+		//?} else {
+		/*for (ModelPart part : drawnParts()) {
+			part.visit(poseStack, (pose, path, index, cube) -> visitor.box(pose.pose(), cube.minX, cube.minY, cube.minZ, cube.maxX, cube.maxY, cube.maxZ));
+		}
+		*///?}
 	}
 
 	@FunctionalInterface
@@ -118,11 +136,18 @@ public final class PlayerBody {
 		part.xScale = value[6];
 		part.yScale = value[7];
 		part.zScale = value[8];
+		//? if <1.21.2 {
+		/*ModelPart layer = layer(anchor);
+		if (layer != null) {
+			layer.copyFrom(part);
+		}
+		*///?}
 	}
 
 	/** A body part's transform when the model is standing still (its rest pose) into {@code out}. */
 	public void rest(Anchor anchor, float[] out) {
 		PartPose rest = part(anchor).getInitialPose();
+		//? if >=1.21.2 {
 		out[0] = rest.x();
 		out[1] = rest.y();
 		out[2] = rest.z();
@@ -132,6 +157,18 @@ public final class PlayerBody {
 		out[6] = rest.xScale();
 		out[7] = rest.yScale();
 		out[8] = rest.zScale();
+		//?} else {
+		/*// Before 1.21.2 a rest pose has no scale.
+		out[0] = rest.x;
+		out[1] = rest.y;
+		out[2] = rest.z;
+		out[3] = rest.xRot;
+		out[4] = rest.yRot;
+		out[5] = rest.zRot;
+		out[6] = 1;
+		out[7] = 1;
+		out[8] = 1;
+		*///?}
 	}
 
 	/** Whether a body part (and its skin layer, which goes with it) is drawn. */
@@ -141,6 +178,13 @@ public final class PlayerBody {
 
 	public void setVisible(Anchor anchor, boolean visible) {
 		part(anchor).visible = visible;
+		//? if <1.21.2 {
+		/*// The skin layer is hidden with its part; shown, it keeps the player's skin customisation.
+		ModelPart layer = layer(anchor);
+		if (layer != null && !visible) {
+			layer.visible = false;
+		}
+		*///?}
 	}
 
 	// ---------------------------------------------------------------- the skin's outer layer
@@ -167,11 +211,24 @@ public final class PlayerBody {
 	}
 
 	private static void addLayer(ModelPart layer, Anchor anchor, List<LayerFace> out) {
+		//? if >=1.21.2 {
 		PartPose pose = layer.getInitialPose();
+		Vector3f offset = new Vector3f(pose.x(), pose.y(), pose.z());
+		//?} else {
+		/*// Before 1.21.2 the layer is the body part's sibling: its frame is where its rest pose differs from the part's.
+		PartPose pose = layer.getInitialPose();
+		PartPose part = new PlayerBody(VanillaPlayerModels.model(false)).part(anchor).getInitialPose();
+		Vector3f offset = new Vector3f(pose.x - part.x, pose.y - part.y, pose.z - part.z);
+		*///?}
 		for (ModelPart.Cube cube : ((ModelPartAccessor) (Object) layer).orbit$cubes()) {
 			Vector3f center = new Vector3f((cube.minX + cube.maxX) / 2, (cube.minY + cube.maxY) / 2, (cube.minZ + cube.maxZ) / 2);
+			//? if >=1.21.2 {
 			for (ModelPart.Polygon polygon : cube.polygons) {
 				ModelPart.Vertex[] v = polygon.vertices();
+			//?} else {
+			/*for (ModelPart.Polygon polygon : ((ModelPartCubeAccessor) cube).orbit$polygons()) {
+				ModelPart.Vertex[] v = polygon.vertices;
+			*///?}
 				if (v.length < 4) {
 					continue;
 				}
@@ -181,16 +238,25 @@ public final class PlayerBody {
 					corners[i * 5] = v[i].x();
 					corners[i * 5 + 1] = v[i].y();
 					corners[i * 5 + 2] = v[i].z();
-					//?} else {
+					//?} else if >=1.21.2 {
 					/*corners[i * 5] = v[i].pos().x();
 					corners[i * 5 + 1] = v[i].pos().y();
 					corners[i * 5 + 2] = v[i].pos().z();
+					*///?} else {
+					/*corners[i * 5] = v[i].pos.x();
+					corners[i * 5 + 1] = v[i].pos.y();
+					corners[i * 5 + 2] = v[i].pos.z();
 					*///?}
+					//? if >=1.21.2 {
 					corners[i * 5 + 3] = v[i].u();
 					corners[i * 5 + 4] = v[i].v();
+					//?} else {
+					/*corners[i * 5 + 3] = v[i].u;
+					corners[i * 5 + 4] = v[i].v;
+					*///?}
 				}
 				// The layer part sits where its rest pose puts it on the body part.
-				out.add(new LayerFace(anchor, center, corners, new Vector3f(pose.x(), pose.y(), pose.z())));
+				out.add(new LayerFace(anchor, center, corners, offset));
 			}
 		}
 	}
@@ -205,9 +271,46 @@ public final class PlayerBody {
 			case RIGHT_ARM -> model.rightArm;
 			case LEFT_LEG -> model.leftLeg;
 			case RIGHT_LEG -> model.rightLeg;
-			case ROOT -> model.root();
+			case ROOT -> root();
 		};
 	}
+
+	private ModelPart root() {
+		//? if >=1.21.2 {
+		return model.root();
+		//?} else {
+		/*return NO_ROOT;
+		*///?}
+	}
+
+	//? if <1.21.2 {
+	/*/^* The skin layer drawn over a body part (before 1.21.2 a sibling posed like it), or null. ^/
+	private ModelPart layer(Anchor anchor) {
+		if (anchor == Anchor.HEAD) {
+			return model.hat;
+		}
+		if (!(model instanceof PlayerModel<?> player)) {
+			return null;
+		}
+		return switch (anchor) {
+			case BODY -> player.jacket;
+			case LEFT_ARM -> player.leftSleeve;
+			case RIGHT_ARM -> player.rightSleeve;
+			case LEFT_LEG -> player.leftPants;
+			case RIGHT_LEG -> player.rightPants;
+			default -> null;
+		};
+	}
+
+	/^* Every part the model draws, skin layers included. ^/
+	private List<ModelPart> drawnParts() {
+		List<ModelPart> parts = new ArrayList<>(List.of(model.head, model.hat, model.body, model.rightArm, model.leftArm, model.rightLeg, model.leftLeg));
+		if (model instanceof PlayerModel<?> player) {
+			parts.addAll(List.of(player.jacket, player.leftSleeve, player.rightSleeve, player.leftPants, player.rightPants));
+		}
+		return parts;
+	}
+	*///?}
 
 	private static List<ModelPart> path(ModelPart root, ModelPart target) {
 		Map<ModelPart, List<ModelPart>> cache = PATHS.computeIfAbsent(root, r -> Collections.synchronizedMap(new WeakHashMap<>()));

@@ -93,11 +93,18 @@ public final class ProfileEditScreen extends OrbitScreen {
 		}
 		addRenderableWidget(pronouns);
 		y += 24;
+		//? if >=1.21.6 {
 		description = MultiLineEditBox.builder().setX(x).setY(y + 12).setTextColor(Theme.TEXT).setShowBackground(false).setShowDecorations(false)
 			.setPlaceholder(Component.translatable("orbit_cosmetic.profile.description.hint").withStyle(ChatFormatting.DARK_GRAY))
 			.build(font, WIDTH - 16, 52, Component.translatable("orbit_cosmetic.profile.description"));
 		description.setCharacterLimit(Profile.MAX_DESCRIPTION);
 		description.setLineLimit(4);
+		//?} else {
+		/*// Before 1.21.6 the text area has Minecraft's own look and no line limit.
+		description = new MultiLineEditBox(font, x, y + 12, WIDTH - 16, 52,
+			Component.translatable("orbit_cosmetic.profile.description.hint").withStyle(ChatFormatting.DARK_GRAY), Component.translatable("orbit_cosmetic.profile.description"));
+		description.setCharacterLimit(Profile.MAX_DESCRIPTION);
+		*///?}
 		description.setValue(banned.contains("description") ? "" : typedDescription);
 		description.active = !banned.contains("description");
 		addRenderableWidget(description);

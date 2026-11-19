@@ -162,7 +162,18 @@ public final class ServerLinks {
 			return;
 		}
 		if (minecraft.level != null) {
+			//? if >=1.21.2 {
 			minecraft.disconnectWithSavingScreen();
+			//?} else {
+			/*// As the pause menu leaves a world before 1.21.2.
+			boolean local = minecraft.isLocalServer();
+			minecraft.level.disconnect();
+			if (local) {
+				minecraft.disconnect(new net.minecraft.client.gui.screens.GenericMessageScreen(net.minecraft.network.chat.Component.translatable("menu.savingLevel")));
+			} else {
+				minecraft.disconnect();
+			}
+			*///?}
 			parent = new TitleScreen();
 		}
 		ServerData data = new ServerData(name, address, ServerData.Type.OTHER);

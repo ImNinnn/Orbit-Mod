@@ -3,7 +3,18 @@ package dev.orbit.cosmetic.client.gfx;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.AbstractTexture;
 import net.minecraft.client.renderer.texture.DynamicTexture;
+//? if >=1.21.2 {
 import net.minecraft.client.renderer.texture.SkinTextureDownloader;
+//?} else {
+/*import com.mojang.blaze3d.platform.GlStateManager;
+import com.mojang.blaze3d.platform.NativeImage;
+import com.mojang.blaze3d.systems.RenderSystem;
+import net.minecraft.client.renderer.texture.HttpTexture;
+import net.minecraft.client.resources.DefaultPlayerSkin;
+import org.lwjgl.opengl.GL11;
+
+import java.nio.file.Files;
+*///?}
 //? if >=1.21.9
 import net.minecraft.core.ClientAsset;
 import net.minecraft.resources.Identifier;
@@ -24,6 +35,7 @@ import java.util.concurrent.CompletableFuture;
  * Render thread, except where a method says otherwise.
  */
 public final class OrbitTextures {
+	//? if >=1.21.9
 	private static @Nullable SkinTextureDownloader downloader;
 
 	private OrbitTextures() {
@@ -31,7 +43,11 @@ public final class OrbitTextures {
 
 	/** Uploads a picture as the texture {@code id} (replacing one of that name). The texture now owns the picture. */
 	public static void register(Identifier id, String label, OrbitImage image) {
+		//? if >=1.21.2 {
 		Minecraft.getInstance().getTextureManager().register(id, new DynamicTexture(() -> label, image.raw()));
+		//?} else {
+		/*Minecraft.getInstance().getTextureManager().register(id, new DynamicTexture(image.raw()));
+		*///?}
 	}
 
 	/**
@@ -60,6 +76,20 @@ public final class OrbitTextures {
 		if (loaded instanceof DynamicTexture dynamic && dynamic.getPixels() != null) {
 			return OrbitImage.of(dynamic.getPixels()).copy();
 		}
+		//? if <1.21.2 {
+		/*// Before 1.21.2 downloaded skins keep no pixels: they are read back from the graphics card.
+		if (loaded instanceof HttpTexture) {
+			RenderSystem.bindTexture(loaded.getId());
+			int width = GlStateManager._getTexLevelParameter(GL11.GL_TEXTURE_2D, 0, GL11.GL_TEXTURE_WIDTH);
+			int height = GlStateManager._getTexLevelParameter(GL11.GL_TEXTURE_2D, 0, GL11.GL_TEXTURE_HEIGHT);
+			if (width <= 1 || height <= 1) {
+				return null;
+			}
+			NativeImage image = new NativeImage(width, height, false);
+			image.downloadTexture(0, false);
+			return OrbitImage.of(image);
+		}
+		*///?}
 		Optional<Resource> resource = minecraft.getResourceManager().getResource(texture);
 		if (resource.isEmpty()) {
 			return null;
@@ -81,9 +111,23 @@ public final class OrbitTextures {
 			downloader = new SkinTextureDownloader(minecraft.getProxy(), minecraft.getTextureManager(), minecraft);
 		}
 		return downloader.downloadAndRegisterSkin(id, localCopy, url, skin).thenApply(ClientAsset.Texture::texturePath);
-		//?} else {
+		//?} else if >=1.21.2 {
 		/*// Before 1.21.9 the downloader is static and gives the texture's name itself.
 		return SkinTextureDownloader.downloadAndRegisterSkin(id, localCopy, url, skin);
+		*///?} else {
+		/*// Before 1.21.2 the game's skin textures download themselves (only over HTTP: a file is copied to where the
+		// texture reads its local copy).
+		CompletableFuture<Identifier> ready = new CompletableFuture<>();
+		if (url.startsWith("file:") && !Files.isRegularFile(localCopy)) {
+			try {
+				Files.createDirectories(localCopy.getParent());
+				Files.copy(Path.of(java.net.URI.create(url)), localCopy);
+			} catch (IOException | RuntimeException e) {
+				return CompletableFuture.failedFuture(e);
+			}
+		}
+		Minecraft.getInstance().getTextureManager().register(id, new HttpTexture(localCopy.toFile(), url, DefaultPlayerSkin.getDefaultTexture(), skin, () -> ready.complete(id)));
+		return ready;
 		*///?}
 	}
 }

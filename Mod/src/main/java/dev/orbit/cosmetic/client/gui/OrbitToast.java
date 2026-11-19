@@ -5,7 +5,11 @@ import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.OrbitClient;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.components.toasts.Toast;
+//? if >=1.21.2 {
 import net.minecraft.client.gui.components.toasts.ToastManager;
+//?} else {
+/*import net.minecraft.client.gui.components.toasts.ToastComponent;
+*///?}
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
@@ -42,6 +46,7 @@ public final class OrbitToast implements Toast {
 	private final Component title;
 	private final List<FormattedCharSequence> lines;
 	private final int width;
+	//? if >=1.21.2
 	private Visibility wanted = Visibility.SHOW;
 
 	public OrbitToast(Font font, Kind kind, Component title, Component message) {
@@ -53,6 +58,7 @@ public final class OrbitToast implements Toast {
 		this.width = textWidth + TEXT_LEFT + 8;
 	}
 
+	//? if >=1.21.2 {
 	@Override
 	public Visibility getWantedVisibility() {
 		return wanted;
@@ -62,6 +68,7 @@ public final class OrbitToast implements Toast {
 	public void update(ToastManager manager, long visibleTime) {
 		wanted = visibleTime >= DISPLAY_MS * manager.getNotificationDisplayTimeMultiplier() ? Visibility.HIDE : Visibility.SHOW;
 	}
+	//?}
 
 	@Override
 	public int width() {
@@ -73,9 +80,21 @@ public final class OrbitToast implements Toast {
 		return SLOT_HEIGHT;
 	}
 
+	//? if >=1.21.2 {
 	@Override
 	public void extractRenderState(GuiGraphicsExtractor extractor, Font font, long visibleTime) {
-		OrbitGraphics graphics = OrbitGraphics.of(extractor);
+		draw(OrbitGraphics.of(extractor), font);
+	}
+	//?} else {
+	/*// Before 1.21.2 drawing the toast also says whether it should still show.
+	@Override
+	public Visibility extractRenderState(GuiGraphicsExtractor extractor, ToastComponent toasts, long visibleTime) {
+		draw(OrbitGraphics.of(extractor), toasts.getMinecraft().font);
+		return visibleTime >= DISPLAY_MS * toasts.getNotificationDisplayTimeMultiplier() ? Visibility.HIDE : Visibility.SHOW;
+	}
+	*///?}
+
+	private void draw(OrbitGraphics graphics, Font font) {
 		int height = height();
 		graphics.sprite(BACKGROUND, 0, 0, width, height);
 		int iconY = (height - 16) / 2;

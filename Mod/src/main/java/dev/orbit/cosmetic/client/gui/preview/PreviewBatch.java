@@ -2,9 +2,13 @@ package dev.orbit.cosmetic.client.gui.preview;
 
 import dev.orbit.cosmetic.client.gfx.PlayerState;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
-import dev.orbit.cosmetic.client.mixin.GuiGraphicsExtractorAccessor;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
+//? if >=1.21.6 {
+import dev.orbit.cosmetic.client.mixin.GuiGraphicsExtractorAccessor;
 import net.minecraft.client.renderer.state.gui.pip.PictureInPictureRenderState;
+//?} else {
+/*import dev.orbit.cosmetic.client.compat.PreviewRenderer;
+*///?}
 import org.joml.Quaternionf;
 import org.jspecify.annotations.Nullable;
 
@@ -13,9 +17,21 @@ import java.util.List;
 /**
  * Several players drawn into one picture of the GUI. The game draws one picture per kind of state per frame, so a
  * menu showing many players (the catalog grid) draws them all in one batch. Each kind ({@link Grid}, {@link Panel},
- * {@link Extra}) has its own renderer, so a screen can show up to three batches at once.
+ * {@link Extra}) has its own renderer, so a screen can show up to three batches at once. Before 1.21.6 the GUI has
+ * no pictures: a batch is drawn straight away (see compat/PreviewRenderer).
  */
+//? if >=1.21.6 {
 public sealed interface PreviewBatch extends PictureInPictureRenderState permits PreviewBatch.Grid, PreviewBatch.Panel, PreviewBatch.Extra {
+//?} else {
+/*public sealed interface PreviewBatch permits PreviewBatch.Grid, PreviewBatch.Panel, PreviewBatch.Extra {
+	int x0();
+
+	int y0();
+
+	int x1();
+
+	int y1();
+*///?}
 	/**
 	 * One player in the batch.
 	 *
@@ -31,10 +47,12 @@ public sealed interface PreviewBatch extends PictureInPictureRenderState permits
 
 	List<Entry> entries();
 
+	//? if >=1.21.6 {
 	@Override
 	default float scale() {
 		return 1.0F;
 	}
+	//?}
 
 	record Grid(int x0, int y0, int x1, int y1, @Nullable ScreenRectangle scissorArea, @Nullable ScreenRectangle bounds, List<Entry> entries) implements PreviewBatch {
 	}
@@ -70,6 +88,10 @@ public sealed interface PreviewBatch extends PictureInPictureRenderState permits
 	}
 
 	private static void submit(OrbitGraphics graphics, PreviewBatch batch) {
+		//? if >=1.21.6 {
 		((GuiGraphicsExtractorAccessor) graphics.raw()).orbit$guiRenderState().addPicturesInPictureState(batch);
+		//?} else {
+		/*PreviewRenderer.draw(graphics.raw(), batch);
+		*///?}
 	}
 }

@@ -28,7 +28,7 @@ stonecutter {
 	centralScript = 'build.gradle'
 	kotlinController = false
 	create(':Mod') {
-		versions('1.21.8', '1.21.10', '1.21.11', '26.1', '26.2', '26.3')
+		versions('1.21.1', '1.21.8', '1.21.10', '1.21.11', '26.1', '26.2', '26.3')
 		// The version the shared sources are written for in git (switch with the "Set active project" tasks).
 		vcsVersion = '26.3'
 	}

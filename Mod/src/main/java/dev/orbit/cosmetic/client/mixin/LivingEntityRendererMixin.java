@@ -13,8 +13,17 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 *///?}
 import net.minecraft.client.renderer.entity.LivingEntityRenderer;
 import net.minecraft.client.renderer.entity.player.AvatarRenderer;
+//? if >=1.21.2 {
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
+//?} else {
+/*import dev.orbit.cosmetic.client.OrbitClient;
+import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
+import net.minecraft.client.model.HumanoidModel;
+import net.minecraft.client.model.player.PlayerModel;
+import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.world.entity.LivingEntity;
+*///?}
 //? if >=1.21.9
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -73,7 +82,7 @@ public abstract class LivingEntityRendererMixin {
 			orbit$replaced = null;
 		}
 	}
-	//?} else {
+	//?} else if >=1.21.2 {
 	/*@Inject(method = "render(Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V", at = @At("HEAD"))
 	private void orbit$vanillaWhileEmoting(LivingEntityRenderState state, PoseStack poseStack, MultiBufferSource collector, int light, CallbackInfo ci) {
 		if ((Object) this instanceof AvatarRenderer<?> && state instanceof AvatarRenderState avatar) {
@@ -113,6 +122,70 @@ public abstract class LivingEntityRendererMixin {
 	@Inject(method = "shouldShowName(Lnet/minecraft/world/entity/LivingEntity;D)Z", at = @At("RETURN"), cancellable = true)
 	private void orbit$showOwnNameplate(net.minecraft.world.entity.LivingEntity entity, double distanceToCameraSq, CallbackInfoReturnable<Boolean> cir) {
 		if (!cir.getReturnValueZ() && dev.orbit.cosmetic.client.OrbitClient.get().shouldShowOwnNameplate(entity)) {
+			cir.setReturnValue(true);
+		}
+	}
+	*///?} else {
+	/*// Before 1.21.2 the renderer reads the player entity; Orbit's state for it is on it while it is drawn (see
+	// AvatarRendererMixin).
+	@Inject(method = "render(Lnet/minecraft/world/entity/LivingEntity;FFLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V", at = @At("HEAD"))
+	private void orbit$vanillaWhileEmoting(LivingEntity entity, float yaw, float partialTicks, PoseStack poseStack, MultiBufferSource buffers, int light, CallbackInfo ci) {
+		if (!((Object) this instanceof AvatarRenderer) || !(entity instanceof AbstractClientPlayer player)) {
+			return;
+		}
+		PlayerState state = PlayerState.of(player);
+		PlayerFrame frame = state == null ? null : state.frame();
+		if (frame != null) {
+			frame.base = new Matrix4f(poseStack.last().pose());
+		}
+		if (VanillaPlayerModels.isUsedFor(player) && state.skin() != null && model instanceof PlayerModel<?> original) {
+			// The player renderer already set its model up for this player (skin parts shown, arm poses): the
+			// vanilla model takes the same.
+			PlayerModel vanilla = VanillaPlayerModels.model(state.skin().slim());
+			((HumanoidModel) original).copyPropertiesTo(vanilla);
+			vanilla.head.visible = original.head.visible;
+			vanilla.hat.visible = original.hat.visible;
+			vanilla.body.visible = original.body.visible;
+			vanilla.jacket.visible = original.jacket.visible;
+			vanilla.leftArm.visible = original.leftArm.visible;
+			vanilla.leftSleeve.visible = original.leftSleeve.visible;
+			vanilla.rightArm.visible = original.rightArm.visible;
+			vanilla.rightSleeve.visible = original.rightSleeve.visible;
+			vanilla.leftLeg.visible = original.leftLeg.visible;
+			vanilla.leftPants.visible = original.leftPants.visible;
+			vanilla.rightLeg.visible = original.rightLeg.visible;
+			vanilla.rightPants.visible = original.rightPants.visible;
+			orbit$replaced = model;
+			model = vanilla;
+		}
+	}
+
+	/^* The emote's ROOT: right after the player is turned to face their way, in Blockbench's axes (blocks, feet at 0). ^/
+	@Inject(method = "render(Lnet/minecraft/world/entity/LivingEntity;FFLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V",
+		at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/entity/LivingEntityRenderer;setupRotations(Lnet/minecraft/world/entity/LivingEntity;Lcom/mojang/blaze3d/vertex/PoseStack;FFFF)V", shift = At.Shift.AFTER))
+	private void orbit$moveWholePlayer(LivingEntity entity, float yaw, float partialTicks, PoseStack poseStack, MultiBufferSource buffers, int light, CallbackInfo ci) {
+		PlayerState state = entity instanceof AbstractClientPlayer player ? PlayerState.of(player) : null;
+		PlayerFrame frame = state == null ? null : state.frame();
+		if (frame != null && frame.emote != null) {
+			EmotePoser.applyRoot(frame.emote, poseStack);
+		}
+	}
+
+	@Inject(method = "render(Lnet/minecraft/world/entity/LivingEntity;FFLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V", at = @At("RETURN"))
+	private void orbit$restoreModel(LivingEntity entity, float yaw, float partialTicks, PoseStack poseStack, MultiBufferSource buffers, int light, CallbackInfo ci) {
+		if (orbit$replaced != null) {
+			model = orbit$replaced;
+			orbit$replaced = null;
+		}
+	}
+
+	/^*
+	 * Vanilla never shows the camera entity's name; the "show own nameplate" setting does in third person (not on
+	 * the player drawn in a screen, such as the inventory's).
+	 ^/
+	@Inject(method = "shouldShowName(Lnet/minecraft/world/entity/LivingEntity;)Z", at = @At("RETURN"), cancellable = true)
+	private void orbit$showOwnNameplate(LivingEntity entity, CallbackInfoReturnable<Boolean> cir) {
+		if (!cir.getReturnValueZ() && !OrbitGraphics.isDrawingEntity() && OrbitClient.get().shouldShowOwnNameplate(entity)) {
 			cir.setReturnValue(true);
 		}
 	}

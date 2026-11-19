@@ -18,6 +18,7 @@ stonecutter {
 		def pre26 = stonecutter.eval(stonecutter.current.version, '<26.1')
 		def pre1_21_11 = stonecutter.eval(stonecutter.current.version, '<1.21.11')
 		def pre1_21_9 = stonecutter.eval(stonecutter.current.version, '<1.21.9')
+		def pre1_21_2 = stonecutter.eval(stonecutter.current.version, '<1.21.2')
 		// Each pair: the newer name (in the shared code) and the older one, as regexes and replacements, for the
 		// versions where "older" is true (optionally in one file only).
 		def renames = { boolean older, List<List<String>> pairs, String file = null ->
@@ -80,6 +81,11 @@ stonecutter {
 			['\\b(getProfile|getGameProfile)\\(\\)\\.id\\(\\)', '$1().getId()', '\\b(getProfile|getGameProfile)\\(\\)\\.getId\\(\\)', '$1().id()'],
 			['\\b(getProfile|getGameProfile)\\(\\)\\.name\\(\\)', '$1().getName()', '\\b(getProfile|getGameProfile)\\(\\)\\.getName\\(\\)', '$1().name()'],
 			['\\.services\\(\\)\\.sessionService\\(\\)', '.getMinecraftSessionService()', '\\.getMinecraftSessionService\\(\\)', '.services().sessionService()'],
+		])
+		// Before 1.21.2: the frame timer had another name, and registries were read with get.
+		renames(pre1_21_2, [
+			['\\.getDeltaTracker\\(\\)', '.getTimer()', '\\.getTimer\\(\\)', '.getDeltaTracker()'],
+			['\\bBuiltInRegistries\\.(\\w+)\\.getValue\\(', 'BuiltInRegistries.$1.get(', '\\bBuiltInRegistries\\.(\\w+)\\.get\\(', 'BuiltInRegistries.$1.getValue('],
 		])
 		// A screen's and a toast's own drawing method.
 		['**/gui/ui/OrbitBaseScreen.java', '**/gui/OrbitToast.java'].each { file ->

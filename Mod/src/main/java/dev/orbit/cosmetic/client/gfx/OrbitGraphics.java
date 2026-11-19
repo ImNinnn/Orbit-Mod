@@ -4,9 +4,18 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.PlayerFaceExtractor;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+//? if >=1.21.6 {
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
 import net.minecraft.client.renderer.RenderPipelines;
+//?} else {
+/*import com.mojang.blaze3d.systems.RenderSystem;
+import dev.orbit.cosmetic.client.mixin.GuiGraphicsExtractorAccessor;
+import net.minecraft.client.Minecraft;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
+import org.lwjgl.opengl.GL11;
+*///?}
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
@@ -105,6 +114,7 @@ public final class OrbitGraphics {
 
 	// ---------------------------------------------------------------- pictures
 
+	//? if >=1.21.6 {
 	/** A GUI sprite (Orbit's icons, Minecraft's HUD sprites) stretched over the rectangle. */
 	public void sprite(Identifier sprite, int x, int y, int width, int height) {
 		graphics.blitSprite(RenderPipelines.GUI_TEXTURED, sprite, x, y, width, height);
@@ -135,6 +145,39 @@ public final class OrbitGraphics {
 	public void texture(Identifier texture, int x, int y, float u, float v, int width, int height, int textureWidth, int textureHeight) {
 		graphics.blit(RenderPipelines.GUI_TEXTURED, texture, x, y, u, v, width, height, textureWidth, textureHeight);
 	}
+	//?} else {
+	/*// Before 1.21.6 pictures are drawn straight away with the shader's state: blending is switched on for them (the
+	// game's sprites leave it as they find it), and a tint is the shader colour.
+	public void sprite(Identifier sprite, int x, int y, int width, int height) {
+		RenderSystem.enableBlend();
+		graphics.blitSprite(sprite, x, y, width, height);
+		RenderSystem.disableBlend();
+	}
+
+	public void sprite(Identifier sprite, int x, int y, int width, int height, int color) {
+		graphics.setColor((color >> 16 & 0xFF) / 255F, (color >> 8 & 0xFF) / 255F, (color & 0xFF) / 255F, (color >>> 24) / 255F);
+		sprite(sprite, x, y, width, height);
+		graphics.setColor(1, 1, 1, 1);
+	}
+
+	public void spritePart(Identifier sprite, int spriteWidth, int spriteHeight, int u, int v, int x, int y, int width, int height) {
+		RenderSystem.enableBlend();
+		graphics.blitSprite(sprite, spriteWidth, spriteHeight, u, v, x, y, width, height);
+		RenderSystem.disableBlend();
+	}
+
+	public void image(Identifier texture, int x0, int y0, int x1, int y1, float u0, float u1, float v0, float v1) {
+		RenderSystem.enableBlend();
+		((GuiGraphicsExtractorAccessor) graphics).orbit$innerBlit(texture, x0, x1, y0, y1, 0, u0, u1, v0, v1);
+		RenderSystem.disableBlend();
+	}
+
+	public void texture(Identifier texture, int x, int y, float u, float v, int width, int height, int textureWidth, int textureHeight) {
+		RenderSystem.enableBlend();
+		graphics.blit(texture, x, y, u, v, width, height, textureWidth, textureHeight);
+		RenderSystem.disableBlend();
+	}
+	*///?}
 
 	/** A player's face (with their hat layer), {@code size} pixels square. */
 	public void face(OrbitSkin skin, int x, int y, int size) {
@@ -149,6 +192,7 @@ public final class OrbitGraphics {
 	 * its body {@code bodyRot} degrees (180 faces the viewer), its head {@code headRot} degrees from the body, and
 	 * tilted {@code pitch} degrees. Its name is not shown.
 	 */
+	//? if >=1.21.6 {
 	public void entity(LivingEntity entity, int x0, int y0, int x1, int y1, int size, float bodyRot, float headRot, float pitch) {
 		entityPose = new float[] {bodyRot, headRot, pitch};
 		try {
@@ -167,6 +211,45 @@ public final class OrbitGraphics {
 			living.nameTag = null;
 		}
 	}
+	//?} else {
+	/*// Before 1.21.6 the entity itself is drawn: it is turned as asked for the drawing (as the inventory does), then
+	// turned back.
+	public void entity(LivingEntity entity, int x0, int y0, int x1, int y1, int size, float bodyRot, float headRot, float pitch) {
+		float[] saved = {entity.yBodyRot, entity.yBodyRotO, entity.yHeadRot, entity.yHeadRotO, entity.getYRot(), entity.getXRot(), entity.xRotO};
+		entity.yBodyRot = entity.yBodyRotO = bodyRot;
+		entity.yHeadRot = entity.yHeadRotO = bodyRot + headRot;
+		entity.setYRot(bodyRot + headRot);
+		entity.setXRot(pitch);
+		entity.xRotO = pitch;
+		graphics.enableScissor(x0, y0, x1, y1);
+		try {
+			float scale = entity.getScale();
+			Vector3f offset = new Vector3f(0.0F, entity.getBbHeight() / 2.0F + 0.0625F * scale, 0.0F);
+			InventoryScreen.renderEntityInInventory(graphics, (x0 + x1) / 2F, (y0 + y1) / 2F, size / scale, offset, new Quaternionf().rotateZ((float) Math.PI), null, entity);
+		} finally {
+			graphics.disableScissor();
+			entity.yBodyRot = saved[0];
+			entity.yBodyRotO = saved[1];
+			entity.yHeadRot = saved[2];
+			entity.yHeadRotO = saved[3];
+			entity.setYRot(saved[4]);
+			entity.setXRot(saved[5]);
+			entity.xRotO = saved[6];
+		}
+	}
+
+	private static int drawingEntity;
+
+	/^* Called by InventoryScreenMixin around every creature drawn in a screen (the inventory's player, {@link #entity}). ^/
+	public static void drawingEntity(boolean drawing) {
+		drawingEntity = Math.max(0, drawingEntity + (drawing ? 1 : -1));
+	}
+
+	/^* Whether a creature is being drawn in a screen, where the own nameplate is never shown. ^/
+	public static boolean isDrawingEntity() {
+		return drawingEntity > 0;
+	}
+	*///?}
 
 	/** An item as in an inventory slot (16 by 16 pixels). */
 	public void item(ItemStack stack, int x, int y) {
@@ -180,6 +263,7 @@ public final class OrbitGraphics {
 
 	// ---------------------------------------------------------------- state
 
+	//? if >=1.21.6 {
 	/** Saves the current position and scale, for {@link #pop}. */
 	public void push() {
 		graphics.pose().pushMatrix();
@@ -196,6 +280,24 @@ public final class OrbitGraphics {
 	public void scale(float x, float y) {
 		graphics.pose().scale(x, y);
 	}
+	//?} else {
+	/*/^* Saves the current position and scale, for {@link #pop}. ^/
+	public void push() {
+		graphics.pose().pushPose();
+	}
+
+	public void pop() {
+		graphics.pose().popPose();
+	}
+
+	public void translate(float x, float y) {
+		graphics.pose().translate(x, y, 0);
+	}
+
+	public void scale(float x, float y) {
+		graphics.pose().scale(x, y, 1);
+	}
+	*///?}
 
 	/** Only what is drawn inside the rectangle shows, until {@link #disableScissor} (they nest). */
 	public void enableScissor(int x0, int y0, int x1, int y1) {
@@ -211,15 +313,35 @@ public final class OrbitGraphics {
 	 * otherwise draws all text over all rectangles of the same frame).
 	 */
 	public void layer() {
+		//? if >=1.21.6 {
 		graphics.nextStratum();
+		//?} else {
+		/*// Before 1.21.6 everything is drawn in order already, but kept by depth: text and items sit a little nearer
+		// than rectangles. Forgetting the depth puts what comes next over them.
+		graphics.flush();
+		RenderSystem.clear(GL11.GL_DEPTH_BUFFER_BIT, Minecraft.ON_OSX);
+		*///?}
 	}
 
 	/** A tooltip by the mouse, drawn over the screen at the end of the frame. */
 	public void tooltip(Font font, Component text, int mouseX, int mouseY) {
+		//? if >=1.21.6 {
 		graphics.setTooltipForNextFrame(font, text, mouseX, mouseY);
+		//?} else {
+		/*tooltip(font, List.of(text.getVisualOrderText()), mouseX, mouseY);
+		*///?}
 	}
 
 	public void tooltip(Font font, List<? extends FormattedCharSequence> lines, int mouseX, int mouseY) {
+		//? if >=1.21.6 {
 		graphics.setTooltipForNextFrame(font, lines, mouseX, mouseY);
+		//?} else {
+		/*// Before 1.21.6: a screen draws it after everything else (where the mouse is); the HUD draws it now.
+		if (Minecraft.getInstance().screen != null) {
+			Minecraft.getInstance().screen.setTooltipForNextRenderPass(List.copyOf(lines));
+		} else {
+			graphics.renderTooltip(font, lines, mouseX, mouseY);
+		}
+		*///?}
 	}
 }

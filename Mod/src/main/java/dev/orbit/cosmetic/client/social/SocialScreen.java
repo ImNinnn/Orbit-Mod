@@ -205,9 +205,14 @@ public final class SocialScreen extends OrbitScreen {
 			int w = chatWidth();
 			int y = py() + ph() - PAD - 18;
 			// Between the picture and send buttons; it grows upwards as the message gets longer.
+			//? if >=1.21.6 {
 			input = MultiLineEditBox.builder().setX(x + 22).setY(y).setTextColor(Theme.TEXT).setShowBackground(false).setShowDecorations(false)
 				.setPlaceholder(Component.translatable("orbit_cosmetic.social.message_to", social().friend(open).name()).withStyle(ChatFormatting.DARK_GRAY))
 				.build(font, w - 44, 18, Component.translatable("orbit_cosmetic.social.message"));
+			//?} else {
+			/*input = new MultiLineEditBox(font, x + 22, y, w - 44, 18,
+				Component.translatable("orbit_cosmetic.social.message_to", social().friend(open).name()).withStyle(ChatFormatting.DARK_GRAY), Component.translatable("orbit_cosmetic.social.message"));
+			*///?}
 			input.setCharacterLimit(1000);
 			addRenderableWidget(input);
 			setInitialFocus(input);
@@ -498,10 +503,12 @@ public final class SocialScreen extends OrbitScreen {
 				input.setHeight(h);
 				input.setY(py() + ph() - PAD - h);
 				// Scrolled while it was smaller: everything shows again (or as much as fits).
+				//? if >=1.21.6 {
 				input.refreshScrollAmount();
 				if (input.maxScrollAmount() == 0) {
 					input.setScrollAmount(0);
 				}
+				//?}
 			}
 		}
 	}

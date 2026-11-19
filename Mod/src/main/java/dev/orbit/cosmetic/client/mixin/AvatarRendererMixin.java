@@ -16,7 +16,13 @@ import net.minecraft.client.renderer.SubmitNodeCollector;
 /*import net.minecraft.client.renderer.MultiBufferSource;
 *///?}
 import net.minecraft.client.renderer.entity.player.AvatarRenderer;
+//? if >=1.21.2 {
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;
+//?} else {
+/*import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import dev.orbit.cosmetic.client.render.PlayerFrameHolder;
+import net.minecraft.network.chat.Component;
+*///?}
 import net.minecraft.resources.Identifier;
 //? if >=1.21.9
 import net.minecraft.world.entity.Avatar;
@@ -48,7 +54,7 @@ public abstract class AvatarRendererMixin {
 			cir.setReturnValue(true);
 		}
 	}
-	//?} else {
+	//?} else if >=1.21.2 {
 	/*/^* Attaches this frame's cosmetics (and the nameplate icon) to the player's render state. ^/
 	@Inject(method = "extractRenderState(Lnet/minecraft/client/player/AbstractClientPlayer;Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;F)V",
 		at = @At("TAIL"))
@@ -58,11 +64,55 @@ public abstract class AvatarRendererMixin {
 	// The own nameplate: LivingEntityRendererMixin (players have no shouldShowName of their own before 1.21.9).
 	*///?}
 
+	//? if >=1.21.2 {
 	/** First-person arms: the sleeve pixels that arm cosmetics cover are hidden, as in third person. */
 	@ModifyVariable(method = "renderHand", at = @At("HEAD"), argsOnly = true)
 	private Identifier orbit$maskedArmSkin(Identifier skin) {
 		return OrbitClient.get().firstPersonSkin(skin);
 	}
+	//?} else {
+	/*/^*
+	 * Before 1.21.2 the game keeps no render state: Orbit works out the player's state when the renderer starts on
+	 * them and keeps it on the player until it is done (the layers, the model, the cape and the name read it).
+	 ^/
+	@Inject(method = "render(Lnet/minecraft/client/player/AbstractClientPlayer;FFLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V",
+		at = @At("HEAD"))
+	private void orbit$extractCosmetics(AbstractClientPlayer player, float yaw, float partialTicks, PoseStack poseStack, MultiBufferSource buffers, int light, CallbackInfo ci) {
+		PlayerState state = PlayerState.capture(player, partialTicks);
+		((PlayerFrameHolder) player).orbit$setState(state);
+		OrbitClient.get().extract(player, state, partialTicks);
+	}
+
+	@Inject(method = "render(Lnet/minecraft/client/player/AbstractClientPlayer;FFLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V",
+		at = @At("RETURN"))
+	private void orbit$forgetState(AbstractClientPlayer player, float yaw, float partialTicks, PoseStack poseStack, MultiBufferSource buffers, int light, CallbackInfo ci) {
+		((PlayerFrameHolder) player).orbit$setState(null);
+	}
+
+	/^* The skin Orbit gives the player (its skin without the pixels cosmetics cover). ^/
+	@Inject(method = "getTextureLocation(Lnet/minecraft/client/player/AbstractClientPlayer;)Lnet/minecraft/resources/Identifier;", at = @At("RETURN"), cancellable = true)
+	private void orbit$skin(AbstractClientPlayer player, CallbackInfoReturnable<Identifier> cir) {
+		PlayerState state = PlayerState.of(player);
+		if (state != null && state.skin() != null) {
+			cir.setReturnValue(state.skin().texture());
+		}
+	}
+
+	/^* The name Orbit gives the player (with the nameplate icon). ^/
+	@ModifyVariable(method = "renderNameTag(Lnet/minecraft/client/player/AbstractClientPlayer;Lnet/minecraft/network/chat/Component;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;IF)V",
+		at = @At("HEAD"), argsOnly = true)
+	private Component orbit$nameTag(Component name, @com.llamalad7.mixinextras.sugar.Local(argsOnly = true) AbstractClientPlayer player) {
+		PlayerState state = PlayerState.of(player);
+		return state != null && state.nameTag() != null ? state.nameTag() : name;
+	}
+
+	/^* First-person arms: the sleeve pixels that arm cosmetics cover are hidden, as in third person. ^/
+	@ModifyExpressionValue(method = "renderHand(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;ILnet/minecraft/client/player/AbstractClientPlayer;Lnet/minecraft/client/model/geom/ModelPart;Lnet/minecraft/client/model/geom/ModelPart;)V",
+		at = @At(value = "INVOKE", target = "Lnet/minecraft/client/resources/PlayerSkin;texture()Lnet/minecraft/resources/Identifier;"))
+	private Identifier orbit$maskedArmSkin(Identifier skin) {
+		return OrbitClient.get().firstPersonSkin(skin);
+	}
+	*///?}
 
 	//? if >=1.21.9 {
 	/** A first-person arm a body part replaces: only the body part is drawn (with the arm's cosmetics). */
@@ -86,7 +136,7 @@ public abstract class AvatarRendererMixin {
 		PlayerModel model = ((AvatarRenderer<?>) (Object) this).getModel();
 		OrbitClient.get().renderFirstPersonArm(PlayerBody.of(model), poseStack, OrbitCanvas.of(collector), light, orbit$anchor(model, arm));
 	}
-	//?} else {
+	//?} else if >=1.21.2 {
 	/*/^* A first-person arm a body part replaces: only the body part is drawn (with the arm's cosmetics). ^/
 	@Inject(method = "renderHand", at = @At("HEAD"), cancellable = true)
 	private void orbit$replaceArm(PoseStack poseStack, MultiBufferSource collector, int light, Identifier skin, ModelPart arm, boolean sleeve, CallbackInfo ci) {
@@ -105,6 +155,30 @@ public abstract class AvatarRendererMixin {
 	/^* First-person arms are rendered without render layers, so arm cosmetics are drawn here. ^/
 	@Inject(method = "renderHand", at = @At("TAIL"))
 	private void orbit$renderArmCosmetics(PoseStack poseStack, MultiBufferSource collector, int light, Identifier skin, ModelPart arm, boolean sleeve, CallbackInfo ci) {
+		PlayerModel model = ((AvatarRenderer<?>) (Object) this).getModel();
+		OrbitClient.get().renderFirstPersonArm(PlayerBody.of(model), poseStack, OrbitCanvas.of(collector), light, orbit$anchor(model, arm));
+	}
+	*///?} else {
+	/*/^* A first-person arm a body part replaces: only the body part is drawn (with the arm's cosmetics). ^/
+	@Inject(method = "renderHand(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;ILnet/minecraft/client/player/AbstractClientPlayer;Lnet/minecraft/client/model/geom/ModelPart;Lnet/minecraft/client/model/geom/ModelPart;)V",
+		at = @At("HEAD"), cancellable = true)
+	private void orbit$replaceArm(PoseStack poseStack, MultiBufferSource collector, int light, AbstractClientPlayer player, ModelPart arm, ModelPart sleeve, CallbackInfo ci) {
+		PlayerModel model = ((AvatarRenderer<?>) (Object) this).getModel();
+		Anchor anchor = orbit$anchor(model, arm);
+		if (OrbitClient.get().replacesFirstPersonArm(anchor)) {
+			// The arm as the game poses it for drawing: at rest, hanging slightly out.
+			arm.resetPose();
+			model.leftArm.zRot = -0.1F;
+			model.rightArm.zRot = 0.1F;
+			OrbitClient.get().renderFirstPersonArm(PlayerBody.of(model), poseStack, OrbitCanvas.of(collector), light, anchor);
+			ci.cancel();
+		}
+	}
+
+	/^* First-person arms are rendered without render layers, so arm cosmetics are drawn here. ^/
+	@Inject(method = "renderHand(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;ILnet/minecraft/client/player/AbstractClientPlayer;Lnet/minecraft/client/model/geom/ModelPart;Lnet/minecraft/client/model/geom/ModelPart;)V",
+		at = @At("TAIL"))
+	private void orbit$renderArmCosmetics(PoseStack poseStack, MultiBufferSource collector, int light, AbstractClientPlayer player, ModelPart arm, ModelPart sleeve, CallbackInfo ci) {
 		PlayerModel model = ((AvatarRenderer<?>) (Object) this).getModel();
 		OrbitClient.get().renderFirstPersonArm(PlayerBody.of(model), poseStack, OrbitCanvas.of(collector), light, orbit$anchor(model, arm));
 	}

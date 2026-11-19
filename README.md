@@ -699,8 +699,9 @@ All cosmetic and emote files, local or downloaded, are treated as untrusted:
 ```
 
 builds a client jar per Minecraft version (and its `-store` jar without self-updating, for mod sites). Gradle
-provisions Java 25 automatically if needed; the code for 1.21.6 to 1.21.11 is compiled for Java 21, the Java those versions
-run on. One jar covers 1.21.9 and 1.21.10 (`Mod/versions/1.21.10`), one 1.21.6 to 1.21.8 (`Mod/versions/1.21.8`).
+provisions Java 25 automatically if needed; the code for 1.21 to 1.21.11 is compiled for Java 21, the Java those versions
+run on. One jar covers 1.21.9 and 1.21.10 (`Mod/versions/1.21.10`), one 1.21.6 to 1.21.8 (`Mod/versions/1.21.8`), one
+1.21 and 1.21.1 (`Mod/versions/1.21.1`).
 
 Orbit Cloud, the server every Orbit player shares, is private: its code is not part of this repository, and the
 mod only talks to the official Orbit Cloud at `api.orbitcosmetics.dev` (development runs can use a local test
@@ -708,7 +709,7 @@ server with `-Dorbit.backendUrl=...`, which released games ignore).
 
 Development runs (run directories are under `run/`):
 
-* `./gradlew :Mod:26.3:runClient` (or `:Mod:26.1`, `:Mod:26.2`, `:Mod:1.21.11`, `:Mod:1.21.10`, `:Mod:1.21.8`).
+* `./gradlew :Mod:26.3:runClient` (or `:Mod:26.1`, `:Mod:26.2`, `:Mod:1.21.11`, `:Mod:1.21.10`, `:Mod:1.21.8`, `:Mod:1.21.1`).
 * `./gradlew :Mod:1.21.11:prodClient` runs the jar players get in a normal game (no development names), with Fabric
   API only and on that version's Java: the way to check a release for an obfuscated Minecraft version.
   `ORBIT_PROD_MINECRAFT=1.21.9 ORBIT_PROD_FABRIC_API=0.134.1+1.21.9 ./gradlew :Mod:1.21.10:prodClient` runs a jar in

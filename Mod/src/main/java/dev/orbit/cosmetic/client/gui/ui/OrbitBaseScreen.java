@@ -26,8 +26,18 @@ public abstract class OrbitBaseScreen extends Screen {
 		super(title);
 	}
 
+	//? if <1.21.6 {
+	/*/^* While Minecraft draws the widgets: its drawing would put the background (and its blur) over the screen. ^/
+	private boolean drawingWidgets;
+	*///?}
+
 	@Override
 	public final void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+		//? if <1.21.6 {
+		/*// Before 1.21.6 the game asks a screen for its background from within its own drawing, before the widgets: it
+		// is drawn first here instead, as later versions do.
+		drawBackground(OrbitGraphics.of(graphics), mouseX, mouseY, partialTick);
+		*///?}
 		draw(OrbitGraphics.of(graphics), mouseX, mouseY, partialTick);
 	}
 
@@ -38,11 +48,25 @@ public abstract class OrbitBaseScreen extends Screen {
 
 	/** Draws the screen's widgets (buttons, text boxes...), as Minecraft does. */
 	protected final void drawWidgets(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		//? if >=1.21.6 {
 		super.extractRenderState(graphics.raw(), mouseX, mouseY, partialTick);
+		//?} else {
+		/*drawingWidgets = true;
+		try {
+			super.extractRenderState(graphics.raw(), mouseX, mouseY, partialTick);
+		} finally {
+			drawingWidgets = false;
+		}
+		*///?}
 	}
 
 	@Override
 	public final void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+		//? if <1.21.6 {
+		/*if (drawingWidgets) {
+			return;
+		}
+		*///?}
 		drawBackground(OrbitGraphics.of(graphics), mouseX, mouseY, partialTick);
 	}
 

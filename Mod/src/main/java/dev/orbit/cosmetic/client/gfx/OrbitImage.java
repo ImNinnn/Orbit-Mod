@@ -54,12 +54,28 @@ public final class OrbitImage implements AutoCloseable {
 
 	/** The pixel at (x, y), as ARGB. */
 	public int pixel(int x, int y) {
+		//? if >=1.21.2 {
 		return image.getPixel(x, y);
+		//?} else {
+		/*// Before 1.21.2 pixels are read as ABGR.
+		return swapRedBlue(image.getPixelRGBA(x, y));
+		*///?}
 	}
 
 	public void setPixel(int x, int y, int argb) {
+		//? if >=1.21.2 {
 		image.setPixel(x, y, argb);
+		//?} else {
+		/*image.setPixelRGBA(x, y, swapRedBlue(argb));
+		*///?}
 	}
+
+	//? if <1.21.2 {
+	/*/^* ARGB to ABGR and back. ^/
+	private static int swapRedBlue(int color) {
+		return color & 0xFF00FF00 | color >> 16 & 0xFF | (color & 0xFF) << 16;
+	}
+	*///?}
 
 	/** A separate picture with the same pixels. */
 	public OrbitImage copy() {

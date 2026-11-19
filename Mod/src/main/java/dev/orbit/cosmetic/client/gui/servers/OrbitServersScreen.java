@@ -135,7 +135,7 @@ public final class OrbitServersScreen extends OrbitBaseScreen {
 		servers = found;
 		message = found.isEmpty() ? empty : null;
 		Server selected = list.getSelected() == null ? null : list.getSelected().server;
-		list.replaceEntries(found.stream().map(Entry::new).toList());
+		list.show(found.stream().map(Entry::new).toList());
 		list.children().stream().filter(entry -> entry.server.equals(selected)).findFirst().ifPresent(list::setSelected);
 	}
 
@@ -214,6 +214,11 @@ public final class OrbitServersScreen extends OrbitBaseScreen {
 		@Override
 		public int getRowWidth() {
 			return 305;
+		}
+
+		/** The list's servers from now on (replaceEntries is not public before 1.21.2). */
+		void show(java.util.Collection<OrbitServersScreen.Entry> entries) {
+			replaceEntries(entries);
 		}
 	}
 

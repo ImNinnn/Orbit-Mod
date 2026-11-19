@@ -3,7 +3,12 @@ package dev.orbit.cosmetic.client.mixin;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+//? if >=1.21.6 {
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
+//?} else {
+/*import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+*///?}
 import net.minecraft.world.entity.LivingEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -48,7 +53,7 @@ public abstract class InventoryScreenMixin {
 		dev.orbit.cosmetic.client.gfx.OrbitGraphics.poseEntity(state);
 		return state;
 	}
-	*///?} else {
+	*///?} else if >=1.21.6 {
 	/*// Before 1.21.11 the entity is drawn by renderEntityInInventory, which makes its render state itself: one hook
 	// hides the nameplate and applies the HUD's pose.
 	@ModifyArg(method = "renderEntityInInventory(Lnet/minecraft/client/gui/GuiGraphicsExtractor;IIIIFLorg/joml/Vector3f;Lorg/joml/Quaternionf;Lorg/joml/Quaternionf;Lnet/minecraft/world/entity/LivingEntity;)V",
@@ -60,6 +65,20 @@ public abstract class InventoryScreenMixin {
 		}
 		dev.orbit.cosmetic.client.gfx.OrbitGraphics.poseEntity(state);
 		return state;
+	}
+	*///?} else {
+	/*// Before 1.21.6 the entity itself is drawn (OrbitGraphics#entity turns it): the own nameplate stays hidden
+	// while it is.
+	@Inject(method = "renderEntityInInventory(Lnet/minecraft/client/gui/GuiGraphicsExtractor;FFFLorg/joml/Vector3f;Lorg/joml/Quaternionf;Lorg/joml/Quaternionf;Lnet/minecraft/world/entity/LivingEntity;)V",
+		at = @At("HEAD"))
+	private static void orbit$startEntity(CallbackInfo ci) {
+		OrbitGraphics.drawingEntity(true);
+	}
+
+	@Inject(method = "renderEntityInInventory(Lnet/minecraft/client/gui/GuiGraphicsExtractor;FFFLorg/joml/Vector3f;Lorg/joml/Quaternionf;Lorg/joml/Quaternionf;Lnet/minecraft/world/entity/LivingEntity;)V",
+		at = @At("RETURN"))
+	private static void orbit$endEntity(CallbackInfo ci) {
+		OrbitGraphics.drawingEntity(false);
 	}
 	*///?}
 }
