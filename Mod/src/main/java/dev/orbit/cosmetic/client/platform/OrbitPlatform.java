@@ -79,6 +79,21 @@ public final class OrbitPlatform {
 		return FabricLoader.getInstance().getModContainer(OrbitClient.MOD_ID).map(mod -> mod.getMetadata().getVersion().getFriendlyString()).orElse("dev");
 	}
 
+	/** The mod loader Orbit runs on, as players know it. */
+	public static String loaderName() {
+		return "Fabric";
+	}
+
+	/** The Minecraft version being played (one jar can cover several, such as 1.21.9 and 1.21.10). */
+	public static String minecraftVersion() {
+		return FabricLoader.getInstance().getModContainer("minecraft").map(mod -> mod.getMetadata().getVersion().getFriendlyString()).orElse("?");
+	}
+
+	/** The game Orbit runs in, such as "Fabric 1.21.10": shown on Discord and to friends as "Minecraft Fabric 1.21.10". */
+	public static String gameName() {
+		return loaderName() + " " + minecraftVersion();
+	}
+
 	/** A mod's name by its ID, or the ID itself for one that is not installed. */
 	public static String modName(String id) {
 		return FabricLoader.getInstance().getModContainer(id).map(mod -> mod.getMetadata().getName()).orElse(id);

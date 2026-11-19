@@ -453,7 +453,8 @@ already there.
 
 While Discord runs on your computer, your Discord profile shows "Orbit Mod - 26.3" and what you're doing: playing
 on a server (its address), in singleplayer, hosting a world, in the main menu, chatting to friends, changing
-cosmetics or settings, or looking at screenshots. Turn it off with **Discord status** in the settings.
+cosmetics or settings, or looking at screenshots. Under it is the game you play: "Minecraft Fabric 1.21.10". Turn it
+off with **Discord status** in the settings.
 
 ### Zoom
 
@@ -563,7 +564,8 @@ them (a party member playing elsewhere), see their page, make them group leader 
 (when you lead it), add or remove them as a friend, block or unblock them.
 
 **What friends do.** Under an online friend's name, instead of "Online", is what they do, as their Discord
-status says: "Playing on mc.hypixel.net", "On the main menu", "Changing cosmetics"...
+status says: "Playing on mc.hypixel.net", "On the main menu", "Changing cosmetics"... In their conversation and
+in the friends list it is followed by the game they play: "Playing on mc.hypixel.net · Minecraft Fabric 1.21.10".
 
 **Social notifications** are coloured by what they are about: messages and friend requests in red, the party in
 green, a friend coming online in gold, and invitations to a world in blue; each is as wide as its text needs.

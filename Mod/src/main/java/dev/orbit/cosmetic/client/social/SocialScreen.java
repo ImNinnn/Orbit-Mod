@@ -612,6 +612,17 @@ public final class SocialScreen extends OrbitScreen {
 		return day.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM));
 	}
 
+	/** A friend's status followed by the game they play in, when online and known: "… · Minecraft Fabric 1.21.10". */
+	static Component withGame(Social.Person person, Component status) {
+		JsonObject activity = person.online() ? person.activity() : null;
+		String game = activity != null && activity.has("game") ? activity.get("game").getAsString() : "";
+		if (game.isEmpty()) {
+			return status;
+		}
+		return Component.empty().append(status).append(Component.literal(" · ").append(Component.translatable("orbit_cosmetic.social.game", game))
+			.withStyle(ChatFormatting.GRAY));
+	}
+
 	/** "Online", or "Last online 3 hours ago". */
 	static Component lastOnline(Social.Person person) {
 		if (person.online()) {
@@ -723,7 +734,7 @@ public final class SocialScreen extends OrbitScreen {
 			partyMark(graphics, friend.uuid(), x + 22 + Math.min(font.width(friend.name()), nameWidth) + 3, top + 1);
 		}
 		Component status = Social.isOrbit(friend.uuid()) ? Component.translatable("orbit_cosmetic.social.orbit_detail").withStyle(ChatFormatting.GRAY)
-			: group != null ? groupStatus(group, friend) : lastOnline(friend);
+			: group != null ? groupStatus(group, friend) : withGame(friend, lastOnline(friend));
 		graphics.text(font, status, x + 22, top + 12, Theme.TEXT, false);
 		layoutInput();
 		int inputH = inputHeight();
@@ -1307,7 +1318,7 @@ public final class SocialScreen extends OrbitScreen {
 				}
 				graphics.text(font, Theme.clip(font, Component.literal(person.name()), columnW - 44 - actionCount * 20), cx + 32, y + 4, Theme.TEXT, false);
 				boolean incoming = c == 1 && social().incoming().contains(person);
-				Component detail = c == 0 ? lastOnline(person) : c == 1 ? Component.translatable(incoming ? "orbit_cosmetic.social.incoming" : "orbit_cosmetic.social.outgoing")
+				Component detail = c == 0 ? withGame(person, lastOnline(person)) : c == 1 ? Component.translatable(incoming ? "orbit_cosmetic.social.incoming" : "orbit_cosmetic.social.outgoing")
 					.withStyle(ChatFormatting.GRAY) : Component.translatable("orbit_cosmetic.social.blocked_detail").withStyle(ChatFormatting.GRAY);
 				graphics.text(font, Theme.clip(font, detail, columnW - 44 - actionCount * 20), cx + 32, y + 15, Theme.TEXT, false);
 				UUID uuid = person.uuid();

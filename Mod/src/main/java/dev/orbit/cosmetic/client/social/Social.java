@@ -305,6 +305,8 @@ public final class Social {
 		JsonObject body = new JsonObject();
 		body.addProperty("key", activity[0]);
 		body.addProperty("argument", activity[1]);
+		// The game too ("Fabric 1.21.10"): friends see "Minecraft Fabric 1.21.10".
+		body.addProperty("game", dev.orbit.cosmetic.client.platform.OrbitPlatform.gameName());
 		OrbitClient.get().backend().socialCall("PUT", "/activity", body, result -> {
 		}, error -> OrbitClient.LOGGER.debug("Friends: activity not shared: {}", error));
 	}

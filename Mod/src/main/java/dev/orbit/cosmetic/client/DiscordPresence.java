@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client;
 
+import dev.orbit.cosmetic.client.platform.OrbitPlatform;
 import com.google.gson.JsonObject;
 import dev.orbit.cosmetic.client.compat.Compat;
 import dev.orbit.cosmetic.client.gui.AnimationSettingsScreen;
@@ -36,7 +37,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Discord Rich Presence: one line, what the player does (on a server, in singleplayer, hosting, in the menus), under
+ * Discord Rich Presence: what the player does (on a server, in singleplayer, hosting, in the menus), then the game
+ * ("Minecraft Fabric 1.21.10"), under
  * the Discord application's name ("Orbit Mod - 1.0.0" when pointing at the icon), shown on their Discord profile
  * while the Discord app runs on this computer. Discord always titles it with the application's name: a name sent
  * from here is ignored. Talks to Discord's local
@@ -80,7 +82,8 @@ public final class DiscordPresence {
 		}
 		shown = state;
 		String details = "Orbit Mod - " + dev.orbit.cosmetic.client.Updates.modVersion();
-		WORKER.execute(() -> send(details, state));
+		String game = Component.translatable("orbit_cosmetic.discord.game", OrbitPlatform.gameName()).getString();
+		WORKER.execute(() -> send(details, state, game));
 	}
 
 	/** What the player does, as shown under the game. */
@@ -124,7 +127,7 @@ public final class DiscordPresence {
 
 	// ---------------------------------------------------------------- the worker thread
 
-	private static void send(String details, String state) {
+	private static void send(String details, String state, String game) {
 		try {
 			if (pipe == null) {
 				if (state == null || System.currentTimeMillis() < nextAttempt) {
@@ -145,8 +148,9 @@ public final class DiscordPresence {
 			args.addProperty("pid", ProcessHandle.current().pid());
 			if (state != null) {
 				JsonObject activity = new JsonObject();
-				// One line: what the player does.
+				// What the player does, then the game it is in.
 				activity.addProperty("details", state);
+				activity.addProperty("state", game);
 				JsonObject timestamps = new JsonObject();
 				timestamps.addProperty("start", STARTED);
 				activity.add("timestamps", timestamps);
