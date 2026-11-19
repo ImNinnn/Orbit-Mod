@@ -48,15 +48,15 @@ public final class OrbitGraphics {
 		graphics.fill(x0, y0, x1, y1, color);
 	}
 
-	/** A rectangle's 1-pixel border. */
+	/**
+	 * A rectangle's 1-pixel border, drawn as four strips (as Minecraft's own outline does since 1.21.11; 1.21.10's
+	 * outline is put off to the end of the frame, where it ignores the position, scale and clipping of the moment).
+	 */
 	public void outline(int x, int y, int width, int height, int color) {
-		//? if >=26.1 {
-		graphics.outline(x, y, width, height, color);
-		//?} else if >=1.21.11 {
-		/*graphics.renderOutline(x, y, width, height, color);
-		*///?} else {
-		/*graphics.submitOutline(x, y, width, height, color);
-		*///?}
+		graphics.fill(x, y, x + width, y + 1, color);
+		graphics.fill(x, y + height - 1, x + width, y + height, color);
+		graphics.fill(x, y + 1, x + 1, y + height - 1, color);
+		graphics.fill(x + width - 1, y + 1, x + width, y + height - 1, color);
 	}
 
 	/** A rectangle fading from one colour at the top to another at the bottom. */

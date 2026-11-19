@@ -64,17 +64,27 @@ public final class OrbitCanvas {
 		collector.submitCustomGeometry(poseStack, type(texture, look), (posed, consumer) -> geometry.emit(posed.pose(), posed.normal(), consumer::addVertex));
 	}
 
+	/**
+	 * Every look draws both sides of each face, as cosmetic models expect. Since 26.1 that is what "entity cutout"
+	 * means (the culling one is "entity cutout cull"); before, the cutout that keeps both sides is "no cull".
+	 */
 	private static RenderType type(Identifier texture, Look look) {
-		//? if >=1.21.11 {
+		//? if >=26.1 {
 		return switch (look) {
 			case CUTOUT -> RenderTypes.entityCutout(texture);
 			case TRANSLUCENT -> RenderTypes.entityTranslucent(texture);
 			case GLOWING -> RenderTypes.entityTranslucentEmissive(texture);
 		};
-		//?} else {
+		//?} else if >=1.21.11 {
+		/*return switch (look) {
+			case CUTOUT -> RenderTypes.entityCutoutNoCull(texture);
+			case TRANSLUCENT -> RenderTypes.entityTranslucent(texture);
+			case GLOWING -> RenderTypes.entityTranslucentEmissive(texture);
+		};
+		*///?} else {
 		/*// Before 1.21.11 the render types make themselves.
 		return switch (look) {
-			case CUTOUT -> RenderType.entityCutout(texture);
+			case CUTOUT -> RenderType.entityCutoutNoCull(texture);
 			case TRANSLUCENT -> RenderType.entityTranslucent(texture);
 			case GLOWING -> RenderType.entityTranslucentEmissive(texture);
 		};
