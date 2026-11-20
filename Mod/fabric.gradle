@@ -1,5 +1,5 @@
 // The Fabric part of a client project's build (build.gradle applies it): Loom, Fabric API, the development and
-// production runs, and the jars for mod sites (the store jar; for 1.21.1 also the NeoForge one).
+// production runs, and the jar for mod sites.
 
 // The development test harness (screenshots, diagnostics) is only on the maintainer's computer, not in the repository.
 def harness = file('../../src/testmod').isDirectory()
@@ -183,41 +183,3 @@ tasks.named('build') {
 
 // What goes to mod sites, by name in the store release's list.
 ext.storeJars = [(project.minecraft_version): 'storeJar']
-
-// NeoForge 1.21.1: Sinytra Connector runs Fabric mods there (with Forgified Fabric API). This is the store jar with
-// its fabric.mod.json made for that: it asks for Connector, names its target "neoforge-1.21.1", and leaves the Fabric
-// Loader version to Connector (which brings its own). The code finds out by itself that it runs on NeoForge.
-if (stonecutter.current.version == '1.21.1') {
-	def neoforgeMeta = layout.buildDirectory.dir('neoforge-meta')
-	def neoforgeMetadata = tasks.register('neoforgeMetadata') {
-		dependsOn storeMetadata
-		inputs.dir storeMeta
-		outputs.dir neoforgeMeta
-		doLast {
-			def json = new groovy.json.JsonSlurper().parse(storeMeta.get().file('fabric.mod.json').asFile)
-			json.custom['orbit_cosmetic:target'] = "neoforge-${project.minecraft_version}".toString()
-			json.depends.remove('fabricloader')
-			json.depends.neoforge = '*'
-			def out = neoforgeMeta.get().file('fabric.mod.json').asFile
-			out.parentFile.mkdirs()
-			out.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(json)) + '\n'
-		}
-	}
-	def neoforgeJar = tasks.register('neoforgeJar', Zip) {
-		group = 'build'
-		description = 'Builds the jar for NeoForge with Sinytra Connector (mod sites only).'
-		dependsOn storeJar, neoforgeMetadata
-		archiveBaseName = "orbit-mod-mc${project.minecraft_version}-neoforge"
-		archiveVersion = project.version
-		archiveExtension = 'jar'
-		destinationDirectory = layout.buildDirectory.dir('libs')
-		from({ zipTree(storeJar.get().archiveFile) }) {
-			exclude 'fabric.mod.json'
-		}
-		from(neoforgeMeta)
-	}
-	tasks.named('build') {
-		dependsOn neoforgeJar
-	}
-	ext.storeJars["neoforge-${project.minecraft_version}".toString()] = 'neoforgeJar'
-}

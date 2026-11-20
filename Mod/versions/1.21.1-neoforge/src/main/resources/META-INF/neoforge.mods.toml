@@ -1,0 +1,32 @@
+# NeoForge's description of Orbit (Fabric's is fabric.mod.json).
+modLoader = "javafml"
+loaderVersion = "[4,)"
+license = "All Rights Reserved"
+
+[[mods]]
+modId = "orbit_cosmetic"
+version = "${version}"
+displayName = "Orbit"
+displayURL = "https://orbitcosmetics.dev"
+logoFile = "assets/orbit_cosmetic/icon.png"
+description = '''${description}'''
+
+[[mixins]]
+config = "orbit_cosmetic.mixins.json"
+
+[[accessTransformers]]
+file = "META-INF/accesstransformer.cfg"
+
+[[dependencies.orbit_cosmetic]]
+modId = "neoforge"
+type = "required"
+versionRange = "[21.1,)"
+ordering = "NONE"
+side = "CLIENT"
+
+[[dependencies.orbit_cosmetic]]
+modId = "minecraft"
+type = "required"
+versionRange = "${minecraft}"
+ordering = "NONE"
+side = "CLIENT"

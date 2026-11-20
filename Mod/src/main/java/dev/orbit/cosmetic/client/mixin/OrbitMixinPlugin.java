@@ -9,8 +9,8 @@ import java.util.Set;
 
 /**
  * Leaves out the mixins Orbit only needs on some installations: its own world-drawing hook (LevelRendererMixin)
- * only where Fabric API has no world render events, and none of its world and HUD hooks on Forge (which has events
- * for both).
+ * only where Fabric API has no world render events, and none of its world and HUD hooks on Forge and NeoForge (which
+ * have events for both).
  */
 public final class OrbitMixinPlugin implements IMixinConfigPlugin {
 	/** Fabric API's world render events: in rendering/v1 before 1.21.9, "world" until 26.1, "level" since. */
@@ -32,7 +32,7 @@ public final class OrbitMixinPlugin implements IMixinConfigPlugin {
 
 	@Override
 	public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
-		//? if forge {
+		//? if forge || neoforge {
 		/*if (mixinClassName.endsWith(".LevelRendererMixin") || mixinClassName.endsWith(".GuiChatMixin")) {
 			return false;
 		}

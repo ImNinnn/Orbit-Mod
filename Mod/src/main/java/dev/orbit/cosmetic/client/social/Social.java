@@ -225,14 +225,18 @@ public final class Social {
 	public void view(@Nullable UUID friend) {
 		viewing = friend;
 		if (ORBIT.equals(friend)) {
-			if (broadcasts.stream().anyMatch(entry -> seenBroadcasts.add(entry.id()))) {
+			boolean added = false;
+			for (Entry entry : broadcasts) {
+				added |= seenBroadcasts.add(entry.id());
+			}
+			if (added) {
 				saveMeta();
 				version++;
 			}
 			return;
 		}
 		if (friend != null) {
-			markSeen(friend);
+			markSeen(friend, false);
 			lastPoll = 0;
 		}
 	}
@@ -699,6 +703,9 @@ public final class Social {
 	/** Reloads friends, requests and blocked players now. */
 	public void refresh() {
 		lastState = System.currentTimeMillis();
+		if (me != null && mergeSeenBroadcasts()) {
+			version++;
+		}
 		OrbitClient.get().backend().socialCall("GET", "/state", null, this::applyState, error -> {
 			problem = error;
 			version++;
@@ -772,7 +779,7 @@ public final class Social {
 				JsonObject json = element.getAsJsonObject();
 				UUID id = UUID.fromString(json.get("id").getAsString());
 				found.put(id, new Group(id, json.get("name").getAsString(), UUID.fromString(json.get("owner").getAsString()), json.get("color").getAsInt() & 0xFFFFFF,
-					json.get("picture").getAsInt(), people(json.getAsJsonArray("members")), id.equals(viewing) ? 0 : json.get("unread").getAsInt()));
+					json.get("picture").getAsInt(), people(json.getAsJsonArray("members")), json.get("unread").getAsInt()));
 			}
 		}
 		groups = found;
@@ -785,6 +792,10 @@ public final class Social {
 			}
 		}
 		unread = counts;
+		// The conversation on screen is read: Orbit Cloud may have counted messages before it heard so.
+		if (viewing != null && !ORBIT.equals(viewing) && unread(viewing) > 0) {
+			markSeen(viewing, true);
+		}
 		applyParty(state, first);
 		if (state.get("me") instanceof JsonObject meJson && meJson.has("first_seen") && !meJson.get("first_seen").isJsonNull()) {
 			memberSince = meJson.get("first_seen").getAsDouble();
@@ -1195,7 +1206,7 @@ public final class Social {
 		}
 		saveMeta();
 		if (viewing != null && changed.contains(viewing)) {
-			markSeen(viewing);
+			markSeen(viewing, true);
 		}
 		lastState = 0;
 		version++;
@@ -1351,15 +1362,21 @@ public final class Social {
 		return "";
 	}
 
-	private void markSeen(UUID friend) {
+	/**
+	 * Marks a conversation seen, here and on Orbit Cloud. Orbit Cloud is told when this computer counts unread
+	 * messages, or always ({@code always}) when messages came in while the conversation was on screen: this computer
+	 * only learns Orbit Cloud's count later, and Orbit Cloud would otherwise count them unread for good.
+	 */
+	private void markSeen(UUID friend, boolean always) {
 		Group group = groups.get(friend);
 		if (group != null) {
-			if (group.unread() > 0) {
+			if (group.unread() > 0 || always) {
 				Map<UUID, Group> updated = new LinkedHashMap<>(groups);
 				updated.put(friend, group.withUnread(0));
 				groups = updated;
 				JsonObject body = new JsonObject();
-				body.addProperty("until", System.currentTimeMillis() / 1000.0 + 1);
+				// Up to the newest message Orbit Cloud gave (its own clock: this computer's may be behind).
+				body.addProperty("until", since + 1);
 				OrbitClient.get().backend().socialCall("POST", "/groups/" + friend + "/seen", body, ok -> {
 				}, error -> {
 				});
@@ -1367,7 +1384,7 @@ public final class Social {
 			}
 			return;
 		}
-		if (unread.getOrDefault(friend, 0) == 0) {
+		if (unread.getOrDefault(friend, 0) == 0 && !always) {
 			return;
 		}
 		Map<UUID, Integer> counts = new HashMap<>(unread);
@@ -1644,7 +1661,23 @@ public final class Social {
 		writeJson(folder().resolve("chats").resolve(friend + ".json"), root);
 	}
 
+	/**
+	 * Orbit's messages seen in another game on this computer (every instance shares the folder): without this, a game
+	 * still running would write its older list back and they would be unread again.
+	 */
+	private boolean mergeSeenBroadcasts() {
+		JsonObject meta = readJson(folder().resolve("meta.json"));
+		boolean added = false;
+		if (meta != null && meta.get("broadcasts_seen") instanceof JsonArray seen) {
+			for (JsonElement id : seen) {
+				added |= seenBroadcasts.add(id.getAsString());
+			}
+		}
+		return added;
+	}
+
 	private void saveMeta() {
+		mergeSeenBroadcasts();
 		JsonObject meta = new JsonObject();
 		meta.addProperty("since", since);
 		JsonArray encrypted = new JsonArray();

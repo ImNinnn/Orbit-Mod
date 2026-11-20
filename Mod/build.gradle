@@ -2,15 +2,17 @@
 // (see settings.gradle) runs this script. The code in ../../src is shared; versions/<project>/src holds the classes
 // that differ for that project (a Forge project also takes its Minecraft version's), and the project's
 // gradle.properties picks Minecraft and the loader's libraries. Stonecutter adds the shared sources itself, as
-// processed for the version. What differs between loaders is in fabric.gradle and forge.gradle.
+// processed for the version. What differs between loaders is in fabric.gradle, forge.gradle and neoforge.gradle.
 apply from: rootProject.file('gradle/java.gradle')
 // The loader: Fabric unless the project's name says otherwise ("1.20.1-forge").
 def loader = stonecutter.current.project.contains('-') ? stonecutter.current.project.substring(stonecutter.current.project.indexOf('-') + 1) : 'fabric'
 ext.loader = loader
-// Minecraft before 26.1 is obfuscated (Loom or ModDevGradle maps it to Mojang's names).
+// Minecraft before 26.1 is obfuscated (Loom or ModDevGradle maps it to Mojang's names; NeoForge's game runs on them).
 ext.obfuscated = stonecutter.eval(stonecutter.current.version, '<26.1')
 if (loader == 'forge') {
 	apply plugin: 'net.neoforged.moddev.legacyforge'
+} else if (loader == 'neoforge') {
+	apply plugin: 'net.neoforged.moddev'
 } else {
 	apply plugin: obfuscated ? 'net.fabricmc.fabric-loom-remap' : 'net.fabricmc.fabric-loom'
 }
@@ -18,8 +20,8 @@ if (loader == 'forge') {
 // Names Minecraft changed: the shared code uses the newest; older versions get theirs (both ways, so switching the
 // active version round-trips).
 stonecutter {
-	// "//? if forge {" for Forge-only code (and "fabric" for Fabric-only).
-	constants.match(loader, 'fabric', 'forge')
+	// "//? if forge {" for Forge-only code ("neoforge", "fabric" likewise).
+	constants.match(loader, 'fabric', 'forge', 'neoforge')
 	replacements {
 		regex(stonecutter.eval(stonecutter.current.version, '<26.1')) {
 			// 26.1 renamed the GUI's drawing object.
@@ -166,4 +168,4 @@ jar {
 if (loader == 'fabric') {
 	ext.productionRunTask = net.fabricmc.loom.task.prod.ClientProductionRunTask
 }
-apply from: parent.file("${loader == 'fabric' ? 'fabric' : 'forge'}.gradle")
+apply from: parent.file("${loader}.gradle")

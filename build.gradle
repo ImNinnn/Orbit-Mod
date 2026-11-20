@@ -1,7 +1,8 @@
 plugins {
 	id 'net.fabricmc.fabric-loom' version "${loom_version}" apply false
-	// Forge 1.20.1 (Mod/forge.gradle).
+	// Forge 1.20.1 (Mod/forge.gradle) and NeoForge 1.21.1 (Mod/neoforge.gradle).
 	id 'net.neoforged.moddev.legacyforge' version "${moddev_version}" apply false
+	id 'net.neoforged.moddev' version "${moddev_version}" apply false
 }
 
 // The Java settings every project shares are in gradle/java.gradle (each project applies it).
@@ -25,7 +26,8 @@ plugins {
 def releaseKeyFile = file(System.getenv('ORBIT_RELEASE_KEY') ?: "${System.getProperty('user.home')}/.config/orbit-release.key")
 def publicKeyFile = file('Mod/src/main/resources/orbit-release.pub')
 // The client's version projects, as Stonecutter made them (settings.gradle lists the versions). Only the Fabric ones
-// (named by their Minecraft version alone) update themselves; Forge's ("1.20.1-forge") are for mod sites only.
+// (named by their Minecraft version alone) update themselves; Forge's and NeoForge's ("1.20.1-forge") are for mod
+// sites only.
 def clientProjects = project(':Mod').subprojects.collect { it.path }.sort()
 def selfUpdatingProjects = clientProjects.findAll { !it.contains('-') }
 

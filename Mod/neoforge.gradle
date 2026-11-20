@@ -1,0 +1,82 @@
+// The NeoForge part of a client project's build (build.gradle applies it): ModDevGradle. NeoForge runs Minecraft with
+// Mojang's names in players' games too, so the jar needs no refmap or remapping, and NeoForge brings MixinExtras.
+// NeoForge builds are store builds only: no self-updater, no Mod Menu.
+
+// The development test harness (screenshots, diagnostics) is only on the maintainer's computer, not in the repository.
+def harness = file('../../src/testmod').isDirectory()
+
+// Fabric-only shared classes: the entrypoint, the self-updater and the Mod Menu button.
+sourceSets.main.java.exclude('dev/orbit/cosmetic/client/platform/OrbitFabric.java', 'dev/orbit/cosmetic/client/update/**',
+	'dev/orbit/cosmetic/client/gui/OrbitModMenu.java')
+sourceSets.main.resources.exclude('fabric.mod.json', 'orbit-release.pub')
+
+// Built and run on the Java that Minecraft version uses.
+java.toolchain.languageVersion = JavaLanguageVersion.of(project.java_release as int)
+
+sourceSets {
+	if (harness) {
+		testmod {
+			compileClasspath += main.compileClasspath + main.output
+			runtimeClasspath += main.runtimeClasspath + main.output
+		}
+	}
+}
+
+neoForge {
+	version = project.neoforge_version
+	mods {
+		"orbit_cosmetic" {
+			sourceSet sourceSets.main
+			sourceSet project(':common').sourceSets.main
+		}
+		if (harness) {
+			"orbit_cosmetic_testharness" {
+				sourceSet sourceSets.testmod
+			}
+		}
+	}
+	runs {
+		configureEach {
+			// A run directory per Minecraft version and loader, outside the source tree.
+			gameDirectory = file(System.getenv('ORBIT_RUN_DIR') ?: "../../../run/client-${project.minecraft_version}-${loader}")
+			jvmArguments.add('-Xmx2G')
+		}
+		client {
+			client()
+		}
+		if (harness) {
+			testClient {
+				client()
+				sourceSet = sourceSets.testmod
+				loadedMods = [mods.orbit_cosmetic, mods.orbit_cosmetic_testharness]
+				programArguments.addAll('--width', System.getenv('ORBIT_TEST_WIDTH') ?: '960', '--height', System.getenv('ORBIT_TEST_HEIGHT') ?: '540')
+				programArguments.addAll('--username', System.getenv('ORBIT_TEST_USERNAME') ?: 'OrbitTester')
+				if (System.getenv('ORBIT_TEST_BACKEND')) {
+					jvmArguments.add("-Dorbit.backendUrl=${System.getenv('ORBIT_TEST_BACKEND')}")
+				}
+				if (System.getenv('ORBIT_TEST_DEV_PLAYER')) {
+					jvmArguments.add("-Dorbit.devPlayer=${System.getenv('ORBIT_TEST_DEV_PLAYER')}")
+				}
+				if (System.getenv('ORBIT_TEST_ROLE') != 'title') {
+					programArguments.addAll('--quickPlayMultiplayer', 'localhost:25599')
+				}
+			}
+		}
+	}
+}
+
+processResources {
+	// The description is Fabric's (one text for both).
+	def fabricJson = new groovy.json.JsonSlurper().parse(file('../../src/main/resources/fabric.mod.json'))
+	def properties = [version: project.version, minecraft: project.minecraft_dependency, java: project.java_release,
+		description: fabricJson.description]
+	inputs.properties properties
+	filesMatching(['META-INF/neoforge.mods.toml', 'orbit_cosmetic.mixins.json']) {
+		expand properties
+	}
+}
+
+// The jar players get is the plain one.
+ext.releaseJar = 'jar'
+// What goes to mod sites ("neoforge-1.21.1" in the store release's list).
+ext.storeJars = ["${loader}-${project.minecraft_version}": 'jar']
