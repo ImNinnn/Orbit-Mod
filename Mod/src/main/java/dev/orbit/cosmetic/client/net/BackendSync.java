@@ -35,7 +35,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -92,11 +91,7 @@ public final class BackendSync {
 
 	private final OrbitClient orbit;
 	private final RemotePlayers remotes;
-	private final ExecutorService worker = Executors.newSingleThreadExecutor(runnable -> {
-		Thread thread = new Thread(runnable, "Orbit Cloud");
-		thread.setDaemon(true);
-		return thread;
-	});
+	private final ExecutorService worker = worker("Orbit Cloud");
 
 	private BackendClient client;
 	/** Who we are signed in as; null when not signed in. */
@@ -1115,21 +1110,26 @@ public final class BackendSync {
 		liveWorker.shutdownNow();
 	}
 
+	/**
+	 * A thread of its own for Orbit Cloud's calls. Work handed to it once it is shut down is dropped: the game still
+	 * ticks for a moment after it starts closing (when Orbit shuts down), and a call then must not stop the game.
+	 */
+	private static ExecutorService worker(String name) {
+		return new java.util.concurrent.ThreadPoolExecutor(1, 1, 0, java.util.concurrent.TimeUnit.MILLISECONDS, new java.util.concurrent.LinkedBlockingQueue<>(),
+			runnable -> {
+				Thread thread = new Thread(runnable, name);
+				thread.setDaemon(true);
+				return thread;
+			}, new java.util.concurrent.ThreadPoolExecutor.DiscardPolicy());
+	}
+
 	// ---------------------------------------------------------------- friends
 
 	/** Friends calls have their own thread, so a slow upload never holds up what players wear. */
-	private final ExecutorService socialWorker = Executors.newSingleThreadExecutor(runnable -> {
-		Thread thread = new Thread(runnable, "Orbit friends");
-		thread.setDaemon(true);
-		return thread;
-	});
+	private final ExecutorService socialWorker = worker("Orbit friends");
 
 	/** Waits for news from Orbit Cloud (see {@link #socialWait}): its own thread, as a wait lasts up to 25 seconds. */
-	private final ExecutorService liveWorker = Executors.newSingleThreadExecutor(runnable -> {
-		Thread thread = new Thread(runnable, "Orbit live");
-		thread.setDaemon(true);
-		return thread;
-	});
+	private final ExecutorService liveWorker = worker("Orbit live");
 
 	private interface SocialCall<T> {
 		T run(BackendClient client) throws IOException, InterruptedException;

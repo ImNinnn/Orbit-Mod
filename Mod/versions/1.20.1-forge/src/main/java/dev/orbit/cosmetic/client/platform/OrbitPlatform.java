@@ -72,7 +72,13 @@ public final class OrbitPlatform {
 		});
 		modBus.addListener(EventPriority.NORMAL, false, RegisterGuiOverlaysEvent.class, event -> {
 			// Two overlays of Orbit's own, which draw its layers in their order: one right under the chat, one over all.
-			event.registerBelow(VanillaGuiOverlay.CHAT_PANEL.id(), "under_chat", (gui, graphics, partialTick, width, height) -> drawHud(UNDER_CHAT, graphics, partialTick));
+			// Forge draws a mod's overlays even with the HUD hidden (F1): the one under the chat hides with the HUD,
+			// as on Fabric.
+			event.registerBelow(VanillaGuiOverlay.CHAT_PANEL.id(), "under_chat", (gui, graphics, partialTick, width, height) -> {
+				if (!Minecraft.getInstance().options.hideGui) {
+					drawHud(UNDER_CHAT, graphics, partialTick);
+				}
+			});
 			event.registerAboveAll("on_top", (gui, graphics, partialTick, width, height) -> drawHud(ON_TOP, graphics, partialTick));
 		});
 		modBus.addListener(EventPriority.NORMAL, false, EntityRenderersEvent.AddLayers.class, event -> {

@@ -63,7 +63,7 @@ public final class SocialPopups {
 		@Nullable Runnable secondAction;
 		/** An action's title, translated when drawn (a popup made before the game's languages are loaded still reads right). */
 		@Nullable Component heading;
-		/** A vote's lines, as they change, and whether it is still on. */
+		/** A vote's lines, as they change, and whether it (or an action's offer) still applies. */
 		java.util.function.@Nullable Supplier<Component> titleLine;
 		java.util.function.@Nullable Supplier<Component> detailLine;
 		java.util.function.@Nullable BooleanSupplier alive;
@@ -97,6 +97,9 @@ public final class SocialPopups {
 			if (kind == Kind.VOTE) {
 				// Until the vote is over.
 				return alive != null && alive.getAsBoolean() ? Long.MAX_VALUE / 4 : 0;
+			}
+			if (kind == Kind.ACTION && alive != null && !alive.getAsBoolean()) {
+				return 0;
 			}
 			return kind == Kind.INVITE ? INVITE_LIFETIME_MS : kind == Kind.ACTION ? ACTION_LIFETIME_MS : LIFETIME_MS;
 		}
@@ -172,10 +175,17 @@ public final class SocialPopups {
 	 * title and a line, and a button. Like every popup, it can be clicked while a screen is open (the chat, for one).
 	 */
 	public static void action(UUID player, String name, Component title, Component detail, Component button, Runnable action) {
+		action(player, name, title, detail, button, action, null);
+	}
+
+	/** The same, gone early once {@code wanted} says it no longer applies (the party it offers was joined or ended). */
+	public static void action(UUID player, String name, Component title, Component detail, Component button, Runnable action,
+		java.util.function.@Nullable BooleanSupplier wanted) {
 		Popup popup = new Popup(Kind.ACTION, player, name, detail, null, null);
 		popup.heading = title;
 		popup.button = () -> button;
 		popup.action = action;
+		popup.alive = wanted;
 		add(popup);
 	}
 

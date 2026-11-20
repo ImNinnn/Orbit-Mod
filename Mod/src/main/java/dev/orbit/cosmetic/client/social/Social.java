@@ -362,8 +362,10 @@ public final class Social {
 					Group group = group(started.chat());
 					Component where = group != null ? Component.literal(group.name()) : Component.translatable("orbit_cosmetic.party.with_you");
 					UUID chat = started.chat();
+					// It goes once the player is in that party (joined from the chat, say) or the party is over.
 					SocialPopups.action(started.startedBy(), started.startedByName(), Component.translatable("orbit_cosmetic.party.started", started.startedByName()),
-						Component.translatable("orbit_cosmetic.party.join_hint", where), Component.translatable("orbit_cosmetic.party.join.short"), () -> startParty(chat));
+						Component.translatable("orbit_cosmetic.party.join_hint", where), Component.translatable("orbit_cosmetic.party.join.short"), () -> startParty(chat),
+						() -> openParties.containsKey(chat) && (party == null || !party.chat().equals(chat)));
 				}
 			}
 		}

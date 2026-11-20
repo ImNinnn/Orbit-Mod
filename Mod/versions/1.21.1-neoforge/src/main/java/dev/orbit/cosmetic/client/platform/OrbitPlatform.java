@@ -74,8 +74,13 @@ public final class OrbitPlatform {
 		});
 		modBus.addListener(EventPriority.NORMAL, false, RegisterGuiLayersEvent.class, event -> {
 			// Two HUD layers of Orbit's own, which draw its layers in their order: one right under the chat, one over all.
-			event.registerBelow(VanillaGuiLayers.CHAT, ResourceLocation.fromNamespaceAndPath(OrbitClient.MOD_ID, "under_chat"),
-				(graphics, tick) -> drawHud(UNDER_CHAT, graphics, tick));
+			// NeoForge draws a mod's layers even with the HUD hidden (F1): the one under the chat hides with the HUD,
+			// as on Fabric.
+			event.registerBelow(VanillaGuiLayers.CHAT, ResourceLocation.fromNamespaceAndPath(OrbitClient.MOD_ID, "under_chat"), (graphics, tick) -> {
+				if (!Minecraft.getInstance().options.hideGui) {
+					drawHud(UNDER_CHAT, graphics, tick);
+				}
+			});
 			event.registerAboveAll(ResourceLocation.fromNamespaceAndPath(OrbitClient.MOD_ID, "on_top"), (graphics, tick) -> drawHud(ON_TOP, graphics, tick));
 		});
 		modBus.addListener(EventPriority.NORMAL, false, EntityRenderersEvent.AddLayers.class, event -> {
