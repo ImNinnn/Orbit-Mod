@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.library;
 
+import dev.orbit.cosmetic.common.util.Clamp;
 import dev.orbit.cosmetic.common.library.OrbitState;
 import dev.orbit.cosmetic.common.library.TileColors;
 import dev.orbit.cosmetic.common.library.CosmeticSettingsFile;
@@ -250,7 +251,7 @@ public final class CosmeticLibrary {
 				entry = new LocalCosmetic(file, key);
 				entry.baseName = baseName;
 				entry.loaded = state.equipped().contains(key);
-				entry.style = Math.clamp(state.styles().getOrDefault(key, 0), 0, TextureStyles.MAX - 1);
+				entry.style = Clamp.clamp(state.styles().getOrDefault(key, 0), 0, TextureStyles.MAX - 1);
 				entries.put(key, entry);
 			}
 			entry.modified = modified;
@@ -506,7 +507,7 @@ public final class CosmeticLibrary {
 
 	/** Chooses the alternate texture a cosmetic is worn with. */
 	public void setStyle(LocalCosmetic entry, int style) {
-		int chosen = Math.clamp(style, 0, TextureStyles.MAX - 1);
+		int chosen = Clamp.clamp(style, 0, TextureStyles.MAX - 1);
 		if (entry.style == chosen) {
 			return;
 		}
@@ -820,7 +821,7 @@ public final class CosmeticLibrary {
 			}
 			Integer style = styles.get(entry.key);
 			if (style != null) {
-				entry.style = Math.clamp(style, 0, TextureStyles.MAX - 1);
+				entry.style = Clamp.clamp(style, 0, TextureStyles.MAX - 1);
 				if (entry.style == 0) {
 					state.styles().remove(entry.key);
 				} else {

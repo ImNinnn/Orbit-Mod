@@ -194,7 +194,11 @@ public final class PartyLink implements WebSocket.Listener {
 			json.add("items", items);
 		}
 		if (minecraft.level != null) {
+			//? if >=1.20.2 {
 			var objective = minecraft.level.getScoreboard().getDisplayObjective(net.minecraft.world.scores.DisplaySlot.SIDEBAR);
+			//?} else {
+			/*var objective = minecraft.level.getScoreboard().getDisplayObjective(net.minecraft.world.scores.Scoreboard.DISPLAY_SLOT_SIDEBAR);
+			*///?}
 			if (objective != null) {
 				String title = net.minecraft.ChatFormatting.stripFormatting(objective.getDisplayName().getString()).strip();
 				json.addProperty("scoreboard", title.length() > 48 ? title.substring(0, 48) : title);

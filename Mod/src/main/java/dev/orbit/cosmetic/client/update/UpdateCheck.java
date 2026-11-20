@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.update;
 
+import dev.orbit.cosmetic.common.util.Lists;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -233,8 +234,8 @@ public final class UpdateCheck implements PreLaunchEntrypoint {
 	/** The jar this mod was loaded from, or null when it was not a jar (development). */
 	private static Path ownJar(ModContainer mod) {
 		List<Path> paths = mod.getOrigin().getPaths();
-		if (paths.size() == 1 && Files.isRegularFile(paths.getFirst()) && paths.getFirst().toString().endsWith(".jar")) {
-			return paths.getFirst().toAbsolutePath();
+		if (paths.size() == 1 && Files.isRegularFile(Lists.first(paths)) && Lists.first(paths).toString().endsWith(".jar")) {
+			return Lists.first(paths).toAbsolutePath();
 		}
 		return null;
 	}

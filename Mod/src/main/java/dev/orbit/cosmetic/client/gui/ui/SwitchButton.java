@@ -3,6 +3,7 @@ package dev.orbit.cosmetic.client.gui.ui;
 import dev.orbit.cosmetic.client.input.OrbitClick;
 import dev.orbit.cosmetic.client.input.OrbitKey;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
+import net.minecraft.resources.Identifier;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.components.Tooltip;
@@ -53,7 +54,7 @@ public final class SwitchButton extends OrbitWidget {
 		graphics.outline(x, y, getWidth(), getHeight(), hot ? Theme.BORDER_LIGHT : Theme.BORDER);
 		if (icon.contains(":")) {
 			// One of the game's own sprites (a heart, a shank...): kept in its colours, darker when off.
-			graphics.sprite(net.minecraft.resources.Identifier.parse(icon), x + 4, y + (getHeight() - 9) / 2, 9, 9, on ? 0xFFFFFFFF : 0xFF707070);
+			graphics.sprite(Identifier.parse(icon), x + 4, y + (getHeight() - 9) / 2, 9, 9, on ? 0xFFFFFFFF : 0xFF707070);
 		} else {
 			Theme.icon(graphics, icon, x + 4, y + (getHeight() - 9) / 2, on ? Theme.TEXT : Theme.MUTED);
 		}

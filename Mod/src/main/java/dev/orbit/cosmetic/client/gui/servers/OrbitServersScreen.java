@@ -72,6 +72,7 @@ public final class OrbitServersScreen extends OrbitBaseScreen {
 
 	@Override
 	protected void init() {
+		//? if >=1.20.2 {
 		list = layout.addToContents(new Servers(minecraft, width, layout.getContentHeight(), layout.getHeaderHeight(), 36));
 		LinearLayout footer = layout.addToFooter(LinearLayout.vertical().spacing(4));
 		footer.defaultCellSetting().alignHorizontallyCenter();
@@ -90,8 +91,28 @@ public final class OrbitServersScreen extends OrbitBaseScreen {
 		tabs.forEach(this::addRenderableWidget);
 		repositionElements();
 		load();
+		//?} else {
+		/*// Before 1.20.2 a list cannot sit in a layout: the screen is laid out by hand, as Minecraft's server list is.
+		list = addRenderableWidget(new Servers(minecraft, width, height, ServerTabs.TAB_HEIGHT, height - 60, 36));
+		boolean recommendedTab = tab == ServerTabs.RECOMMENDED;
+		int buttonWidth = recommendedTab ? 98 : 150;
+		int x = width / 2 - 152;
+		join = addRenderableWidget(Button.builder(Component.translatable("selectServer.select"), b -> joinSelected()).bounds(x, height - 52, buttonWidth, 20).build());
+		x += buttonWidth + 4;
+		if (recommendedTab) {
+			favorite = addRenderableWidget(Button.builder(Component.translatable("orbit_cosmetic.servers.favorite"), b -> favoriteSelected()).bounds(x, height - 52, 100, 20).build());
+			x += 104;
+		}
+		addRenderableWidget(Button.builder(Component.translatable("selectServer.refresh"), b -> Compat.setScreen(new OrbitServersScreen(parent, tab))).bounds(x, height - 52, buttonWidth, 20).build());
+		addRenderableWidget(Button.builder(CommonComponents.GUI_BACK, b -> onClose()).bounds(width / 2 - 152, height - 28, 304, 20).build());
+		var tabs = ServerTabs.tabs(this.width, tab, parent);
+		ServerTabs.underTabs(list, tabs);
+		tabs.forEach(this::addRenderableWidget);
+		load();
+		*///?}
 	}
 
+	//? if >=1.20.2 {
 	@Override
 	protected void repositionElements() {
 		layout.arrangeElements();
@@ -99,6 +120,8 @@ public final class OrbitServersScreen extends OrbitBaseScreen {
 			list.updateSize(width, layout);
 		}
 	}
+	//?}
+	// (Before 1.20.2 the screen is made again when its size changes.)
 
 	private void load() {
 		if (tab == ServerTabs.FRIENDS) {
@@ -154,7 +177,7 @@ public final class OrbitServersScreen extends OrbitBaseScreen {
 		if (entry == null || isFavorite(entry.server.address())) {
 			return;
 		}
-		favorites.add(new ServerData(entry.server.name(), entry.server.address(), ServerData.Type.OTHER), false);
+		favorites.add(ServerLinks.server(entry.server.name(), entry.server.address()), false);
 		favorites.save();
 		Notifications.success(Component.translatable("orbit_cosmetic.servers.favorited", entry.server.name()), Component.empty());
 	}
@@ -192,7 +215,7 @@ public final class OrbitServersScreen extends OrbitBaseScreen {
 	protected void draw(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
 		drawWidgets(graphics, mouseX, mouseY, partialTick);
 		if (message != null) {
-			graphics.centeredText(font, message.copy().withStyle(ChatFormatting.GRAY), width / 2, layout.getHeaderHeight() + 30, -1);
+			graphics.centeredText(font, message.copy().withStyle(ChatFormatting.GRAY), width / 2, ServerTabs.TAB_HEIGHT + 30, -1);
 		}
 	}
 
@@ -207,9 +230,15 @@ public final class OrbitServersScreen extends OrbitBaseScreen {
 	}
 
 	private final class Servers extends ObjectSelectionList<Entry> {
+		//? if >=1.20.2 {
 		Servers(Minecraft minecraft, int width, int height, int y, int itemHeight) {
 			super(minecraft, width, height, y, itemHeight);
 		}
+		//?} else {
+		/*Servers(Minecraft minecraft, int width, int height, int top, int bottom, int itemHeight) {
+			super(minecraft, width, height, top, bottom, itemHeight);
+		}
+		*///?}
 
 		@Override
 		public int getRowWidth() {
@@ -260,8 +289,8 @@ public final class OrbitServersScreen extends OrbitBaseScreen {
 			if (tab == ServerTabs.RECOMMENDED && isFavorite(server.address())) {
 				Theme.icon(graphics, "star", x + 38 + font.width(server.name()), y, Theme.GOLD);
 			}
-			Component motd = data.state() == ServerData.State.SUCCESSFUL && data.motd != null ? data.motd
-				: data.state() == ServerData.State.UNREACHABLE ? Component.translatable("multiplayer.status.cannot_connect").withStyle(ChatFormatting.DARK_RED)
+			Component motd = ServerLinks.ping(data) == ServerLinks.Ping.ANSWERED && data.motd != null ? data.motd
+				: ServerLinks.ping(data) == ServerLinks.Ping.UNREACHABLE ? Component.translatable("multiplayer.status.cannot_connect").withStyle(ChatFormatting.DARK_RED)
 				: server.motd() != null ? Component.literal(server.motd()) : Component.literal(server.address());
 			List<FormattedCharSequence> lines = font.split(motd, width - 34);
 			for (int i = 0; i < Math.min(2, lines.size()); i++) {
@@ -269,16 +298,16 @@ public final class OrbitServersScreen extends OrbitBaseScreen {
 			}
 			int statusX = x + width - 15;
 			Identifier status;
-			if (data.state() == ServerData.State.PINGING) {
+			if (ServerLinks.ping(data) == ServerLinks.Ping.PINGING) {
 				status = PINGING[(int) (System.currentTimeMillis() / 100 % 5)];
-			} else if (data.state() != ServerData.State.SUCCESSFUL) {
+			} else if (ServerLinks.ping(data) != ServerLinks.Ping.ANSWERED) {
 				status = UNREACHABLE;
 			} else {
 				long ping = data.ping;
 				status = PING[ping < 0 ? 0 : ping < 150 ? 4 : ping < 300 ? 3 : ping < 600 ? 2 : ping < 1000 ? 1 : 0];
 			}
 			graphics.sprite(status, statusX, y, 10, 8);
-			if (data.state() == ServerData.State.SUCCESSFUL && data.status != null) {
+			if (ServerLinks.ping(data) == ServerLinks.Ping.ANSWERED && data.status != null) {
 				graphics.text(font, data.status, statusX - font.width(data.status) - 5, y + 1, -8355712);
 			}
 		}

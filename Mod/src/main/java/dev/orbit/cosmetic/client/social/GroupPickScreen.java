@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.social;
 
+import dev.orbit.cosmetic.common.util.Clamp;
 import dev.orbit.cosmetic.client.input.OrbitKey;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import com.mojang.blaze3d.platform.InputConstants;
@@ -87,7 +88,7 @@ final class GroupPickScreen extends OrbitScreen {
 			y += 26;
 		}
 		rows.clear();
-		scroll = Math.clamp(scroll, 0, Math.max(0, choices.size() - visibleRows()));
+		scroll = Clamp.clamp(scroll, 0, Math.max(0, choices.size() - visibleRows()));
 		for (int i = 0; i < visibleRows() && scroll + i < choices.size(); i++) {
 			Social.Person friend = choices.get(scroll + i);
 			Hotspot row = addRenderableWidget(new Hotspot(Component.literal(friend.name()), h -> toggle(friend.uuid())));
@@ -131,7 +132,7 @@ final class GroupPickScreen extends OrbitScreen {
 
 	@Override
 	public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-		scroll = Math.clamp(scroll - (int) Math.signum(scrollY), 0, Math.max(0, choices.size() - visibleRows()));
+		scroll = Clamp.clamp(scroll - (int) Math.signum(scrollY), 0, Math.max(0, choices.size() - visibleRows()));
 		rebuildWidgets();
 		return true;
 	}

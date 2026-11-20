@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.host;
 
+import dev.orbit.cosmetic.common.util.Clamp;
 import dev.orbit.cosmetic.client.input.OrbitClick;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.Notifications;
@@ -154,7 +155,11 @@ public final class HostScreen extends OrbitScreen {
 				}
 				List<LevelSummary> usable = new ArrayList<>();
 				for (LevelSummary summary : list) {
+					//? if >=1.20.2 {
 					if (!summary.isLocked() && summary.primaryActionActive()) {
+					//?} else {
+					/*if (!summary.isLocked() && !summary.isDisabled()) {
+					*///?}
 						usable.add(summary);
 					}
 				}
@@ -169,10 +174,15 @@ public final class HostScreen extends OrbitScreen {
 	private void open(LevelSummary world) {
 		Hosting.openWhenLoaded(true);
 		orbit().screenshots().releaseAll();
+		//? if >=1.20.2 {
 		minecraft.createWorldOpenFlows().openWorld(world.getLevelId(), () -> {
 			Hosting.openWhenLoaded(false);
 			Compat.setScreen(this);
 		});
+		//?} else {
+		/*// Before 1.20.2 a cancelled opening goes back to this screen by itself.
+		minecraft.createWorldOpenFlows().loadLevel(this, world.getLevelId());
+		*///?}
 	}
 
 	@Override
@@ -257,7 +267,7 @@ public final class HostScreen extends OrbitScreen {
 			graphics.text(font, Component.translatable("orbit_cosmetic.host.no_worlds").withStyle(ChatFormatting.GRAY), x + 8, y + 6, Theme.TEXT, false);
 			return;
 		}
-		scroll = Math.clamp(scroll, 0, Math.max(0, worlds.size() * ROW - listHeight));
+		scroll = Clamp.clamp(scroll, 0, Math.max(0, worlds.size() * ROW - listHeight));
 		graphics.enableScissor(x + 4, y, x + WIDTH - 4, y + listHeight);
 		DateFormat format = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT);
 		for (int i = 0; i < worlds.size(); i++) {

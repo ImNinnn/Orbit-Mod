@@ -1,5 +1,7 @@
 package dev.orbit.cosmetic.client.hud;
 
+import dev.orbit.cosmetic.common.util.Lists;
+import dev.orbit.cosmetic.common.util.Clamp;
 import dev.orbit.cosmetic.client.input.OrbitClick;
 import dev.orbit.cosmetic.client.input.OrbitKey;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
@@ -233,8 +235,8 @@ public final class HudEditorScreen extends OrbitScreen {
 			component.place(x, y, width, height);
 		} else {
 			FloatingChats.Window window = (FloatingChats.Window) item;
-			window.x = Math.clamp(x, 0, Math.max(0, width - window.w));
-			window.y = Math.clamp(y, 0, Math.max(0, height - window.h));
+			window.x = Clamp.clamp(x, 0, Math.max(0, width - window.w));
+			window.y = Clamp.clamp(y, 0, Math.max(0, height - window.h));
 		}
 	}
 
@@ -403,7 +405,7 @@ public final class HudEditorScreen extends OrbitScreen {
 		int room = height - 8 - 28 - 24 - 32;
 		int[] layout = null;
 		for (int cardW : CARD_WIDTHS) {
-			int columns = Math.clamp((width - 24 + 4) / (cardW + 4), 3, 7);
+			int columns = Clamp.clamp((width - 24 + 4) / (cardW + 4), 3, 7);
 			int rows = (count + columns - 1) / columns;
 			int cardH = Math.min(CARD_MAX_H, (room - (rows - 1) * 4) / rows);
 			layout = new int[] {cardW, Math.max(34, cardH), columns};
@@ -464,13 +466,13 @@ public final class HudEditorScreen extends OrbitScreen {
 
 	private void initChats() {
 		int[] panel = menuPanel();
-		listScroll = Math.clamp(listScroll, 0, Math.max(0, conversations.size() - LIST_ROWS));
+		listScroll = Clamp.clamp(listScroll, 0, Math.max(0, conversations.size() - LIST_ROWS));
 		for (int i = 0; i < LIST_ROWS && listScroll + i < conversations.size(); i++) {
 			Social.Person person = conversations.get(listScroll + i);
 			Hotspot row = addRenderableWidget(new Hotspot(Component.literal(person.name()), h -> {
 				FloatingChats.open(person.uuid(), person.name());
 				mode = Mode.EDIT;
-				select(List.of(FloatingChats.windows().getLast()));
+				select(List.of(Lists.last(FloatingChats.windows())));
 				rebuildWidgets();
 			}));
 			row.place(panel[0] + 8, panel[1] + 24 + i * ROW, LIST_W - 16, ROW - 1);
@@ -485,7 +487,7 @@ public final class HudEditorScreen extends OrbitScreen {
 	private void initProfiles() {
 		int[] panel = menuPanel();
 		List<HudLayout.Profile> profiles = HudLayout.profiles();
-		listScroll = Math.clamp(listScroll, 0, Math.max(0, profiles.size() - LIST_ROWS));
+		listScroll = Clamp.clamp(listScroll, 0, Math.max(0, profiles.size() - LIST_ROWS));
 		for (int i = 0; i < LIST_ROWS && listScroll + i < profiles.size(); i++) {
 			HudLayout.Profile profile = profiles.get(listScroll + i);
 			Hotspot row = addRenderableWidget(new Hotspot(Component.literal(profile.name), h -> {
@@ -541,7 +543,7 @@ public final class HudEditorScreen extends OrbitScreen {
 	private void initLayers() {
 		int[] panel = menuPanel();
 		List<HudComponent> layers = layers();
-		listScroll = Math.clamp(listScroll, 0, Math.max(0, layers.size() - LIST_ROWS));
+		listScroll = Clamp.clamp(listScroll, 0, Math.max(0, layers.size() - LIST_ROWS));
 		for (int i = 0; i < LIST_ROWS && listScroll + i < layers.size(); i++) {
 			HudComponent component = layers.get(listScroll + i);
 			int y = panel[1] + 24 + i * ROW;
@@ -595,14 +597,14 @@ public final class HudEditorScreen extends OrbitScreen {
 		int y;
 		if (x < 4) {
 			// No room on either side: under it, or over it.
-			x = Math.clamp(b[0], 4, Math.max(4, width - SETTINGS_W - 4));
+			x = Clamp.clamp(b[0], 4, Math.max(4, width - SETTINGS_W - 4));
 			int below = b[1] + b[3] + 6;
 			y = below + h <= height - 4 ? below : b[1] - h - 6;
 		} else {
 			y = b[1];
 		}
 		int[] area = clearArea();
-		return new int[] {x, Math.clamp(y, area[0], Math.max(area[0], area[1] - h)), SETTINGS_W, h};
+		return new int[] {x, Clamp.clamp(y, area[0], Math.max(area[0], area[1] - h)), SETTINGS_W, h};
 	}
 
 	private int[] currentSettingsPanel() {
@@ -631,7 +633,7 @@ public final class HudEditorScreen extends OrbitScreen {
 				cells.add(cell(groupToggle(half, "eye", components, "orbit_cosmetic.hud.shown", c -> !c.hidden, (c, on) -> c.hidden = !on)));
 				cells.add(cell(groupToggle(half, "pin", components, "orbit_cosmetic.hud.pinned", c -> c.pinned, (c, on) -> c.pinned = on)));
 				cells.add(cell(makeRoomButton(half, components)));
-				HudComponent first = components.getFirst();
+				HudComponent first = Lists.first(components);
 				colors.add(new Object[] {"orbit_cosmetic.hud.color", first.color, TEXT_COLORS, (Consumer<Integer>) color -> components.forEach(c -> c.color = color)});
 				colors.add(new Object[] {"orbit_cosmetic.hud.accent", first.accent, ACCENT_COLORS, (Consumer<Integer>) color -> components.forEach(c -> c.accent = color)});
 			}
@@ -769,9 +771,9 @@ public final class HudEditorScreen extends OrbitScreen {
 	/** Off, the status effects, the boss bars, both: what the components move down out of the way of. */
 	private FlatButton makeRoomButton(int width, List<HudComponent> components) {
 		java.util.function.Supplier<Component> label = () -> setting("orbit_cosmetic.hud.make_room",
-			Component.translatable("orbit_cosmetic.hud.make_room." + components.getFirst().avoid));
+			Component.translatable("orbit_cosmetic.hud.make_room." + Lists.first(components).avoid));
 		FlatButton button = new FlatButton(0, 0, width, 18, label.get(), "chevron_down", FlatButton.Style.SECONDARY, b -> {
-			int next = (components.getFirst().avoid + 1) % 4;
+			int next = (Lists.first(components).avoid + 1) % 4;
 			components.forEach(component -> component.avoid = next);
 			HudLayout.save();
 			b.setMessage(label.get());
@@ -950,8 +952,8 @@ public final class HudEditorScreen extends OrbitScreen {
 
 	private void dragMove(int dx, int dy) {
 		int[] b = startBounds;
-		int x = Math.clamp(b[0] + dx, 0, Math.max(0, width - b[2]));
-		int y = Math.clamp(b[1] + dy, 0, Math.max(0, height - b[3]));
+		int x = Clamp.clamp(b[0] + dx, 0, Math.max(0, width - b[2]));
+		int y = Clamp.clamp(b[1] + dy, 0, Math.max(0, height - b[3]));
 		guideX = -1;
 		guideY = -1;
 		pendingDock = HudComponent.DOCK_NONE;
@@ -993,8 +995,8 @@ public final class HudEditorScreen extends OrbitScreen {
 		if (single instanceof FloatingChats.Window window) {
 			int[] w = snap(mouseX, 0, width, true, true);
 			int[] h = snap(mouseY, 0, height, false, true);
-			window.w = Math.clamp(w[0] - b[0], FloatingChats.MIN_W, Math.max(FloatingChats.MIN_W, width - b[0]));
-			window.h = Math.clamp(h[0] - b[1], FloatingChats.MIN_H, Math.max(FloatingChats.MIN_H, height - b[1]));
+			window.w = Clamp.clamp(w[0] - b[0], FloatingChats.MIN_W, Math.max(FloatingChats.MIN_W, width - b[0]));
+			window.h = Clamp.clamp(h[0] - b[1], FloatingChats.MIN_H, Math.max(FloatingChats.MIN_H, height - b[1]));
 			guideX = w[1];
 			guideY = h[1];
 			return;
@@ -1010,7 +1012,7 @@ public final class HudEditorScreen extends OrbitScreen {
 			factor = scale / start;
 		}
 		for (Map.Entry<HudComponent, Float> entry : startScales.entrySet()) {
-			entry.getKey().scale = Math.clamp(entry.getValue() * factor, HudComponent.MIN_SCALE, HudComponent.MAX_SCALE);
+			entry.getKey().scale = Clamp.clamp(entry.getValue() * factor, HudComponent.MIN_SCALE, HudComponent.MAX_SCALE);
 		}
 		// Everything picked grows from the outline's top left corner.
 		for (Map.Entry<Object, int[]> entry : startPositions.entrySet()) {
@@ -1236,7 +1238,7 @@ public final class HudEditorScreen extends OrbitScreen {
 			graphics.centeredText(font, Component.translatable("orbit_cosmetic.hud.empty").withStyle(ChatFormatting.GRAY), width / 2, height / 2 - 4, Theme.TEXT);
 		}
 		// What is dragged under the buttons and the hint hides them until it is let go.
-		boolean top = toolbar.isEmpty() || toolbar.getFirst().getY() < height / 2;
+		boolean top = toolbar.isEmpty() || Lists.first(toolbar).getY() < height / 2;
 		boolean underneath = false;
 		if ((drag == Drag.MOVE || drag == Drag.RESIZE) && !selection.isEmpty()) {
 			int[] b = bounds(selection);

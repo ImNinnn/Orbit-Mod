@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.social;
 
+import dev.orbit.cosmetic.common.util.Lists;
 import dev.orbit.cosmetic.client.input.OrbitKey;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import com.google.gson.JsonObject;
@@ -118,7 +119,7 @@ public final class ShareScreen extends OrbitScreen {
 		if (server.motd != null && !server.motd.getString().isBlank()) {
 			invite.addProperty("motd", server.motd.getString());
 		}
-		byte[] icon = ServerData.validateIcon(server.getIconBytes());
+		byte[] icon = ServerLinks.validIcon(server.getIconBytes());
 		if (icon != null && icon.length <= 24 * 1024) {
 			invite.addProperty("icon", Base64.getEncoder().encodeToString(icon));
 		}
@@ -150,7 +151,7 @@ public final class ShareScreen extends OrbitScreen {
 			b -> send()));
 		send.active = !chosen.isEmpty();
 		if (!rows.isEmpty()) {
-			setInitialFocus(rows.getFirst());
+			setInitialFocus(Lists.first(rows));
 		}
 	}
 

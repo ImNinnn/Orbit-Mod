@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.gui.servers;
 
+import dev.orbit.cosmetic.common.util.Lists;
 import dev.orbit.cosmetic.client.platform.OrbitPlatform;
 import dev.orbit.cosmetic.client.input.OrbitClick;
 import dev.orbit.cosmetic.client.input.OrbitKey;
@@ -62,12 +63,18 @@ public final class ServerTabs {
 				if (multiplayer.orbit$serverList() != null) {
 					multiplayer.orbit$serverList().updateSize(screen.width, multiplayer.orbit$layout());
 				}
-				//?} else {
+				//?} else if >=1.20.2 {
 				/*// Before 1.21.9 the list sits at a fixed place: it starts under the tabs instead, ending where it did (the
 				// title is not drawn: MultiplayerTitleMixin).
 				var list = multiplayer.orbit$serverList();
 				if (list != null) {
 					list.updateSizeAndPosition(screen.width, list.getY() + list.getHeight() - TAB_HEIGHT, TAB_HEIGHT);
+				}
+				*///?} else {
+				/*// Before 1.20.2 the list starts under the tabs and ends where the game puts it.
+				var list = multiplayer.orbit$serverList();
+				if (list != null) {
+					list.updateSize(screen.width, screen.height, TAB_HEIGHT, screen.height - 64);
 				}
 				*///?}
 				List<AbstractWidget> tabs = tabs(screen.width, FAVORITES, parent);
@@ -100,7 +107,7 @@ public final class ServerTabs {
 	/** Marks a list as being right under these tabs. */
 	public static void underTabs(@Nullable AbstractSelectionList<?> list, List<AbstractWidget> tabs) {
 		if (list != null && !tabs.isEmpty()) {
-			UNDER_TABS.put(list, new int[] {tabs.getFirst().getX(), tabs.getLast().getRight()});
+			UNDER_TABS.put(list, new int[] {Lists.first(tabs).getX(), Lists.last(tabs).getRight()});
 		}
 	}
 
@@ -109,6 +116,7 @@ public final class ServerTabs {
 	 * tab bar does); false for any other list.
 	 */
 	public static boolean drawSeparators(AbstractSelectionList<?> list, OrbitGraphics graphics) {
+		//? if >=1.20.5 {
 		int[] tabs = UNDER_TABS.get(list);
 		if (tabs == null) {
 			return false;
@@ -121,6 +129,10 @@ public final class ServerTabs {
 		graphics.texture(header, tabs[1], y, 0, 0, Math.max(0, list.getRight() - tabs[1]), 2, 32, 2);
 		graphics.texture(footer, list.getX(), list.getBottom(), 0, 0, list.getWidth(), 2, 32, 2);
 		return true;
+		//?} else {
+		/*// Before 1.20.5 lists draw their own edges (and Orbit does not hook them).
+		return false;
+		*///?}
 	}
 
 	static void open(int tab, @Nullable Screen parent) {
@@ -159,9 +171,11 @@ public final class ServerTabs {
 			graphics.sprite(sprite, getX(), getY(), getWidth(), getHeight());
 			Font font = Minecraft.getInstance().font;
 			if (selected) {
+				//? if >=1.20.5 {
 				// Filled like the server list under it (over its top line), so the tab opens onto it.
 				Identifier background = Minecraft.getInstance().level == null ? LIST_BACKGROUND : INWORLD_LIST_BACKGROUND;
 				Screen.extractMenuBackgroundTexture(graphics.raw(), background, getX() + 2, getY() + 2, getX() + 2, getY() + 2, getWidth() - 4, getHeight() - 2);
+				//?}
 				int w = Math.min(font.width(getMessage()), getWidth() - 4);
 				int left = getX() + (getWidth() - w) / 2;
 				graphics.fill(left, getBottom() - 2, left + w, getBottom() - 1, -1);

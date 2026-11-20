@@ -99,8 +99,13 @@ public abstract class AvatarRendererMixin {
 	}
 
 	/^* The name Orbit gives the player (with the nameplate icon). ^/
+	//? if >=1.20.5 {
 	@ModifyVariable(method = "renderNameTag(Lnet/minecraft/client/player/AbstractClientPlayer;Lnet/minecraft/network/chat/Component;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;IF)V",
 		at = @At("HEAD"), argsOnly = true)
+	//?} else {
+	/^@ModifyVariable(method = "renderNameTag(Lnet/minecraft/client/player/AbstractClientPlayer;Lnet/minecraft/network/chat/Component;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V",
+		at = @At("HEAD"), argsOnly = true)
+	^///?}
 	private Component orbit$nameTag(Component name, @com.llamalad7.mixinextras.sugar.Local(argsOnly = true) AbstractClientPlayer player) {
 		PlayerState state = PlayerState.of(player);
 		return state != null && state.nameTag() != null ? state.nameTag() : name;
@@ -108,7 +113,11 @@ public abstract class AvatarRendererMixin {
 
 	/^* First-person arms: the sleeve pixels that arm cosmetics cover are hidden, as in third person. ^/
 	@ModifyExpressionValue(method = "renderHand(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;ILnet/minecraft/client/player/AbstractClientPlayer;Lnet/minecraft/client/model/geom/ModelPart;Lnet/minecraft/client/model/geom/ModelPart;)V",
+		//? if >=1.20.2 {
 		at = @At(value = "INVOKE", target = "Lnet/minecraft/client/resources/PlayerSkin;texture()Lnet/minecraft/resources/Identifier;"))
+		//?} else {
+		/^at = @At(value = "INVOKE", target = "Lnet/minecraft/client/player/AbstractClientPlayer;getSkinTextureLocation()Lnet/minecraft/resources/Identifier;"))
+		^///?}
 	private Identifier orbit$maskedArmSkin(Identifier skin) {
 		return OrbitClient.get().firstPersonSkin(skin);
 	}

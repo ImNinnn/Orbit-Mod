@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.common.util.Clamp;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.gui.preview.PreviewBatch;
@@ -46,7 +47,7 @@ final class MotionPreview {
 
 	/** Width of the column for a screen this wide. */
 	static int widthFor(int screenWidth) {
-		return Math.clamp(screenWidth / 4, 90, 150);
+		return Clamp.clamp(screenWidth / 4, 90, 150);
 	}
 
 	/** Places the column (the player, then the sliders under it) and returns the sliders. */
@@ -74,7 +75,7 @@ final class MotionPreview {
 
 		// The ground goes by the other way: the player's movement as seen on screen, in blocks of entry.size() pixels.
 		double time = OrbitClient.get().menuTime();
-		double seconds = Double.isNaN(lastTime) ? 0 : Math.clamp((time - lastTime) / 20, 0, 0.1);
+		double seconds = Double.isNaN(lastTime) ? 0 : Clamp.clamp((time - lastTime) / 20, 0, 0.1);
 		lastTime = time;
 		double turn = Math.toRadians(yaw);
 		double screenX = -speeds[0] * Math.sin(turn) - speeds[1] * Math.cos(turn);

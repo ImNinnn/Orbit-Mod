@@ -51,14 +51,14 @@ public final class PartTreeScreen extends OrbitScreen {
 		List<String> names = new ArrayList<>();
 		Bone bone = model.bones().get(index);
 		while (true) {
-			names.addFirst(bone.name());
+			names.add(0, bone.name());
 			if (bone.parent() < 0) {
 				break;
 			}
 			bone = model.bones().get(bone.parent());
 		}
 		if (bone.anchor() == Anchor.ROOT && Anchor.fromGroupName(bone.name()) == null) {
-			names.addFirst(Component.translatable("orbit_cosmetic.parts.root").getString());
+			names.add(0, Component.translatable("orbit_cosmetic.parts.root").getString());
 		}
 		return String.join(" > ", names);
 	}
@@ -67,7 +67,11 @@ public final class PartTreeScreen extends OrbitScreen {
 	protected void init() {
 		int listWidth = Math.min(320, width - 20);
 		list = new PartList(minecraft, listWidth, height - 70, 32);
+		//? if >=1.20.2 {
 		list.setX((width - listWidth) / 2);
+		//?} else {
+		/*list.setLeftPos((width - listWidth) / 2);
+		*///?}
 		// Entries take their position when added, so fill the list only after it has been placed.
 		list.populate();
 		addRenderableWidget(list);
@@ -92,7 +96,11 @@ public final class PartTreeScreen extends OrbitScreen {
 
 	private final class PartList extends ObjectSelectionList<PartList.Entry> {
 		PartList(Minecraft minecraft, int width, int height, int y) {
+			//? if >=1.20.2 {
 			super(minecraft, width, height, y, 14);
+			//?} else {
+			/*super(minecraft, width, y + height, y, y + height, 14);
+			*///?}
 		}
 
 		void populate() {

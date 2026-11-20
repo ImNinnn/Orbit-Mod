@@ -271,7 +271,11 @@ public final class PartyVote {
 		}
 		if (!integrated.isPublished() && !hostStarted) {
 			hostStarted = true;
+			//? if >=1.20.2 {
 			Hosting.start(integrated.getDefaultGameType(), integrated.getWorldData().isAllowCommands());
+			//?} else {
+			/*Hosting.start(integrated.getDefaultGameType(), integrated.getWorldData().getAllowCommands());
+			*///?}
 		}
 		String address = Hosting.address();
 		if (address != null) {

@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.social;
 
+import dev.orbit.cosmetic.common.util.Lists;
 import dev.orbit.cosmetic.common.social.SocialCrypto;
 import dev.orbit.cosmetic.client.gfx.OrbitTextures;
 import dev.orbit.cosmetic.client.gfx.OrbitSkin;
@@ -13,6 +14,7 @@ import com.google.gson.JsonParser;
 import com.mojang.authlib.GameProfile;
 import dev.orbit.cosmetic.client.Notifications;
 import dev.orbit.cosmetic.client.OrbitClient;
+import net.minecraft.resources.Identifier;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Util;
@@ -214,7 +216,7 @@ public final class Social {
 		}
 		list.sort(Comparator.comparingDouble((Person person) -> {
 			List<Entry> chat = chat(person.uuid());
-			return chat.isEmpty() ? 0 : chat.getLast().at();
+			return chat.isEmpty() ? 0 : Lists.last(chat).at();
 		}).reversed());
 		return list;
 	}
@@ -288,7 +290,7 @@ public final class Social {
 	/** Whether the conversation's last message is already a party invitation. */
 	private boolean lastIsPartyInvite(UUID chat) {
 		List<Entry> entries = chat(chat);
-		return !entries.isEmpty() && entries.getLast().content() != null && entries.getLast().content().has("party") && !entries.getLast().deleted();
+		return !entries.isEmpty() && Lists.last(entries).content() != null && Lists.last(entries).content().has("party") && !Lists.last(entries).deleted();
 	}
 
 	/** Tells Orbit Cloud what the player does, when it changes (friends see it under their name). */
@@ -520,7 +522,7 @@ public final class Social {
 		OrbitClient.get().backend().socialDownloadPath("/v1/social/groups/" + group.id() + "/picture", png -> Minecraft.getInstance().execute(() -> {
 			try {
 				OrbitImage image = OrbitImage.read(png);
-				net.minecraft.resources.Identifier id = net.minecraft.resources.Identifier.fromNamespaceAndPath(OrbitClient.MOD_ID, "group/" + group.id() + "/" + group.picture());
+				Identifier id = Identifier.fromNamespaceAndPath(OrbitClient.MOD_ID, "group/" + group.id() + "/" + group.picture());
 				OrbitTextures.register(id, "Orbit group " + group.id(), image);
 				groupPictures.put(key, id);
 			} catch (IOException | RuntimeException e) {
@@ -757,7 +759,8 @@ public final class Social {
 		if (state.get("friends") instanceof JsonArray list) {
 			for (JsonElement element : list) {
 				JsonObject json = element.getAsJsonObject();
-				if (json.get("color") instanceof JsonElement color && color.isJsonPrimitive()) {
+				JsonElement color = json.get("color");
+				if (color != null && color.isJsonPrimitive()) {
 					pageColors.put(UUID.fromString(json.get("uuid").getAsString()), color.getAsInt() & 0xFFFFFF);
 				}
 			}
@@ -864,8 +867,9 @@ public final class Social {
 				cached.pronouns = text(stats, "pronouns");
 				cached.outfit = text(stats, "outfit_name");
 				config.shareStatistics = !stats.has("shared") || stats.get("shared").getAsBoolean();
-				if (page.get("color") instanceof JsonElement color && color.isJsonPrimitive()) {
-					cached.statsColor = color.getAsInt() & 0xFFFFFF;
+				JsonElement pageColor = page.get("color");
+				if (pageColor != null && pageColor.isJsonPrimitive()) {
+					cached.statsColor = pageColor.getAsInt() & 0xFFFFFF;
 				}
 				cached.save();
 				config.save();
@@ -930,7 +934,8 @@ public final class Social {
 	}
 
 	private static String text(JsonObject json, String key) {
-		return json.get(key) instanceof JsonElement value && value.isJsonPrimitive() ? value.getAsString() : "";
+		JsonElement value = json.get(key);
+		return value != null && value.isJsonPrimitive() ? value.getAsString() : "";
 	}
 
 	/** Time played in a world, counted by the game (sent to Orbit Cloud, which adds it up for the account). */
@@ -1267,11 +1272,12 @@ public final class Social {
 				clean.add("party", invitation);
 			}
 		}
-		return clean.isEmpty() ? null : clean;
+		return clean.size() == 0 ? null : clean;
 	}
 
 	private static @Nullable String string(JsonObject json, String key, int maxLength) {
-		return json.get(key) instanceof JsonElement value && value.isJsonPrimitive() && value.getAsJsonPrimitive().isString()
+		JsonElement value = json.get(key);
+		return value != null && value.isJsonPrimitive() && value.getAsJsonPrimitive().isString()
 			&& value.getAsString().length() <= maxLength ? value.getAsString() : null;
 	}
 
@@ -1550,7 +1556,8 @@ public final class Social {
 	 * {@code failed} runs if it cannot be had now.
 	 */
 	public void picture(JsonObject image, Consumer<Path> done, Runnable failed) {
-		String id = image.get("id") instanceof JsonElement value && value.isJsonPrimitive() ? value.getAsString() : "";
+		JsonElement idValue = image.get("id");
+		String id = idValue != null && idValue.isJsonPrimitive() ? idValue.getAsString() : "";
 		if (!id.matches("[0-9a-f]{32}")) {
 			return;
 		}
@@ -1695,8 +1702,16 @@ public final class Social {
 			Util.backgroundExecutor().execute(() -> {
 				GameProfile profile = null;
 				try {
+					//? if >=1.20.2 {
 					var result = minecraft.services().sessionService().fetchProfile(player, false);
 					profile = result == null ? null : result.profile();
+					//?} else {
+					/*// Before 1.20.2 the profile is filled in from its id.
+					profile = minecraft.services().sessionService().fillProfileProperties(new GameProfile(player, null), false);
+					if (profile.getProperties().isEmpty()) {
+						profile = null;
+					}
+					*///?}
 				} catch (RuntimeException e) {
 					OrbitClient.LOGGER.debug("Friends: no profile for {} yet", name);
 				}

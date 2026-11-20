@@ -1,5 +1,7 @@
 package dev.orbit.cosmetic.client.hud;
 
+import dev.orbit.cosmetic.common.util.Lists;
+import dev.orbit.cosmetic.common.util.Clamp;
 import dev.orbit.cosmetic.client.platform.OrbitPlatform;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -482,7 +484,7 @@ public final class HudLayout {
 			maxX = Math.max(maxX, positions.get(each)[0] + each.scaledWidth());
 		}
 		float middle = (minX + maxX) / 2F;
-		HudComponent root = members.getFirst();
+		HudComponent root = Lists.first(members);
 		float best = Float.MAX_VALUE;
 		for (HudComponent each : members) {
 			int[] at = positions.get(each);
@@ -654,7 +656,7 @@ public final class HudLayout {
 		if (PROFILES.isEmpty()) {
 			PROFILES.add(new Profile("Default"));
 		}
-		active = Math.clamp(active, 0, PROFILES.size() - 1);
+		active = Clamp.clamp(active, 0, PROFILES.size() - 1);
 		Profile profile = PROFILES.get(active);
 		COMPONENTS.addAll(profile.components);
 		FloatingChats.restore(profile.chats, false);

@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.screenshot;
 
+import dev.orbit.cosmetic.common.util.Clamp;
 import dev.orbit.cosmetic.client.platform.OrbitPlatform;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.OrbitClient;
@@ -68,9 +69,9 @@ public final class ScreenshotToasts {
 	/** Shows a screenshot that was just saved. */
 	public static void show(Path file) {
 		ScreenshotLibrary library = OrbitClient.get().screenshots();
-		TOASTS.addFirst(new Toast(library.shot(file)));
+		TOASTS.add(0, new Toast(library.shot(file)));
 		while (TOASTS.size() > MAX_SHOWN) {
-			TOASTS.removeLast();
+			TOASTS.remove(TOASTS.size() - 1);
 		}
 	}
 
@@ -125,7 +126,7 @@ public final class ScreenshotToasts {
 					Component label = Component.translatable("orbit_cosmetic.screenshots.action." + ACTIONS[hoveredAction]
 						+ (hoveredAction == 1 && toast.shot.favorite() ? ".remove" : ""));
 					int labelWidth = minecraft.font.width(label) + 8;
-					int lx = Math.clamp(buttonX(toast, hoveredAction) + BUTTON / 2 - labelWidth / 2, x, screenWidth - labelWidth - 2);
+					int lx = Clamp.clamp(buttonX(toast, hoveredAction) + BUTTON / 2 - labelWidth / 2, x, screenWidth - labelWidth - 2);
 					int ly = y + height + 2;
 					graphics.fill(lx, ly, lx + labelWidth, ly + 13, 0xF0141416);
 					graphics.outline(lx, ly, labelWidth, 13, Theme.BORDER_LIGHT);

@@ -162,7 +162,11 @@ public abstract class LivingEntityRendererMixin {
 
 	/^* The emote's ROOT: right after the player is turned to face their way, in Blockbench's axes (blocks, feet at 0). ^/
 	@Inject(method = "render(Lnet/minecraft/world/entity/LivingEntity;FFLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V",
+		//? if >=1.20.5 {
 		at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/entity/LivingEntityRenderer;setupRotations(Lnet/minecraft/world/entity/LivingEntity;Lcom/mojang/blaze3d/vertex/PoseStack;FFFF)V", shift = At.Shift.AFTER))
+		//?} else {
+		/^at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/entity/LivingEntityRenderer;setupRotations(Lnet/minecraft/world/entity/LivingEntity;Lcom/mojang/blaze3d/vertex/PoseStack;FFF)V", shift = At.Shift.AFTER))
+		^///?}
 	private void orbit$moveWholePlayer(LivingEntity entity, float yaw, float partialTicks, PoseStack poseStack, MultiBufferSource buffers, int light, CallbackInfo ci) {
 		PlayerState state = entity instanceof AbstractClientPlayer player ? PlayerState.of(player) : null;
 		PlayerFrame frame = state == null ? null : state.frame();

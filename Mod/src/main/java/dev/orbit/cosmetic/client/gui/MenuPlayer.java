@@ -1,5 +1,7 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.common.util.Lists;
+import dev.orbit.cosmetic.common.util.Clamp;
 import dev.orbit.cosmetic.client.platform.OrbitPlatform;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
@@ -57,7 +59,13 @@ public final class MenuPlayer {
 
 	public static void register() {
 		OrbitPlatform.onScreenOpened((screen, hooks) -> {
-			if (screen instanceof TitleScreen || screen instanceof PauseScreen pause && pause.showsPauseMenu()) {
+			//? if >=1.20.2 {
+			boolean menu = screen instanceof TitleScreen || screen instanceof PauseScreen pause && pause.showsPauseMenu();
+			//?} else {
+			/*// Before 1.20.2 the pause screen does not say whether it shows its menu (F3+Esc hides it): it has buttons then.
+			boolean menu = screen instanceof TitleScreen || screen instanceof PauseScreen && !hooks.widgets().isEmpty();
+			*///?}
+			if (menu) {
 				OPTIONS.put(screen, optionsButton(hooks.widgets()));
 				addButtons(screen, hooks.widgets());
 				hooks.beforeDraw((graphics, mouseX, mouseY, partialTick) -> placeButtons(screen));
@@ -76,8 +84,8 @@ public final class MenuPlayer {
 	/** The screen's Options button, or null if it has none. */
 	private static AbstractWidget optionsButton(List<AbstractWidget> widgets) {
 		for (var widget : widgets) {
-			if (widget instanceof AbstractWidget button && button.getMessage().getContents() instanceof TranslatableContents text && "menu.options".equals(text.getKey())) {
-				return button;
+			if (widget.getMessage().getContents() instanceof TranslatableContents text && "menu.options".equals(text.getKey())) {
+				return widget;
 			}
 		}
 		return null;
@@ -202,7 +210,7 @@ public final class MenuPlayer {
 		if (buttons == null) {
 			return;
 		}
-		int buttonWidth = buttons.getFirst().getWidth();
+		int buttonWidth = Lists.first(buttons).getWidth();
 		// Statistics and the square Settings share the last row (one under the other when the buttons are square).
 		boolean shared = buttonWidth > 20;
 		int stackHeight = (buttons.size() - (shared ? 1 : 0)) * 24 - 4;
@@ -253,9 +261,9 @@ public final class MenuPlayer {
 		FlatButton stats = buttons.get(STATS_INDEX);
 		FlatButton settings = buttons.get(SETTINGS_INDEX);
 		int left = Math.min(stats.getX(), settings.getX());
-		if (buttons.getFirst().getY() == stats.getY()) {
+		if (Lists.first(buttons).getY() == stats.getY()) {
 			// Along the top: left of the whole row.
-			left = buttons.getFirst().getX();
+			left = Lists.first(buttons).getX();
 		}
 		arrow.setPosition(left - 24, stats.getY());
 	}
@@ -341,10 +349,10 @@ public final class MenuPlayer {
 			return;
 		}
 		var font = net.minecraft.client.Minecraft.getInstance().font;
-		FlatButton first = under.getFirst();
-		FlatButton last = under.getLast();
+		FlatButton first = Lists.first(under);
+		FlatButton last = Lists.last(under);
 		int center = (first.getX() + last.getX() + last.getWidth()) / 2;
-		int maxWidth = Math.clamp((ESSENTIAL ? 120 : screen.width / 2 - 110) - 8, 80, 170);
+		int maxWidth = Clamp.clamp((ESSENTIAL ? 120 : screen.width / 2 - 110) - 8, 80, 170);
 		List<net.minecraft.util.FormattedCharSequence> lines = font.split(Component.literal(text), maxWidth - 14);
 		lines = lines.subList(0, Math.min(3, lines.size()));
 		int width = 14;
@@ -352,7 +360,7 @@ public final class MenuPlayer {
 			width = Math.max(width, font.width(line) + 14);
 		}
 		int height = lines.size() * 10 + 8;
-		int x = Math.clamp(center - width / 2, 4, Math.max(4, screen.width - width - 4));
+		int x = Clamp.clamp(center - width / 2, 4, Math.max(4, screen.width - width - 4));
 		int y = first.getY() + first.getHeight() + 4;
 		if (y + height > screen.height - 12) {
 			// No room above Minecraft's version line: in the top left corner instead.

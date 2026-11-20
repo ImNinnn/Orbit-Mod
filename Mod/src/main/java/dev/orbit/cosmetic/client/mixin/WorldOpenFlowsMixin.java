@@ -9,6 +9,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /** Opening a singleplayer world: in a party, the player first chooses alone or with the party. */
 @Mixin(WorldOpenFlows.class)
 abstract class WorldOpenFlowsMixin {
+	//? if >=1.20.2 {
 	@Inject(method = "openWorld", at = @At("HEAD"), cancellable = true)
 	private void orbit$askParty(String levelId, Runnable onCancel, CallbackInfo ci) {
 		WorldOpenFlows flows = (WorldOpenFlows) (Object) this;
@@ -16,4 +17,14 @@ abstract class WorldOpenFlowsMixin {
 			ci.cancel();
 		}
 	}
+	//?} else {
+	/*// Before 1.20.2 a world is opened with loadLevel.
+	@Inject(method = "loadLevel(Lnet/minecraft/client/gui/screens/Screen;Ljava/lang/String;)V", at = @At("HEAD"), cancellable = true)
+	private void orbit$askParty(net.minecraft.client.gui.screens.Screen parent, String levelId, CallbackInfo ci) {
+		WorldOpenFlows flows = (WorldOpenFlows) (Object) this;
+		if (dev.orbit.cosmetic.client.social.PartyVote.interceptWorld(levelId, () -> flows.loadLevel(parent, levelId))) {
+			ci.cancel();
+		}
+	}
+	*///?}
 }

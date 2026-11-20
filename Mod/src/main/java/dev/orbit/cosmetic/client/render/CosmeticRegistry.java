@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.render;
 
+import dev.orbit.cosmetic.common.util.Lists;
 import dev.orbit.cosmetic.client.gfx.OrbitImage;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.common.model.BBModelParser;
@@ -107,7 +108,7 @@ public final class CosmeticRegistry {
 		Util.backgroundExecutor().execute(() -> {
 			BBModelParser.Result result = BBModelParser.parse(bytes, null, limits);
 			if (!result.ok()) {
-				String reason = result.errors().isEmpty() ? "invalid model" : result.errors().getFirst().message();
+				String reason = result.errors().isEmpty() ? "invalid model" : Lists.first(result.errors()).message();
 				Minecraft.getInstance().execute(() -> fail(id, holder, reason));
 				return;
 			}

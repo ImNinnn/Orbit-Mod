@@ -15,6 +15,13 @@ public final class Clamp {
 		return (int) Math.min(max, Math.max(value, min));
 	}
 
+	public static long clamp(long value, long min, long max) {
+		if (min > max) {
+			throw new IllegalArgumentException(min + " > " + max);
+		}
+		return Math.min(max, Math.max(value, min));
+	}
+
 	public static float clamp(float value, float min, float max) {
 		if (!(min <= max)) {
 			throw new IllegalArgumentException(min + " > " + max);

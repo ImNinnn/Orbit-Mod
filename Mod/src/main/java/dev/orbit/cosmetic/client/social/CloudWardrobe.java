@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.social;
 
+import dev.orbit.cosmetic.common.util.Clamp;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -205,8 +206,10 @@ public final class CloudWardrobe {
 				}
 			}
 		}
-		outfit.skin = json.get("skin") instanceof JsonElement skin && skin.isJsonPrimitive() ? skin.getAsString() : null;
-		outfit.cape = json.get("cape") instanceof JsonElement cape && cape.isJsonPrimitive() ? cape.getAsString() : null;
+		JsonElement skin = json.get("skin");
+		JsonElement cape = json.get("cape");
+		outfit.skin = skin != null && skin.isJsonPrimitive() ? skin.getAsString() : null;
+		outfit.cape = cape != null && cape.isJsonPrimitive() ? cape.getAsString() : null;
 		orbit.state().outfits().add(outfit);
 	}
 
@@ -355,7 +358,7 @@ public final class CloudWardrobe {
 		JsonObject json = new JsonObject();
 		json.addProperty("sha256", sha);
 		json.addProperty("name", name.length() > 64 ? name.substring(0, 64) : name);
-		json.addProperty("style", Math.clamp(style, 0, 15));
+		json.addProperty("style", Clamp.clamp(style, 0, 15));
 		json.addProperty("body_part", bodyPart);
 		return json;
 	}

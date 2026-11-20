@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.common.util.Clamp;
 import dev.orbit.cosmetic.client.gfx.OrbitTextures;
 import dev.orbit.cosmetic.client.gfx.OrbitImage;
 import dev.orbit.cosmetic.client.input.OrbitClick;
@@ -427,11 +428,11 @@ public final class ScreenshotEditScreen extends OrbitScreen {
 		int py = toolsTop();
 		switch (drag) {
 			case SV -> {
-				saturation = (float) Math.clamp((mx - px) / PICKER, 0, 1);
-				value = (float) Math.clamp(1 - (my - py) / PICKER, 0, 1);
+				saturation = (float) Clamp.clamp((mx - px) / PICKER, 0, 1);
+				value = (float) Clamp.clamp(1 - (my - py) / PICKER, 0, 1);
 			}
-			case HUE -> hue = (float) Math.clamp((my - py) / PICKER, 0, 0.999);
-			case ALPHA -> opacity = (float) Math.clamp((mx - px) / (PICKER + 16), 0.05, 1);
+			case HUE -> hue = (float) Clamp.clamp((my - py) / PICKER, 0, 0.999);
+			case ALPHA -> opacity = (float) Clamp.clamp((mx - px) / (PICKER + 16), 0.05, 1);
 			default -> {
 			}
 		}
@@ -466,7 +467,7 @@ public final class ScreenshotEditScreen extends OrbitScreen {
 			int ax = left ? crop[2] : crop[0];
 			int ay = top ? crop[3] : crop[1];
 			int room = Math.min(left ? ax : image.width() - ax, top ? ay : image.height() - ay);
-			int side = (int) Math.round(Math.clamp(Math.max(Math.abs(ix - ax), Math.abs(iy - ay)), 16, Math.max(16, room)));
+			int side = (int) Math.round(Clamp.clamp(Math.max(Math.abs(ix - ax), Math.abs(iy - ay)), 16, Math.max(16, room)));
 			crop[0] = left ? ax - side : ax;
 			crop[2] = left ? ax : ax + side;
 			crop[1] = top ? ay - side : ay;
@@ -474,8 +475,8 @@ public final class ScreenshotEditScreen extends OrbitScreen {
 			return true;
 		}
 		if (drag == Drag.HANDLE) {
-			int x = (int) Math.round(Math.clamp(ix, 0, image.width()));
-			int y = (int) Math.round(Math.clamp(iy, 0, image.height()));
+			int x = (int) Math.round(Clamp.clamp(ix, 0, image.width()));
+			int y = (int) Math.round(Clamp.clamp(iy, 0, image.height()));
 			int min = 16;
 			boolean left = handle == 0 || handle == 2 || handle == 6;
 			boolean right = handle == 1 || handle == 3 || handle == 7;

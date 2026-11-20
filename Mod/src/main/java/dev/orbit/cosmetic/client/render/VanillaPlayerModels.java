@@ -14,6 +14,7 @@ import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 *///?}
 //? if >=1.21.9
 import net.minecraft.world.entity.player.PlayerModelType;
+//? if >=1.20.2
 import net.minecraft.world.entity.player.PlayerSkin;
 
 /**
@@ -57,6 +58,7 @@ public final class VanillaPlayerModels {
 	//?}
 	// (Before 1.21.2 the cape is part of the player model.)
 
+	//? if >=1.20.2 {
 	public static PlayerModel forSkin(PlayerSkin skin) {
 		//? if >=1.21.9 {
 		return model(skin.model() == PlayerModelType.SLIM);
@@ -64,6 +66,7 @@ public final class VanillaPlayerModels {
 		/*return model(skin.model() == PlayerSkin.Model.SLIM);
 		*///?}
 	}
+	//?}
 
 	public static PlayerModel model(boolean isSlim) {
 		if (isSlim) {

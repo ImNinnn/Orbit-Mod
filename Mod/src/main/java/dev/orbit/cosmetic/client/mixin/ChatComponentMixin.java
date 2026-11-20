@@ -50,9 +50,16 @@ abstract class ChatComponentMixin {
 	private boolean orbit$peek(boolean focused) {
 		return focused || OrbitKeys.peekingChat();
 	}
-	*///?} else {
+	*///?} else if >=1.20.2 {
 	/*// The flag is "focused" (the chat screen passes true): every line, with its background.
 	@ModifyVariable(method = "render(Lnet/minecraft/client/gui/GuiGraphicsExtractor;IIIZ)V", at = @At("HEAD"), argsOnly = true, ordinal = 0)
+	private boolean orbit$peek(boolean focused) {
+		return focused || OrbitKeys.peekingChat();
+	}
+	*///?} else {
+	/*// Before 1.20.2 the chat asks itself whether it is focused (the chat screen is open).
+	@com.llamalad7.mixinextras.injector.ModifyExpressionValue(method = "render(Lnet/minecraft/client/gui/GuiGraphicsExtractor;III)V",
+		at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/components/ChatComponent;isChatFocused()Z"))
 	private boolean orbit$peek(boolean focused) {
 		return focused || OrbitKeys.peekingChat();
 	}

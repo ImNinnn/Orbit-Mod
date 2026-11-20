@@ -6,6 +6,7 @@
 	"client": [
 		"SplashManagerMixin",
 		"AbstractSelectionListMixin",
+		"AbstractWidgetAccessor",
 		"AvatarRendererMixin",
 		"AvatarRenderStateMixin",
 		"BossHealthOverlayAccessor",

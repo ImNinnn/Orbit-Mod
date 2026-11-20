@@ -11,10 +11,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /** Under Orbit's server tabs, a list's top line leaves room for the tabs, as Minecraft's own tab bar does. */
 @Mixin(AbstractSelectionList.class)
 public abstract class AbstractSelectionListMixin {
+	//? if >=1.20.5 {
 	@Inject(method = "extractListSeparators", at = @At("HEAD"), cancellable = true)
 	private void orbit$openUnderTabs(GuiGraphicsExtractor graphics, CallbackInfo info) {
 		if (ServerTabs.drawSeparators((AbstractSelectionList<?>) (Object) this, dev.orbit.cosmetic.client.gfx.OrbitGraphics.of(graphics))) {
 			info.cancel();
 		}
 	}
+	//?}
+	// (Before 1.20.5 lists draw their own top and bottom edges.)
 }

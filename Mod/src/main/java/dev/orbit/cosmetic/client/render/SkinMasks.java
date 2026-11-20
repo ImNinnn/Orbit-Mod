@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.render;
 
+import dev.orbit.cosmetic.common.util.Clamp;
 import dev.orbit.cosmetic.client.gfx.OrbitTextures;
 import dev.orbit.cosmetic.client.gfx.OrbitSkin;
 import dev.orbit.cosmetic.client.gfx.OrbitImage;
@@ -461,8 +462,8 @@ public final class SkinMasks {
 	/** Which pixels of a cosmetic texture can be seen (alpha above zero). */
 	private record Alpha(int width, int height, boolean[] visible) {
 		boolean visible(float u, float v) {
-			int x = Math.clamp((int) Math.floor(u * width), 0, width - 1);
-			int y = Math.clamp((int) Math.floor(v * height), 0, height - 1);
+			int x = Clamp.clamp((int) Math.floor(u * width), 0, width - 1);
+			int y = Clamp.clamp((int) Math.floor(v * height), 0, height - 1);
 			return visible[y * width + x];
 		}
 	}

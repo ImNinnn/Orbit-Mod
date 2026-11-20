@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.zoom;
 
+import dev.orbit.cosmetic.common.util.Clamp;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 
@@ -75,7 +76,7 @@ public final class Zoom {
 		if (!zooming || amount == 0) {
 			return false;
 		}
-		target = Math.clamp(target * Math.pow(PER_NOTCH, Math.signum(amount) * Math.min(3, Math.abs(amount))), MIN, MAX);
+		target = Clamp.clamp(target * Math.pow(PER_NOTCH, Math.signum(amount) * Math.min(3, Math.abs(amount))), MIN, MAX);
 		return true;
 	}
 }

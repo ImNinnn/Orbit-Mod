@@ -418,7 +418,11 @@ public final class BackendSync {
 		}
 		try {
 			String serverId = backend.challenge();
+			//? if >=1.20.2 {
 			minecraft.services().sessionService().joinServer(user.getProfileId(), user.getAccessToken(), serverId);
+			//?} else {
+			/*minecraft.services().sessionService().joinServer(user.getGameProfile(), user.getAccessToken(), serverId);
+			*///?}
 			BackendClient.Session created = backend.createSession(user.getName(), serverId);
 			signedInAs = created.player();
 			OrbitClient.LOGGER.info("Signed in to Orbit Cloud as {}", created.name());

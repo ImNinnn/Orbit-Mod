@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.common.util.Clamp;
 import dev.orbit.cosmetic.client.input.OrbitClick;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.compat.Compat;
@@ -233,7 +234,7 @@ public final class ScreenshotsScreen extends OrbitScreen {
 	@Override
 	public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
 		int gridHeight = panelHeight() - HEADER - TABS - 4 - PAD;
-		scroll = Math.clamp(scroll - scrollY * 30, 0, Math.max(0, contentHeight - gridHeight));
+		scroll = Clamp.clamp(scroll - scrollY * 30, 0, Math.max(0, contentHeight - gridHeight));
 		return true;
 	}
 

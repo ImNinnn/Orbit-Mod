@@ -32,7 +32,14 @@ public final class Hotspot extends OrbitWidget {
 
 	/** Moves it; the mouse only reaches it between {@code clipTop} and {@code clipBottom}. */
 	public Hotspot place(int x, int y, int width, int height, int clipTop, int clipBottom) {
+		//? if >=1.20.2 {
 		setRectangle(width, height, x, y);
+		//?} else {
+		/*setX(x);
+		setY(y);
+		setWidth(width);
+		this.height = height;
+		*///?}
 		this.clipTop = clipTop;
 		this.clipBottom = clipBottom;
 		return this;

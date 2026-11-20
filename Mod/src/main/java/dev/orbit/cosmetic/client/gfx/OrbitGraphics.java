@@ -150,7 +150,12 @@ public final class OrbitGraphics {
 	// game's sprites leave it as they find it), and a tint is the shader colour.
 	public void sprite(Identifier sprite, int x, int y, int width, int height) {
 		RenderSystem.enableBlend();
+		//? if >=1.20.2 {
 		graphics.blitSprite(sprite, x, y, width, height);
+		//?} else {
+		/^// Before 1.20.2 there is no sprite atlas for the GUI (see compat/LegacySprites).
+		dev.orbit.cosmetic.client.compat.LegacySprites.draw(graphics, sprite, x, y, width, height);
+		^///?}
 		RenderSystem.disableBlend();
 	}
 
@@ -162,7 +167,11 @@ public final class OrbitGraphics {
 
 	public void spritePart(Identifier sprite, int spriteWidth, int spriteHeight, int u, int v, int x, int y, int width, int height) {
 		RenderSystem.enableBlend();
+		//? if >=1.20.2 {
 		graphics.blitSprite(sprite, spriteWidth, spriteHeight, u, v, x, y, width, height);
+		//?} else {
+		/^dev.orbit.cosmetic.client.compat.LegacySprites.drawPart(graphics, sprite, spriteWidth, spriteHeight, u, v, x, y, width, height);
+		^///?}
 		RenderSystem.disableBlend();
 	}
 
@@ -181,7 +190,11 @@ public final class OrbitGraphics {
 
 	/** A player's face (with their hat layer), {@code size} pixels square. */
 	public void face(OrbitSkin skin, int x, int y, int size) {
+		//? if >=1.20.2 {
 		PlayerFaceExtractor.extractRenderState(graphics, skin.raw(), x, y, size);
+		//?} else {
+		/*PlayerFaceExtractor.extractRenderState(graphics, skin.texture(), x, y, size);
+		*///?}
 	}
 
 	/** While {@link #entity} draws: the pose it asked for (body turn, head turn, pitch), or null. */
@@ -224,8 +237,14 @@ public final class OrbitGraphics {
 		graphics.enableScissor(x0, y0, x1, y1);
 		try {
 			float scale = entity.getScale();
+			//? if >=1.20.2 {
 			Vector3f offset = new Vector3f(0.0F, entity.getBbHeight() / 2.0F + 0.0625F * scale, 0.0F);
 			InventoryScreen.renderEntityInInventory(graphics, (x0 + x1) / 2F, (y0 + y1) / 2F, size / scale, offset, new Quaternionf().rotateZ((float) Math.PI), null, entity);
+			//?} else {
+			/^// Before 1.20.2 the entity is placed by its feet.
+			int feet = Math.round((y0 + y1) / 2F + (entity.getBbHeight() / 2.0F + 0.0625F * scale) * size / scale);
+			InventoryScreen.renderEntityInInventory(graphics, (x0 + x1) / 2, feet, Math.round(size / scale), new Quaternionf().rotateZ((float) Math.PI), null, entity);
+			^///?}
 		} finally {
 			graphics.disableScissor();
 			entity.yBodyRot = saved[0];

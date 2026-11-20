@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.library;
 
+import dev.orbit.cosmetic.common.util.Lists;
 import dev.orbit.cosmetic.client.OrbitClient;
 import net.minecraft.client.Minecraft;
 
@@ -37,7 +38,7 @@ public final class FolderWatcher {
 
 	public void start() {
 		try {
-			service = roots.getFirst().getFileSystem().newWatchService();
+			service = Lists.first(roots).getFileSystem().newWatchService();
 			for (Path root : roots) {
 				registerTree(root);
 			}

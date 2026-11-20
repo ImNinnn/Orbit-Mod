@@ -1,5 +1,7 @@
 package dev.orbit.cosmetic.client.social;
 
+import dev.orbit.cosmetic.common.util.Lists;
+import dev.orbit.cosmetic.common.util.Clamp;
 import dev.orbit.cosmetic.client.platform.OrbitPlatform;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import com.google.gson.JsonObject;
@@ -205,7 +207,7 @@ public final class SocialPopups {
 	 * popup without one opens what it is about. False when there is no popup.
 	 */
 	public static boolean pressNewest() {
-		Popup newest = POPUPS.stream().filter(popup -> popup.button != null).findFirst().orElse(POPUPS.isEmpty() ? null : POPUPS.getFirst());
+		Popup newest = POPUPS.stream().filter(popup -> popup.button != null).findFirst().orElse(POPUPS.isEmpty() ? null : Lists.first(POPUPS));
 		if (newest == null) {
 			return false;
 		}
@@ -221,10 +223,16 @@ public final class SocialPopups {
 		if (!OrbitClient.get().config().showNotifications && popup.kind != Kind.VOTE) {
 			return;
 		}
-		POPUPS.addFirst(popup);
+		POPUPS.add(0, popup);
 		while (POPUPS.size() > MAX_SHOWN) {
 			// The oldest goes, but a vote still on stays.
-			Popup oldest = POPUPS.reversed().stream().filter(shown -> shown.kind != Kind.VOTE).findFirst().orElse(POPUPS.getLast());
+			Popup oldest = Lists.last(POPUPS);
+			for (int i = POPUPS.size() - 1; i >= 0; i--) {
+				if (POPUPS.get(i).kind != Kind.VOTE) {
+					oldest = POPUPS.get(i);
+					break;
+				}
+			}
 			POPUPS.remove(oldest);
 		}
 	}
@@ -254,7 +262,7 @@ public final class SocialPopups {
 	private static int widthOf(Font font, Popup popup, int screenWidth) {
 		int text = Math.max(font.width(popup.title()) + (popup.kind == Kind.MESSAGE ? 14 : 0), font.width(popup.detail()));
 		int wanted = textLeft(popup) + text + 6 + buttonsWidth(font, popup);
-		return Math.clamp(wanted, MIN_WIDTH, Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, screenWidth - 2 * MARGIN)));
+		return Clamp.clamp(wanted, MIN_WIDTH, Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, screenWidth - 2 * MARGIN)));
 	}
 
 	private static void draw(OrbitGraphics graphics, int mouseX, int mouseY) {
@@ -338,10 +346,10 @@ public final class SocialPopups {
 	/** "3 players online" (and who invited) as the world's ping answers. */
 	private static Component players(Popup popup) {
 		net.minecraft.client.multiplayer.ServerData data = links == null || popup.address == null ? null : links.status(popup.address, popup.world);
-		if (data == null || data.state() == net.minecraft.client.multiplayer.ServerData.State.PINGING) {
+		if (data == null || ServerLinks.ping(data) == ServerLinks.Ping.PINGING) {
 			return Component.translatable("orbit_cosmetic.popup.invite.from", popup.name);
 		}
-		if (data.state() != net.minecraft.client.multiplayer.ServerData.State.SUCCESSFUL || data.players == null) {
+		if (ServerLinks.ping(data) != ServerLinks.Ping.ANSWERED || data.players == null) {
 			return Component.translatable("orbit_cosmetic.popup.invite.offline", popup.name);
 		}
 		return Component.translatable("orbit_cosmetic.popup.invite.players", data.players.online(), popup.name);
@@ -433,7 +441,7 @@ public final class SocialPopups {
 			return;
 		}
 		if (others.size() == 1) {
-			graphics.face(social.skin(others.getFirst().uuid(), others.getFirst().name()), x, y, size);
+			graphics.face(social.skin(Lists.first(others).uuid(), Lists.first(others).name()), x, y, size);
 			return;
 		}
 		int half = size / 2;

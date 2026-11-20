@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.social;
 
+import dev.orbit.cosmetic.common.util.Clamp;
 import dev.orbit.cosmetic.client.platform.OrbitPlatform;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.OrbitClient;
@@ -106,7 +107,7 @@ public final class PartyBanner {
 			return;
 		}
 		double seconds = System.currentTimeMillis() / 1000.0;
-		int count = Math.clamp(w * h / 1400, 8, 60);
+		int count = Clamp.clamp(w * h / 1400, 8, 60);
 		for (int i = 0; i < count; i++) {
 			// Each star's own values, from its index.
 			double across = hash(i * 3 + 1);

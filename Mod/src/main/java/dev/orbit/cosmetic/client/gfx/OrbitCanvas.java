@@ -89,7 +89,13 @@ public final class OrbitCanvas {
 	/^* Draws quads with a texture, from where the pose stack is now. ^/
 	public void draw(PoseStack poseStack, Identifier texture, Look look, Geometry geometry) {
 		VertexConsumer consumer = buffers.getBuffer(type(texture, look));
+		//? if >=1.21 {
 		geometry.emit(poseStack.last().pose(), poseStack.last().normal(), consumer::addVertex);
+		//?} else {
+		/^// Before 1.21 a vertex takes its colour as four numbers.
+		geometry.emit(poseStack.last().pose(), poseStack.last().normal(), (x, y, z, color, u, v, overlay, light, nx, ny, nz) -> consumer.vertex(x, y, z,
+			(color >> 16 & 0xFF) / 255F, (color >> 8 & 0xFF) / 255F, (color & 0xFF) / 255F, (color >>> 24) / 255F, u, v, overlay, light, nx, ny, nz));
+		^///?}
 	}
 	*///?}
 

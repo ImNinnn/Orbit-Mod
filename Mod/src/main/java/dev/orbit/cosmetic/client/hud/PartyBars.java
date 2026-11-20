@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.hud;
 
+import dev.orbit.cosmetic.common.util.Clamp;
 import dev.orbit.cosmetic.client.platform.OrbitPlatform;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.gui.ui.Theme;
@@ -285,7 +286,7 @@ final class PartyBars {
 	/** Air, as the game draws it over the shanks: full bubbles, the one bursting, and the empty ones wobbling. */
 	private static void drawAir(OrbitGraphics graphics, PartyLink.Status status, int right, int y, long tick, Random random) {
 		int max = Math.max(1, status.extra().maxAir());
-		int air = Math.clamp(status.extra().air(), 0, max);
+		int air = Clamp.clamp(status.extra().air(), 0, max);
 		boolean underwater = status.extra().underwater();
 		int full = Mth.ceil((air - 2) * 10F / max);
 		int bursting = Mth.ceil(air * 10F / max);
@@ -605,7 +606,14 @@ final class PartyBars {
 			stack.setDamageValue(item.get("damage").getAsInt());
 		}
 		if (item.has("glint") && item.get("glint").getAsBoolean()) {
+			//? if >=1.20.5 {
 			stack.set(net.minecraft.core.component.DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
+			//?} else {
+			/*// Before 1.20.5 an item shines when it has enchantments: one empty entry is enough.
+			net.minecraft.nbt.ListTag enchantments = new net.minecraft.nbt.ListTag();
+			enchantments.add(new net.minecraft.nbt.CompoundTag());
+			stack.getOrCreateTag().put("Enchantments", enchantments);
+			*///?}
 		}
 		if (STACKS.size() > 256) {
 			STACKS.clear();

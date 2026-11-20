@@ -69,14 +69,24 @@ public abstract class InventoryScreenMixin {
 	*///?} else {
 	/*// Before 1.21.6 the entity itself is drawn (OrbitGraphics#entity turns it): the own nameplate stays hidden
 	// while it is.
+	//? if >=1.20.2 {
 	@Inject(method = "renderEntityInInventory(Lnet/minecraft/client/gui/GuiGraphicsExtractor;FFFLorg/joml/Vector3f;Lorg/joml/Quaternionf;Lorg/joml/Quaternionf;Lnet/minecraft/world/entity/LivingEntity;)V",
 		at = @At("HEAD"))
+	//?} else {
+	/^@Inject(method = "renderEntityInInventory(Lnet/minecraft/client/gui/GuiGraphicsExtractor;IIILorg/joml/Quaternionf;Lorg/joml/Quaternionf;Lnet/minecraft/world/entity/LivingEntity;)V",
+		at = @At("HEAD"))
+	^///?}
 	private static void orbit$startEntity(CallbackInfo ci) {
 		OrbitGraphics.drawingEntity(true);
 	}
 
+	//? if >=1.20.2 {
 	@Inject(method = "renderEntityInInventory(Lnet/minecraft/client/gui/GuiGraphicsExtractor;FFFLorg/joml/Vector3f;Lorg/joml/Quaternionf;Lorg/joml/Quaternionf;Lnet/minecraft/world/entity/LivingEntity;)V",
 		at = @At("RETURN"))
+	//?} else {
+	/^@Inject(method = "renderEntityInInventory(Lnet/minecraft/client/gui/GuiGraphicsExtractor;IIILorg/joml/Quaternionf;Lorg/joml/Quaternionf;Lnet/minecraft/world/entity/LivingEntity;)V",
+		at = @At("RETURN"))
+	^///?}
 	private static void orbit$endEntity(CallbackInfo ci) {
 		OrbitGraphics.drawingEntity(false);
 	}

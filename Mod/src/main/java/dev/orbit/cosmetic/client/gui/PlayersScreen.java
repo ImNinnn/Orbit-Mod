@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.common.util.Clamp;
 import dev.orbit.cosmetic.client.input.OrbitClick;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.OrbitClient;
@@ -182,7 +183,7 @@ public final class PlayersScreen extends OrbitScreen {
 
 	@Override
 	public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-		scroll = Math.clamp(scroll - scrollY * ROW, 0, Math.max(0, players.size() * ROW - (listBottom() - listTop())));
+		scroll = Clamp.clamp(scroll - scrollY * ROW, 0, Math.max(0, players.size() * ROW - (listBottom() - listTop())));
 		return true;
 	}
 

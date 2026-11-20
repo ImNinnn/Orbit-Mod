@@ -100,7 +100,11 @@ public final class EmotePoser {
 		float pz = body.rootPivot[2] / 16;
 		poseStack.translate(px - body.position[o] / 16, py - body.position[o + 1] / 16, pz + body.position[o + 2] / 16);
 		// A matrix rather than a quaternion: PoseStack's quaternion method is named differently in each version.
+		//? if >=1.20.2 {
 		poseStack.mulPose(new Matrix4f().rotationZYX(body.rotation[o + 2], -body.rotation[o + 1], -body.rotation[o]).scale(body.scale[o], body.scale[o + 1], body.scale[o + 2]));
+		//?} else {
+		/*poseStack.mulPoseMatrix(new Matrix4f().rotationZYX(body.rotation[o + 2], -body.rotation[o + 1], -body.rotation[o]).scale(body.scale[o], body.scale[o + 1], body.scale[o + 2]));
+		*///?}
 		poseStack.translate(-px, -py, -pz);
 	}
 }

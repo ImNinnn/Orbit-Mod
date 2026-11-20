@@ -93,7 +93,7 @@ public final class Profile {
 			done.run();
 			return;
 		}
-		LocalCosmetic entry = left.removeFirst();
+		LocalCosmetic entry = left.remove(0);
 		if (entry.bytes() == null) {
 			upload(left, done);
 			return;

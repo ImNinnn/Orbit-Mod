@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.hud;
 
+import dev.orbit.cosmetic.common.util.Clamp;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 
@@ -83,14 +84,14 @@ public final class HudInput {
 			if (!Float.isNaN(lastBody) && dt > 0) {
 				float turn = net.minecraft.util.Mth.wrapDegrees(body - lastBody);
 				// Degrees a second, as a swing of up to 25 degrees.
-				sway = sway + (Math.clamp(turn / dt * 0.08F, -25, 25) - sway) * Math.min(1, dt * 6);
+				sway = sway + (Clamp.clamp(turn / dt * 0.08F, -25, 25) - sway) * Math.min(1, dt * 6);
 			}
 			lastBody = body;
 		}
 		// Back to the middle, and never out of its circle.
 		float settle = (float) Math.exp(-dt * 8);
-		dotX = Math.clamp(dotX * settle, -1, 1);
-		dotY = Math.clamp(dotY * settle, -1, 1);
+		dotX = Clamp.clamp(dotX * settle, -1, 1);
+		dotY = Clamp.clamp(dotY * settle, -1, 1);
 	}
 
 	private static void pollKeys(Minecraft minecraft, long now) {

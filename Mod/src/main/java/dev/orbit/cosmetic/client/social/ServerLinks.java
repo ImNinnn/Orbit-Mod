@@ -54,6 +54,65 @@ public final class ServerLinks {
 	private int nextIcon;
 	private final Map<String, byte[]> iconBytes = new HashMap<>();
 
+	/**
+	 * How a ping went: the game's own states, which only exist since 1.20.2 (before, Orbit keeps them, see
+	 * {@link #ping}). OTHER is anything else (not pinged yet, an incompatible server).
+	 */
+	public enum Ping {
+		PINGING, ANSWERED, UNREACHABLE, OTHER
+	}
+
+	//? if <1.20.2 {
+	/*/^* The states of the servers pinged here (before 1.20.2 the game keeps none). ^/
+	private static final Map<ServerData, Ping> PINGED = java.util.Collections.synchronizedMap(new java.util.WeakHashMap<>());
+	*///?}
+
+	/** How the server's ping went. */
+	public static Ping ping(ServerData data) {
+		//? if >=1.20.2 {
+		return switch (data.state()) {
+			case PINGING -> Ping.PINGING;
+			case SUCCESSFUL -> Ping.ANSWERED;
+			case UNREACHABLE -> Ping.UNREACHABLE;
+			default -> Ping.OTHER;
+		};
+		//?} else {
+		/*return PINGED.getOrDefault(data, Ping.OTHER);
+		*///?}
+	}
+
+	private static void setPing(ServerData data, Ping ping) {
+		//? if >=1.20.2 {
+		data.setState(switch (ping) {
+			case PINGING -> ServerData.State.PINGING;
+			case ANSWERED -> ServerData.State.SUCCESSFUL;
+			case UNREACHABLE -> ServerData.State.UNREACHABLE;
+			case OTHER -> ServerData.State.INITIAL;
+		});
+		//?} else {
+		/*PINGED.put(data, ping);
+		*///?}
+	}
+
+	/** A server for the game's lists and its connect screen (not a LAN one). */
+	public static ServerData server(String name, String address) {
+		//? if >=1.20.2 {
+		return new ServerData(name, address, ServerData.Type.OTHER);
+		//?} else {
+		/*return new ServerData(name, address, false);
+		*///?}
+	}
+
+	/** A server's icon (PNG bytes) if the game accepts it, else null. */
+	public static byte @Nullable [] validIcon(byte @Nullable [] png) {
+		//? if >=1.20.2 {
+		return ServerData.validateIcon(png);
+		//?} else {
+		/*// Before 1.20.2 the game checks icons only when it shows them: Orbit checks the size itself (see icon).
+		return png;
+		*///?}
+	}
+
 	/** Server addresses in a text, at most three. */
 	public static List<String> find(String text) {
 		List<String> found = new ArrayList<>();
@@ -75,26 +134,29 @@ public final class ServerLinks {
 	 */
 	public ServerData status(String address, @Nullable String name) {
 		ServerData known = servers.get(address);
-		if (known != null && known.state() == ServerData.State.PINGING && System.currentTimeMillis() - pingedAt.getOrDefault(address, 0L) > 10_000) {
-			known.setState(ServerData.State.UNREACHABLE);
+		if (known != null && ping(known) == Ping.PINGING && System.currentTimeMillis() - pingedAt.getOrDefault(address, 0L) > 10_000) {
+			setPing(known, Ping.UNREACHABLE);
 		}
 		pingedAt.putIfAbsent(address, System.currentTimeMillis());
 		return servers.computeIfAbsent(address, key -> {
-			ServerData data = new ServerData(name == null ? address : name, address, ServerData.Type.OTHER);
-			data.setState(ServerData.State.PINGING);
+			ServerData data = server(name == null ? address : name, address);
+			setPing(data, Ping.PINGING);
 			// Off the game thread: looking the address up and connecting can take seconds (as Minecraft's list does).
 			boolean nativeTransport = Minecraft.getInstance().options.useNativeTransport();
 			PINGS.execute(() -> {
 				try {
 					//? if >=1.21.11 {
 					pinger.pingServer(data, () -> {
-					}, () -> data.setState(ServerData.State.SUCCESSFUL), EventLoopGroupHolder.remote(nativeTransport));
-					//?} else {
+					}, () -> setPing(data, Ping.ANSWERED), EventLoopGroupHolder.remote(nativeTransport));
+					//?} else if >=1.20.2 {
 					/*pinger.pingServer(data, () -> {
-					}, () -> data.setState(ServerData.State.SUCCESSFUL));
+					}, () -> setPing(data, Ping.ANSWERED));
+					*///?} else {
+					/*// Before 1.20.2 the pinger calls back once the server answered.
+					pinger.pingServer(data, () -> setPing(data, Ping.ANSWERED));
 					*///?}
 				} catch (Exception e) {
-					data.setState(ServerData.State.UNREACHABLE);
+					setPing(data, Ping.UNREACHABLE);
 				}
 			});
 			return data;
@@ -107,10 +169,10 @@ public final class ServerLinks {
 	 */
 	public @Nullable Identifier icon(String address, @Nullable String shared) {
 		ServerData data = servers.get(address);
-		byte[] bytes = data == null ? null : ServerData.validateIcon(data.getIconBytes());
+		byte[] bytes = data == null ? null : validIcon(data.getIconBytes());
 		if (bytes == null && shared != null) {
 			try {
-				bytes = ServerData.validateIcon(Base64.getDecoder().decode(shared));
+				bytes = validIcon(Base64.getDecoder().decode(shared));
 			} catch (IllegalArgumentException e) {
 				bytes = null;
 			}
@@ -164,7 +226,7 @@ public final class ServerLinks {
 		if (minecraft.level != null) {
 			//? if >=1.21.2 {
 			minecraft.disconnectWithSavingScreen();
-			//?} else {
+			//?} else if >=1.20.2 {
 			/*// As the pause menu leaves a world before 1.21.2.
 			boolean local = minecraft.isLocalServer();
 			minecraft.level.disconnect();
@@ -173,11 +235,23 @@ public final class ServerLinks {
 			} else {
 				minecraft.disconnect();
 			}
+			*///?} else {
+			/*boolean local = minecraft.isLocalServer();
+			minecraft.level.disconnect();
+			if (local) {
+				minecraft.clearLevel(new net.minecraft.client.gui.screens.GenericDirtMessageScreen(net.minecraft.network.chat.Component.translatable("menu.savingLevel")));
+			} else {
+				minecraft.clearLevel();
+			}
 			*///?}
 			parent = new TitleScreen();
 		}
-		ServerData data = new ServerData(name, address, ServerData.Type.OTHER);
+		ServerData data = server(name, address);
+		//? if >=1.20.5 {
 		ConnectScreen.startConnecting(parent == null ? new TitleScreen() : parent, minecraft, ServerAddress.parseString(address), data, false, null);
+		//?} else {
+		/*ConnectScreen.startConnecting(parent == null ? new TitleScreen() : parent, minecraft, ServerAddress.parseString(address), data, false);
+		*///?}
 	}
 
 	/** Leaves menus of the game to the title screen: used when joining from them. */

@@ -19,6 +19,8 @@ stonecutter {
 		def pre1_21_11 = stonecutter.eval(stonecutter.current.version, '<1.21.11')
 		def pre1_21_9 = stonecutter.eval(stonecutter.current.version, '<1.21.9')
 		def pre1_21_2 = stonecutter.eval(stonecutter.current.version, '<1.21.2')
+		def pre1_21 = stonecutter.eval(stonecutter.current.version, '<1.21')
+		def pre1_20_2 = stonecutter.eval(stonecutter.current.version, '<1.20.2')
 		// Each pair: the newer name (in the shared code) and the older one, as regexes and replacements, for the
 		// versions where "older" is true (optionally in one file only).
 		def renames = { boolean older, List<List<String>> pairs, String file = null ->
@@ -86,6 +88,28 @@ stonecutter {
 		renames(pre1_21_2, [
 			['\\.getDeltaTracker\\(\\)', '.getTimer()', '\\.getTimer\\(\\)', '.getDeltaTracker()'],
 			['\\bBuiltInRegistries\\.(\\w+)\\.getValue\\(', 'BuiltInRegistries.$1.get(', '\\bBuiltInRegistries\\.(\\w+)\\.get\\(', 'BuiltInRegistries.$1.getValue('],
+		])
+		// Before 1.21 names are made with ResourceLocation's constructors (the comments let the names go back), and the
+		// frame's progress between ticks comes straight from Minecraft.
+		renames(pre1_21, [
+			['\\b(Identifier|ResourceLocation)\\.withDefaultNamespace\\(', 'new ResourceLocation(/*minecraft*/',
+			 '\\bnew (Identifier|ResourceLocation)\\(/\\*minecraft\\*/', 'Identifier.withDefaultNamespace('],
+			['\\b(Identifier|ResourceLocation)\\.parse\\(', 'new ResourceLocation(/*parse*/', '\\bnew (Identifier|ResourceLocation)\\(/\\*parse\\*/', 'Identifier.parse('],
+			['\\b(Identifier|ResourceLocation)\\.fromNamespaceAndPath\\(', 'new ResourceLocation(', '\\bnew (Identifier|ResourceLocation)\\((?!/\\*)', 'Identifier.fromNamespaceAndPath('],
+			['\\.(getDeltaTracker|getTimer)\\(\\)\\.getGameTimeDeltaPartialTick\\((true|false)\\)', '.getFrameTime(/*$2*/)',
+			 '\\.getFrameTime\\(/\\*(true|false)\\*/\\)', '.getDeltaTracker().getGameTimeDeltaPartialTick($1)'],
+		])
+		// Before 1.20.2 a widget's right and bottom edges are its rectangle's.
+		renames(pre1_20_2, [
+			['\\bgetRight\\(\\)', 'getRectangle().right()', '\\bgetRectangle\\(\\)\\.right\\(\\)', 'getRight()'],
+			['\\bgetBottom\\(\\)', 'getRectangle().bottom()', '\\bgetRectangle\\(\\)\\.bottom\\(\\)', 'getBottom()'],
+			// and other names of that time
+			['\\bDefaultPlayerSkin\\.getDefaultTexture\\(\\)', 'DefaultPlayerSkin.getDefaultSkin()', '\\bDefaultPlayerSkin\\.getDefaultSkin\\(\\)', 'DefaultPlayerSkin.getDefaultTexture()'],
+			['\\bminecraft\\.getGameProfile\\(\\)', 'minecraft.getUser().getGameProfile()', '\\bminecraft\\.getUser\\(\\)\\.getGameProfile\\(\\)', 'minecraft.getGameProfile()'],
+		])
+		// Before 1.20.5 an effect instance holds the effect itself, not a registry holder.
+		renames(stonecutter.eval(stonecutter.current.version, '<1.20.5'), [
+			['\\.getEffect\\(\\)\\.value\\(\\)', '.getEffect()/*.value()*/', '\\.getEffect\\(\\)/\\*\\.value\\(\\)\\*/', '.getEffect().value()'],
 		])
 		// A screen's and a toast's own drawing method.
 		['**/gui/ui/OrbitBaseScreen.java', '**/gui/OrbitToast.java'].each { file ->

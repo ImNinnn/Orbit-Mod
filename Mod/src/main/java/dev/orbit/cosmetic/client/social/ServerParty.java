@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.social;
 
+import dev.orbit.cosmetic.common.util.Lists;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.OrbitData;
 import net.minecraft.client.KeyMapping;
@@ -151,7 +152,7 @@ public final class ServerParty {
 			invite(here);
 			return;
 		}
-		Social.Person first = here.getFirst();
+		Social.Person first = Lists.first(here);
 		Component detail = here.size() == 1 ? Component.translatable("orbit_cosmetic.server_party.offer.one", first.name())
 			: Component.translatable("orbit_cosmetic.server_party.offer.many", here.size());
 		SocialPopups.action(first.uuid(), first.name(), Component.translatable("orbit_cosmetic.server_party.offer"), detail,

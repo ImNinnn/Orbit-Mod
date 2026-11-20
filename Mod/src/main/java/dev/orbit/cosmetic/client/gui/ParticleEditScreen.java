@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.common.util.Clamp;
 import dev.orbit.cosmetic.client.input.OrbitClick;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.gui.preview.PreviewBatch;
@@ -87,7 +88,7 @@ final class ParticleEditScreen extends OrbitScreen {
 	// Layout: the preview on the left, the settings on the right.
 
 	private int previewWidth() {
-		return Math.clamp(width / 4, 80, 150);
+		return Clamp.clamp(width / 4, 80, 150);
 	}
 
 	private int previewBottom() {

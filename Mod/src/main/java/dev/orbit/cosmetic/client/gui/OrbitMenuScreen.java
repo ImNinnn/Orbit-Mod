@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.common.util.Clamp;
 import dev.orbit.cosmetic.client.input.OrbitClick;
 import dev.orbit.cosmetic.client.input.OrbitKey;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
@@ -323,8 +324,8 @@ public final class OrbitMenuScreen extends OrbitScreen {
 		panelW = panel[2];
 		panelH = panel[3];
 		// Narrower side columns on small windows, so the grid keeps room.
-		sideW = Math.clamp(panelW * 26 / 100, Math.min(128, panelW * 30 / 100), 140);
-		rightW = Math.clamp(panelW * 28 / 100, Math.min(104, panelW * 26 / 100), 176);
+		sideW = Clamp.clamp(panelW * 26 / 100, Math.min(128, panelW * 30 / 100), 140);
+		rightW = Clamp.clamp(panelW * 28 / 100, Math.min(104, panelW * 26 / 100), 176);
 		midX = panelX + sideW;
 		midW = panelW - sideW - rightW;
 		rightX = midX + midW;
@@ -345,10 +346,10 @@ public final class OrbitMenuScreen extends OrbitScreen {
 		int sections = Section.values().length;
 		int room = panelH - HEADER - 4 - 26;
 		sideGap = WARDROBE_GAP;
-		sideRow = Math.clamp((room - sideGap) / sections - 1, 11, ROW);
+		sideRow = Clamp.clamp((room - sideGap) / sections - 1, 11, ROW);
 		if (sections * (sideRow + 1) + sideGap > room) {
 			sideGap = 0;
-			sideRow = Math.clamp(room / sections - 1, 9, ROW);
+			sideRow = Clamp.clamp(room / sections - 1, 9, ROW);
 		}
 		int y = panelY + HEADER + 4;
 		for (Section entry : Section.values()) {
@@ -411,7 +412,7 @@ public final class OrbitMenuScreen extends OrbitScreen {
 			headerRight -= 20;
 		}
 		int titleWidth = font.width(section.label()) + 8;
-		int searchWidth = Math.clamp(headerRight - (midX + PAD + titleWidth), 40, 120);
+		int searchWidth = Clamp.clamp(headerRight - (midX + PAD + titleWidth), 40, 120);
 		searchBox = new EditBox(font, headerRight - searchWidth + 12, panelY + 7, searchWidth - 14, 10, Component.translatable("orbit_cosmetic.menu.search"));
 		searchBox.setBordered(false);
 		// The hint only when it fits (Minecraft does not clip it to the field).
@@ -591,7 +592,7 @@ public final class OrbitMenuScreen extends OrbitScreen {
 		}
 		placed = List.copyOf(result);
 		contentHeight = y;
-		scroll = Math.clamp(scroll, 0, Math.max(0, contentHeight - gridH));
+		scroll = Clamp.clamp(scroll, 0, Math.max(0, contentHeight - gridH));
 		if (selected != null && placed.stream().noneMatch(p -> p.item() != null && p.item().key().equals(selected.key()))) {
 			// The selection is gone (deleted, filtered out): keep it only if it still exists somewhere.
 			selected = refreshed(selected);
@@ -777,39 +778,41 @@ public final class OrbitMenuScreen extends OrbitScreen {
 
 	/** The current version of an item after the libraries changed, or null if it no longer exists. */
 	private @Nullable Item refreshed(Item item) {
-		return switch (item) {
-			case MyCosmetic cosmetic -> orbit().library().entries().stream().filter(e -> e.key().equals(cosmetic.entry().key())).findFirst().<Item>map(MyCosmetic::new).orElse(null);
-			case MyEmote emote -> {
-				EmoteLibrary.LocalEmote current = orbit().emotes().find(emote.emote().key());
-				yield current == null ? null : new MyEmote(current);
-			}
-			case SkinEntry skin -> {
-				SkinLibrary.LocalSkin current = orbit().skins().library().find(skin.skin().key());
-				yield current == null ? null : new SkinEntry(current);
-			}
-			case OutfitEntry outfit -> outfit.index() < orbit().state().outfits().size() && orbit().state().outfits().get(outfit.index()) == outfit.outfit() ? item : null;
-			default -> item;
-		};
+		if (item instanceof MyCosmetic cosmetic) {
+			return orbit().library().entries().stream().filter(e -> e.key().equals(cosmetic.entry().key())).findFirst().<Item>map(MyCosmetic::new).orElse(null);
+		} else if (item instanceof MyEmote emote) {
+			EmoteLibrary.LocalEmote current = orbit().emotes().find(emote.emote().key());
+			return current == null ? null : new MyEmote(current);
+		} else if (item instanceof SkinEntry skin) {
+			SkinLibrary.LocalSkin current = orbit().skins().library().find(skin.skin().key());
+			return current == null ? null : new SkinEntry(current);
+		} else if (item instanceof OutfitEntry outfit) {
+			return outfit.index() < orbit().state().outfits().size() && orbit().state().outfits().get(outfit.index()) == outfit.outfit() ? item : null;
+		} else {
+			return item;
+		}
 	}
 
 	// ---------------------------------------------------------------- previews
 
 	private PreviewModel preview(Item item) {
 		PreviewModel model = previews.computeIfAbsent(item.key(), key -> new PreviewModel());
-		switch (item) {
-			case MyCosmetic cosmetic -> model.setWorn(cosmetic.entry().isUsable() ? List.of(cosmetic.entry().toEquipped()) : List.of());
-			case MyEmote emote -> loopEmote(model, emote.emote());
-			case CatalogEntry entry -> showCatalogItem(model, List.of(entry.item()));
-			case BundleEntry bundle -> showCatalogItem(model, bundle.bundle().items());
-			case SkinEntry skin -> {
-				model.setWorn(orbit().equipped());
-				model.setSkin(orbit().skins().with(orbit().accountSkin(), skin.skin(), orbit().skins().cape()));
-			}
-			case CapeEntry cape -> model.setSkin(orbit().skins().with(orbit().menuSkin(), null, cape.cape() == null ? "" : cape.cape().id()));
-			case OutfitEntry outfit -> {
-				model.setWorn(outfitCosmetics(outfit.outfit()));
-				model.setSkin(outfitSkin(outfit.outfit()));
-			}
+		if (item instanceof MyCosmetic cosmetic) {
+			model.setWorn(cosmetic.entry().isUsable() ? List.of(cosmetic.entry().toEquipped()) : List.of());
+		} else if (item instanceof MyEmote emote) {
+			loopEmote(model, emote.emote());
+		} else if (item instanceof CatalogEntry entry) {
+			showCatalogItem(model, List.of(entry.item()));
+		} else if (item instanceof BundleEntry bundle) {
+			showCatalogItem(model, bundle.bundle().items());
+		} else if (item instanceof SkinEntry skin) {
+			model.setWorn(orbit().equipped());
+			model.setSkin(orbit().skins().with(orbit().accountSkin(), skin.skin(), orbit().skins().cape()));
+		} else if (item instanceof CapeEntry cape) {
+			model.setSkin(orbit().skins().with(orbit().menuSkin(), null, cape.cape() == null ? "" : cape.cape().id()));
+		} else if (item instanceof OutfitEntry outfit) {
+			model.setWorn(outfitCosmetics(outfit.outfit()));
+			model.setSkin(outfitSkin(outfit.outfit()));
 		}
 		return model;
 	}
@@ -902,11 +905,14 @@ public final class OrbitMenuScreen extends OrbitScreen {
 
 	/** What selecting a cosmetic of the big preview selects: the selected catalog item, or the cosmetic of the library. */
 	private @Nullable Item itemFor(AssetId asset) {
-		List<CatalogItem> shown = switch (selected) {
-			case CatalogEntry entry -> List.of(entry.item());
-			case BundleEntry bundle -> bundle.bundle().items();
-			case null, default -> List.of();
-		};
+		List<CatalogItem> shown;
+		if (selected instanceof CatalogEntry entry) {
+			shown = List.of(entry.item());
+		} else if (selected instanceof BundleEntry bundle) {
+			shown = bundle.bundle().items();
+		} else {
+			shown = List.of();
+		}
 		for (CatalogItem item : shown) {
 			if (!item.isEmote() && asset.equals(AssetId.tryParse(item.sha256()))) {
 				return selected;
@@ -923,30 +929,34 @@ public final class OrbitMenuScreen extends OrbitScreen {
 
 	/** The selected cosmetic's file, shown red on the big preview; null when the selection is not one cosmetic. */
 	private @Nullable AssetId selectedAsset() {
-		return switch (selected) {
-			case MyCosmetic cosmetic -> cosmetic.entry().asset();
-			case CatalogEntry entry when !entry.item().isEmote() -> AssetId.tryParse(entry.item().sha256());
-			case null, default -> null;
-		};
+		if (selected instanceof MyCosmetic cosmetic) {
+			return cosmetic.entry().asset();
+		} else if (selected instanceof CatalogEntry entry && !entry.item().isEmote()) {
+			return AssetId.tryParse(entry.item().sha256());
+		} else {
+			return null;
+		}
 	}
 
 	/** What the big preview on the right shows: what is equipped, plus the selection. */
 	private void updatePanelPreview() {
 		List<EquippedCosmetic> worn = new ArrayList<>(orbit().equipped());
 		panelPreview.setSkin(null);
-		switch (selected) {
-			case SkinEntry skin -> panelPreview.setSkin(orbit().skins().with(orbit().accountSkin(), skin.skin(), orbit().skins().cape()));
-			case CapeEntry cape -> panelPreview.setSkin(orbit().skins().with(orbit().menuSkin(), null, cape.cape() == null ? "" : cape.cape().id()));
-			case OutfitEntry outfit -> {
-				worn = new ArrayList<>(outfitCosmetics(outfit.outfit()));
-				panelPreview.setSkin(outfitSkin(outfit.outfit()));
-			}
-			case MyCosmetic cosmetic when cosmetic.entry().isUsable() && !cosmetic.entry().isLoaded() && !selectionTakenOff -> worn.add(cosmetic.entry().toEquipped());
-			case MyEmote emote -> loopEmote(panelPreview, emote.emote());
-			case CatalogEntry entry -> addCatalog(panelPreview, worn, List.of(entry.item()));
-			case BundleEntry bundle -> addCatalog(panelPreview, worn, bundle.bundle().items());
-			case null, default -> {
-			}
+		if (selected instanceof SkinEntry skin) {
+			panelPreview.setSkin(orbit().skins().with(orbit().accountSkin(), skin.skin(), orbit().skins().cape()));
+		} else if (selected instanceof CapeEntry cape) {
+			panelPreview.setSkin(orbit().skins().with(orbit().menuSkin(), null, cape.cape() == null ? "" : cape.cape().id()));
+		} else if (selected instanceof OutfitEntry outfit) {
+			worn = new ArrayList<>(outfitCosmetics(outfit.outfit()));
+			panelPreview.setSkin(outfitSkin(outfit.outfit()));
+		} else if (selected instanceof MyCosmetic cosmetic && cosmetic.entry().isUsable() && !cosmetic.entry().isLoaded() && !selectionTakenOff) {
+			worn.add(cosmetic.entry().toEquipped());
+		} else if (selected instanceof MyEmote emote) {
+			loopEmote(panelPreview, emote.emote());
+		} else if (selected instanceof CatalogEntry entry) {
+			addCatalog(panelPreview, worn, List.of(entry.item()));
+		} else if (selected instanceof BundleEntry bundle) {
+			addCatalog(panelPreview, worn, bundle.bundle().items());
 		}
 		if (!(selected instanceof MyEmote) && !(selected instanceof CatalogEntry entry && entry.item().isEmote()) && !(selected instanceof BundleEntry)) {
 			panelPreview.stopEmote();
@@ -1071,97 +1081,91 @@ public final class OrbitMenuScreen extends OrbitScreen {
 			}
 			return;
 		}
-		switch (selected) {
-			case MyCosmetic cosmetic -> {
-				LocalCosmetic entry = cosmetic.entry();
-				boolean equipped = entry.isLoaded();
-				// Claimed featured cosmetics: [Equip] [make an editable copy] [remove] on one row.
-				int icons = entry.isFeatured() ? 2 * (18 + 4) : 0;
-				FlatButton equip = action(new FlatButton(x, y, w - icons, 18, Component.translatable(equipped ? "orbit_cosmetic.menu.unequip" : "orbit_cosmetic.menu.equip"),
-					equipped ? "close" : "check", equipped ? FlatButton.Style.SECONDARY : FlatButton.Style.PRIMARY, b -> toggleEquipped(entry)));
-				equip.active = entry.isUsable() || equipped;
-				if (entry.isFeatured()) {
-					action(FlatButton.icon(x + w - 18 * 2 - 4, y, 18, "edit", Component.translatable("orbit_cosmetic.menu.make_editable.tooltip"), FlatButton.Style.SECONDARY, b -> {
-						try {
-							orbit().library().makeEditable(entry);
-							Notifications.success(Component.translatable("orbit_cosmetic.menu.made_editable", entry.displayName()), Component.translatable("orbit_cosmetic.menu.made_editable.detail"));
-						} catch (IOException e) {
-							Notifications.error(Component.translatable("orbit_cosmetic.menu.make_editable.failed"), Component.literal(e.getMessage()));
-						}
-					}));
-					action(FlatButton.icon(x + w - 18, y, 18, "trash", Component.translatable("orbit_cosmetic.menu.remove_featured"), FlatButton.Style.DANGER, b -> delete(entry)));
-					FeaturedCheck check = check(entry);
-					if (check.state() == FeaturedCheck.State.OUTDATED) {
-						// The catalog's version differs from this copy.
-						action(new FlatButton(x, y - 22, w, 18, Component.translatable("orbit_cosmetic.menu.update"), "update", FlatButton.Style.PRIMARY,
-							b -> update(check.item(), entry.displayName(), (bytes, settings) -> orbit().library().updateFeatured(entry, bytes, settings, check.item().gradient()))))
-							.setTooltip(Tooltip.create(Component.translatable("orbit_cosmetic.menu.update.tooltip")));
+		if (selected instanceof MyCosmetic cosmetic) {
+			LocalCosmetic entry = cosmetic.entry();
+			boolean equipped = entry.isLoaded();
+			// Claimed featured cosmetics: [Equip] [make an editable copy] [remove] on one row.
+			int icons = entry.isFeatured() ? 2 * (18 + 4) : 0;
+			FlatButton equip = action(new FlatButton(x, y, w - icons, 18, Component.translatable(equipped ? "orbit_cosmetic.menu.unequip" : "orbit_cosmetic.menu.equip"),
+				equipped ? "close" : "check", equipped ? FlatButton.Style.SECONDARY : FlatButton.Style.PRIMARY, b -> toggleEquipped(entry)));
+			equip.active = entry.isUsable() || equipped;
+			if (entry.isFeatured()) {
+				action(FlatButton.icon(x + w - 18 * 2 - 4, y, 18, "edit", Component.translatable("orbit_cosmetic.menu.make_editable.tooltip"), FlatButton.Style.SECONDARY, b -> {
+					try {
+						orbit().library().makeEditable(entry);
+						Notifications.success(Component.translatable("orbit_cosmetic.menu.made_editable", entry.displayName()), Component.translatable("orbit_cosmetic.menu.made_editable.detail"));
+					} catch (IOException e) {
+						Notifications.error(Component.translatable("orbit_cosmetic.menu.make_editable.failed"), Component.literal(e.getMessage()));
 					}
-					return;
+				}));
+				action(FlatButton.icon(x + w - 18, y, 18, "trash", Component.translatable("orbit_cosmetic.menu.remove_featured"), FlatButton.Style.DANGER, b -> delete(entry)));
+				FeaturedCheck check = check(entry);
+				if (check.state() == FeaturedCheck.State.OUTDATED) {
+					// The catalog's version differs from this copy.
+					action(new FlatButton(x, y - 22, w, 18, Component.translatable("orbit_cosmetic.menu.update"), "update", FlatButton.Style.PRIMARY,
+						b -> update(check.item(), entry.displayName(), (bytes, settings) -> orbit().library().updateFeatured(entry, bytes, settings, check.item().gradient()))))
+						.setTooltip(Tooltip.create(Component.translatable("orbit_cosmetic.menu.update.tooltip")));
 				}
-				y -= 22;
-				FlatButton animations = action(new FlatButton(x, y, w - 3 * (18 + 4), 18, Component.translatable("orbit_cosmetic.menu.animations"), "edit", FlatButton.Style.SECONDARY,
-					b -> Compat.setScreen(entry.isBodyPart() ? new BodyPartScreen(this, entry) : new AnimationSettingsScreen(this, entry))));
-				animations.active = entry.isUsable() && entry.model() != null;
-				FlatButton send = action(FlatButton.icon(x + w - 18 * 3 - 8, y, 18, "send", Component.translatable("orbit_cosmetic.social.share.button"), FlatButton.Style.SECONDARY,
-					b -> ShareScreen.cosmetic(this, entry)));
-				send.active = entry.isUsable() && entry.asset() != null;
-				action(FlatButton.icon(x + w - 18 * 2 - 4, y, 18, "folder", Component.translatable("orbit_cosmetic.menu.show_file"), FlatButton.Style.SECONDARY,
-					b -> Compat.openPath(entry.path().getParent())));
-				action(FlatButton.icon(x + w - 18, y, 18, "trash", Component.translatable("orbit_cosmetic.menu.delete"), FlatButton.Style.DANGER, b -> delete(entry)));
+				return;
 			}
-			case MyEmote emote -> {
-				int buttons = emoteFileButtons(x + w, y, emote.emote());
-				action(new FlatButton(x, y, w - buttons, 18, Component.translatable("orbit_cosmetic.menu.emote.play"), "play", FlatButton.Style.PRIMARY, b -> {
-					if (orbit().emoteController().play(emote.emote())) {
-						onClose();
-					} else {
-						panelPreview.playEmote(emote.emote().asset(), emote.emote().file().particles());
-					}
-				})).active = emote.emote().asset() != null;
-				emoteRow(x, y - 22, w, emote.emote(), FlatButton.Style.SECONDARY);
-			}
-			case CatalogEntry entry -> claimButton(x, y, w, List.of(entry.item()), entry.item().sha256(), entry.item().isEmote(), entry.item().plus(), false);
-			case BundleEntry bundle -> claimButton(x, y, w, bundle.bundle().items(), bundle.bundle().id(), false, false, true);
-			case SkinEntry skin -> {
-				boolean worn = skin.skin().key().equals(orbit().state().skin());
-				action(new FlatButton(x, y, w - 2 * (18 + 4), 18, Component.translatable(worn ? "orbit_cosmetic.skins.worn" : "orbit_cosmetic.skins.wear"), "check",
-					FlatButton.Style.PRIMARY, b -> {
-						orbit().skins().wearSkin(skin.skin());
-						refreshActions();
-					})).active = !worn;
-				action(FlatButton.icon(x + w - 18 * 2 - 4, y, 18, "folder", Component.translatable("orbit_cosmetic.menu.show_file"), FlatButton.Style.SECONDARY,
-					b -> Compat.openPath(orbit().skins().library().folder())));
-				action(FlatButton.icon(x + w - 18, y, 18, "trash", Component.translatable("orbit_cosmetic.menu.delete"), FlatButton.Style.DANGER, b -> delete(skin.skin())));
-			}
-			case CapeEntry cape -> {
-				String id = cape.cape() == null ? "" : cape.cape().id();
-				boolean worn = id.equals(orbit().skins().cape());
-				action(new FlatButton(x, y, w, 18, Component.translatable(worn ? "orbit_cosmetic.skins.worn" : "orbit_cosmetic.skins.wear"), "check",
-					FlatButton.Style.PRIMARY, b -> {
-						orbit().skins().wearCape(id);
-						refreshActions();
-					})).active = !worn;
-			}
-			case OutfitEntry outfit -> {
-				action(new FlatButton(x, y, w - 18 - 4, 18, Component.translatable("orbit_cosmetic.outfits.wear"), "check", FlatButton.Style.PRIMARY, b -> wearOutfit(outfit.outfit())));
-				action(FlatButton.icon(x + w - 18, y, 18, "trash", Component.translatable("orbit_cosmetic.menu.delete"), FlatButton.Style.DANGER, b -> deleteOutfit(outfit)));
-				action(new FlatButton(x, y - 22, w, 18, Component.translatable("orbit_cosmetic.outfits.save"), "edit", FlatButton.Style.SECONDARY, b -> {
-					saveLookInto(outfit.outfit());
-					Notifications.success(Component.translatable("orbit_cosmetic.outfits.saved", outfit.outfit().name), null);
-				})).setTooltip(Tooltip.create(Component.translatable("orbit_cosmetic.outfits.save.tooltip")));
-				// The outfit's name, editable.
-				outfitName = new EditBox(font, x + 1, y - 44, w - 2, 16, Component.translatable("orbit_cosmetic.outfits.name"));
-				outfitName.setMaxLength(32);
-				outfitName.setValue(outfit.outfit().name);
-				outfitName.setResponder(text -> {
-					outfit.outfit().name = text.isBlank() ? outfit.outfit().name : text.strip();
-					orbit().state().save();
-				});
-				actions.add(addRenderableWidget(outfitName));
-			}
-			case null -> {
-			}
+			y -= 22;
+			FlatButton animations = action(new FlatButton(x, y, w - 3 * (18 + 4), 18, Component.translatable("orbit_cosmetic.menu.animations"), "edit", FlatButton.Style.SECONDARY,
+				b -> Compat.setScreen(entry.isBodyPart() ? new BodyPartScreen(this, entry) : new AnimationSettingsScreen(this, entry))));
+			animations.active = entry.isUsable() && entry.model() != null;
+			FlatButton send = action(FlatButton.icon(x + w - 18 * 3 - 8, y, 18, "send", Component.translatable("orbit_cosmetic.social.share.button"), FlatButton.Style.SECONDARY,
+				b -> ShareScreen.cosmetic(this, entry)));
+			send.active = entry.isUsable() && entry.asset() != null;
+			action(FlatButton.icon(x + w - 18 * 2 - 4, y, 18, "folder", Component.translatable("orbit_cosmetic.menu.show_file"), FlatButton.Style.SECONDARY,
+				b -> Compat.openPath(entry.path().getParent())));
+			action(FlatButton.icon(x + w - 18, y, 18, "trash", Component.translatable("orbit_cosmetic.menu.delete"), FlatButton.Style.DANGER, b -> delete(entry)));
+		} else if (selected instanceof MyEmote emote) {
+			int buttons = emoteFileButtons(x + w, y, emote.emote());
+			action(new FlatButton(x, y, w - buttons, 18, Component.translatable("orbit_cosmetic.menu.emote.play"), "play", FlatButton.Style.PRIMARY, b -> {
+				if (orbit().emoteController().play(emote.emote())) {
+					onClose();
+				} else {
+					panelPreview.playEmote(emote.emote().asset(), emote.emote().file().particles());
+				}
+			})).active = emote.emote().asset() != null;
+			emoteRow(x, y - 22, w, emote.emote(), FlatButton.Style.SECONDARY);
+		} else if (selected instanceof CatalogEntry entry) {
+			claimButton(x, y, w, List.of(entry.item()), entry.item().sha256(), entry.item().isEmote(), entry.item().plus(), false);
+		} else if (selected instanceof BundleEntry bundle) {
+			claimButton(x, y, w, bundle.bundle().items(), bundle.bundle().id(), false, false, true);
+		} else if (selected instanceof SkinEntry skin) {
+			boolean worn = skin.skin().key().equals(orbit().state().skin());
+			action(new FlatButton(x, y, w - 2 * (18 + 4), 18, Component.translatable(worn ? "orbit_cosmetic.skins.worn" : "orbit_cosmetic.skins.wear"), "check",
+				FlatButton.Style.PRIMARY, b -> {
+					orbit().skins().wearSkin(skin.skin());
+					refreshActions();
+				})).active = !worn;
+			action(FlatButton.icon(x + w - 18 * 2 - 4, y, 18, "folder", Component.translatable("orbit_cosmetic.menu.show_file"), FlatButton.Style.SECONDARY,
+				b -> Compat.openPath(orbit().skins().library().folder())));
+			action(FlatButton.icon(x + w - 18, y, 18, "trash", Component.translatable("orbit_cosmetic.menu.delete"), FlatButton.Style.DANGER, b -> delete(skin.skin())));
+		} else if (selected instanceof CapeEntry cape) {
+			String id = cape.cape() == null ? "" : cape.cape().id();
+			boolean worn = id.equals(orbit().skins().cape());
+			action(new FlatButton(x, y, w, 18, Component.translatable(worn ? "orbit_cosmetic.skins.worn" : "orbit_cosmetic.skins.wear"), "check",
+				FlatButton.Style.PRIMARY, b -> {
+					orbit().skins().wearCape(id);
+					refreshActions();
+				})).active = !worn;
+		} else if (selected instanceof OutfitEntry outfit) {
+			action(new FlatButton(x, y, w - 18 - 4, 18, Component.translatable("orbit_cosmetic.outfits.wear"), "check", FlatButton.Style.PRIMARY, b -> wearOutfit(outfit.outfit())));
+			action(FlatButton.icon(x + w - 18, y, 18, "trash", Component.translatable("orbit_cosmetic.menu.delete"), FlatButton.Style.DANGER, b -> deleteOutfit(outfit)));
+			action(new FlatButton(x, y - 22, w, 18, Component.translatable("orbit_cosmetic.outfits.save"), "edit", FlatButton.Style.SECONDARY, b -> {
+				saveLookInto(outfit.outfit());
+				Notifications.success(Component.translatable("orbit_cosmetic.outfits.saved", outfit.outfit().name), null);
+			})).setTooltip(Tooltip.create(Component.translatable("orbit_cosmetic.outfits.save.tooltip")));
+			// The outfit's name, editable.
+			outfitName = new EditBox(font, x + 1, y - 44, w - 2, 16, Component.translatable("orbit_cosmetic.outfits.name"));
+			outfitName.setMaxLength(32);
+			outfitName.setValue(outfit.outfit().name);
+			outfitName.setResponder(text -> {
+				outfit.outfit().name = text.isBlank() ? outfit.outfit().name : text.strip();
+				orbit().state().save();
+			});
+			actions.add(addRenderableWidget(outfitName));
 		}
 	}
 
@@ -1652,7 +1656,7 @@ public final class OrbitMenuScreen extends OrbitScreen {
 	@Override
 	public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
 		if (Theme.inside(mouseX, mouseY, gridX, gridY, gridW + 4, gridH)) {
-			scroll = Math.clamp(scroll - scrollY * (cellH / 2.0), 0, Math.max(0, contentHeight - gridH));
+			scroll = Clamp.clamp(scroll - scrollY * (cellH / 2.0), 0, Math.max(0, contentHeight - gridH));
 			placeTileSpots();
 			return true;
 		}
@@ -1735,30 +1739,34 @@ public final class OrbitMenuScreen extends OrbitScreen {
 
 	/** The model whose alternate textures a tile offers: the player's cosmetics and catalog cosmetics; else null. */
 	private @Nullable BakedCosmetic styledModel(Item item) {
-		AssetId asset = switch (item) {
-			case MyCosmetic cosmetic -> cosmetic.entry().asset();
-			case CatalogEntry entry when !entry.item().isEmote() -> AssetId.tryParse(entry.item().sha256());
-			default -> null;
-		};
+		AssetId asset;
+		if (item instanceof MyCosmetic cosmetic) {
+			asset = cosmetic.entry().asset();
+		} else if (item instanceof CatalogEntry entry && !entry.item().isEmote()) {
+			asset = AssetId.tryParse(entry.item().sha256());
+		} else {
+			asset = null;
+		}
 		return asset == null ? null : orbit().registry().get(asset);
 	}
 
 	/** The alternate texture a tile shows. */
 	private int currentStyle(Item item) {
-		return switch (item) {
-			case MyCosmetic cosmetic -> cosmetic.entry().style();
-			case CatalogEntry entry -> catalogStyle(entry.item());
-			default -> 0;
-		};
+		if (item instanceof MyCosmetic cosmetic) {
+			return cosmetic.entry().style();
+		} else if (item instanceof CatalogEntry entry) {
+			return catalogStyle(entry.item());
+		} else {
+			return 0;
+		}
 	}
 
 	/** Picks an alternate texture: worn from now on, or for a catalog item, shown and kept when it is claimed. */
 	private void setStyle(Item item, int style) {
-		switch (item) {
-			case MyCosmetic cosmetic -> orbit().library().setStyle(cosmetic.entry(), style);
-			case CatalogEntry entry -> catalogStyles.put(entry.item().sha256(), style);
-			default -> {
-			}
+		if (item instanceof MyCosmetic cosmetic) {
+			orbit().library().setStyle(cosmetic.entry(), style);
+		} else if (item instanceof CatalogEntry entry) {
+			catalogStyles.put(entry.item().sha256(), style);
 		}
 	}
 
@@ -1833,7 +1841,7 @@ public final class OrbitMenuScreen extends OrbitScreen {
 		}
 		graphics.fill(panelX + 1, panelY + panelH - 24, panelX + sideW - 1, panelY + panelH - 23, Theme.BORDER);
 		graphics.face(orbit().menuSkin(), panelX + 7, panelY + panelH - 17, 10);
-		graphics.text(font, Theme.clip(font, Component.literal(minecraft.getGameProfile().name()), sideW - 44), panelX + 20, panelY + panelH - 15, Theme.TEXT, false);
+		graphics.text(font, Theme.clip(font, Component.literal(minecraft.getUser().getName()), sideW - 44), panelX + 20, panelY + panelH - 15, Theme.TEXT, false);
 		// Middle header: section title and the search box frame.
 		int boxX = searchBox.getX() - 12;
 		// The section's name, cut short where the search field starts.
@@ -1915,15 +1923,18 @@ public final class OrbitMenuScreen extends OrbitScreen {
 
 	/** A tile's top and bottom colours: from its settings file or the catalog; bundles are red. Null for none. */
 	private static int @Nullable [] tileColors(Item item) {
-		return switch (item) {
-			case MyCosmetic cosmetic -> cosmetic.entry().gradient();
-			case MyEmote emote -> emote.emote().file().gradient();
-			case CatalogEntry entry -> entry.item().tileColors() != null ? entry.item().tileColors() : entry.item().plus() ? RED_TILE : null;
-			case BundleEntry bundle -> RED_TILE;
-			case SkinEntry skin -> null;
-			case CapeEntry cape -> null;
-			case OutfitEntry outfit -> null;
-		};
+		if (item instanceof MyCosmetic cosmetic) {
+			return cosmetic.entry().gradient();
+		} else if (item instanceof MyEmote emote) {
+			return emote.emote().file().gradient();
+		} else if (item instanceof CatalogEntry entry) {
+			return entry.item().tileColors() != null ? entry.item().tileColors() : entry.item().plus() ? RED_TILE : null;
+		} else if (item instanceof BundleEntry) {
+			return RED_TILE;
+		} else {
+			// Skins, capes and outfits.
+			return null;
+		}
 	}
 
 	/** Where a bundle tile's player ends and its list of items begins, from the tile's left edge. */
@@ -1940,73 +1951,66 @@ public final class OrbitMenuScreen extends OrbitScreen {
 		graphics.fill(x + 1, y + p.h() - 12, x + p.w() - 1, y + p.h() - 1, 0xC0141416);
 		graphics.text(font, Theme.clip(font, Component.literal(item.name()), p.w() - 6), x + 3, y + p.h() - 10, Theme.TEXT, false);
 		List<FormattedCharSequence> tooltip = null;
-		switch (item) {
-			case MyCosmetic cosmetic -> {
-				CosmeticStatus status = orbit().cosmeticStatus(cosmetic.entry());
-				graphics.fill(x + 3, y + 3, x + 8, y + 8, status.kind().color);
-				if (Theme.inside(mouseX, mouseY, x + 1, y + 1, 9, 9)) {
-					tooltip = List.of(status.kind().label().getVisualOrderText(), status.detail().copy().withStyle(ChatFormatting.GRAY).getVisualOrderText());
-				}
-				if (cosmetic.entry().isLoaded()) {
-					Theme.icon(graphics, "check", x + p.w() - 11, y + 2, Theme.GREEN);
-				}
-				if (cosmetic.entry().isFeatured()) {
-					List<FormattedCharSequence> tip = featuredMark(graphics, check(cosmetic.entry()), x + p.w() - (cosmetic.entry().isLoaded() ? 21 : 11), y + 2, mouseX, mouseY);
-					tooltip = tip != null ? tip : tooltip;
-				}
+		if (item instanceof MyCosmetic cosmetic) {
+			CosmeticStatus status = orbit().cosmeticStatus(cosmetic.entry());
+			graphics.fill(x + 3, y + 3, x + 8, y + 8, status.kind().color);
+			if (Theme.inside(mouseX, mouseY, x + 1, y + 1, 9, 9)) {
+				tooltip = List.of(status.kind().label().getVisualOrderText(), status.detail().copy().withStyle(ChatFormatting.GRAY).getVisualOrderText());
 			}
-			case MyEmote emote -> {
-				boolean wheel = onWheel(emote.emote());
-				// The emote icon shows the emote's state, like a cosmetic's square.
-				CosmeticStatus status = CosmeticStatus.ofEmote(emote.emote(), wheel, orbit().backend());
-				Theme.icon(graphics, "emote", x + 2, y + 2, status.kind().color);
-				if (Theme.inside(mouseX, mouseY, x + 1, y + 1, 11, 11)) {
-					tooltip = List.of(status.kind().emoteLabel().getVisualOrderText(), status.detail().copy().withStyle(ChatFormatting.GRAY).getVisualOrderText());
-				}
-				if (wheel) {
-					Theme.icon(graphics, "wheel", x + p.w() - 11, y + 2, Theme.MUTED);
-				}
-				if (emote.emote().file().isFeatured()) {
-					List<FormattedCharSequence> tip = featuredMark(graphics, check(emote.emote().file()), x + p.w() - (wheel ? 21 : 11), y + 2, mouseX, mouseY);
-					tooltip = tip != null ? tip : tooltip;
-				}
-				if (orbit().emotes().mode(emote.emote()) == EmoteMode.MOBILE) {
-					graphics.text(font, Component.translatable("orbit_cosmetic.menu.tag.mobile"), x + 13, y + 3, Theme.MUTED, false);
-				}
+			if (cosmetic.entry().isLoaded()) {
+				Theme.icon(graphics, "check", x + p.w() - 11, y + 2, Theme.GREEN);
 			}
-			case CatalogEntry entry -> {
-				if (entry.item().isEmote()) {
-					Theme.icon(graphics, "emote", x + 2, y + 2, Theme.BLUE);
-				}
-				if (owned(entry.item())) {
-					Theme.icon(graphics, "check", x + p.w() - 11, y + 2, Theme.GREEN);
-				}
-				drawPrice(graphics, x, y + p.h() - 22, entry.item().sha256(), entry.item().isEmote(), entry.item().plus(), false);
+			if (cosmetic.entry().isFeatured()) {
+				List<FormattedCharSequence> tip = featuredMark(graphics, check(cosmetic.entry()), x + p.w() - (cosmetic.entry().isLoaded() ? 21 : 11), y + 2, mouseX, mouseY);
+				tooltip = tip != null ? tip : tooltip;
 			}
-			case BundleEntry bundle -> {
+		} else if (item instanceof MyEmote emote) {
+			boolean wheel = onWheel(emote.emote());
+			// The emote icon shows the emote's state, like a cosmetic's square.
+			CosmeticStatus status = CosmeticStatus.ofEmote(emote.emote(), wheel, orbit().backend());
+			Theme.icon(graphics, "emote", x + 2, y + 2, status.kind().color);
+			if (Theme.inside(mouseX, mouseY, x + 1, y + 1, 11, 11)) {
+				tooltip = List.of(status.kind().emoteLabel().getVisualOrderText(), status.detail().copy().withStyle(ChatFormatting.GRAY).getVisualOrderText());
 			}
-			case SkinEntry skin -> {
-				if (skin.skin().key().equals(orbit().state().skin())) {
-					Theme.icon(graphics, "check", x + p.w() - 11, y + 2, Theme.GREEN);
-				}
-				if (skin.skin().slim()) {
-					graphics.text(font, Component.translatable("orbit_cosmetic.skins.slim"), x + 3, y + 3, Theme.MUTED, false);
-				}
+			if (wheel) {
+				Theme.icon(graphics, "wheel", x + p.w() - 11, y + 2, Theme.MUTED);
 			}
-			case CapeEntry cape -> {
-				if ((cape.cape() == null ? "" : cape.cape().id()).equals(orbit().skins().cape())) {
-					Theme.icon(graphics, "check", x + p.w() - 11, y + 2, Theme.GREEN);
-				}
+			if (emote.emote().file().isFeatured()) {
+				List<FormattedCharSequence> tip = featuredMark(graphics, check(emote.emote().file()), x + p.w() - (wheel ? 21 : 11), y + 2, mouseX, mouseY);
+				tooltip = tip != null ? tip : tooltip;
 			}
-			case OutfitEntry outfit -> {
-				Theme.icon(graphics, "outfit", x + 2, y + 2, Theme.MUTED);
-				// Things of the outfit this computer does not have (restored from Orbit Cloud).
-				List<String> missing = dev.orbit.cosmetic.client.social.CloudWardrobe.missing(outfit.outfit());
-				if (!missing.isEmpty()) {
-					Theme.icon(graphics, "close", x + p.w() - 11, y + 2, Theme.RED);
-					if (Theme.inside(mouseX, mouseY, x + p.w() - 12, y + 1, 11, 11)) {
-						tooltip = List.of(Component.translatable("orbit_cosmetic.outfits.missing", String.join(", ", missing)).getVisualOrderText());
-					}
+			if (orbit().emotes().mode(emote.emote()) == EmoteMode.MOBILE) {
+				graphics.text(font, Component.translatable("orbit_cosmetic.menu.tag.mobile"), x + 13, y + 3, Theme.MUTED, false);
+			}
+		} else if (item instanceof CatalogEntry entry) {
+			if (entry.item().isEmote()) {
+				Theme.icon(graphics, "emote", x + 2, y + 2, Theme.BLUE);
+			}
+			if (owned(entry.item())) {
+				Theme.icon(graphics, "check", x + p.w() - 11, y + 2, Theme.GREEN);
+			}
+			drawPrice(graphics, x, y + p.h() - 22, entry.item().sha256(), entry.item().isEmote(), entry.item().plus(), false);
+		} else if (item instanceof BundleEntry) {
+			// A bundle tile has no marks.
+		} else if (item instanceof SkinEntry skin) {
+			if (skin.skin().key().equals(orbit().state().skin())) {
+				Theme.icon(graphics, "check", x + p.w() - 11, y + 2, Theme.GREEN);
+			}
+			if (skin.skin().slim()) {
+				graphics.text(font, Component.translatable("orbit_cosmetic.skins.slim"), x + 3, y + 3, Theme.MUTED, false);
+			}
+		} else if (item instanceof CapeEntry cape) {
+			if ((cape.cape() == null ? "" : cape.cape().id()).equals(orbit().skins().cape())) {
+				Theme.icon(graphics, "check", x + p.w() - 11, y + 2, Theme.GREEN);
+			}
+		} else if (item instanceof OutfitEntry outfit) {
+			Theme.icon(graphics, "outfit", x + 2, y + 2, Theme.MUTED);
+			// Things of the outfit this computer does not have (restored from Orbit Cloud).
+			List<String> missing = dev.orbit.cosmetic.client.social.CloudWardrobe.missing(outfit.outfit());
+			if (!missing.isEmpty()) {
+				Theme.icon(graphics, "close", x + p.w() - 11, y + 2, Theme.RED);
+				if (Theme.inside(mouseX, mouseY, x + p.w() - 12, y + 1, 11, 11)) {
+					tooltip = List.of(Component.translatable("orbit_cosmetic.outfits.missing", String.join(", ", missing)).getVisualOrderText());
 				}
 			}
 		}
@@ -2171,35 +2175,38 @@ public final class OrbitMenuScreen extends OrbitScreen {
 			// No room: the wheel (the mode button's tooltip explains Standard and Mobile), or the outfit's name.
 			return;
 		}
-		Component line = switch (selected) {
-			case SkinEntry skin -> skinStatus(skin.skin().key().equals(orbit().state().skin()), orbit().skins().mojangTexture(skin.skin()) != null,
-				orbit().skins().account().isSkinPending(), orbit().skins().account().skinWaitingSeconds());
-			case CapeEntry cape -> skinStatus((cape.cape() == null ? "" : cape.cape().id()).equals(orbit().skins().cape()), true,
-				orbit().skins().account().isCapePending(), orbit().skins().account().capeWaitingSeconds());
-			case OutfitEntry outfit -> Component.empty();
-			case MyCosmetic cosmetic -> {
-				LocalCosmetic entry = cosmetic.entry();
-				Issue problem = entry.issues().stream().filter(Issue::isError).findFirst().orElse(entry.issues().stream().findFirst().orElse(null));
-				if (problem != null) {
-					yield Component.literal(CosmeticLibrary.readable(problem.message())).withStyle(problem.isError() ? ChatFormatting.RED : ChatFormatting.YELLOW);
-				}
-				FeaturedCheck.State featured = entry.isFeatured() ? check(entry).state() : null;
-				if (featured == FeaturedCheck.State.OUTDATED) {
-					yield Component.translatable("orbit_cosmetic.menu.featured.outdated").withStyle(ChatFormatting.YELLOW);
-				}
-				if (featured == FeaturedCheck.State.UNFEATURED) {
-					yield Component.translatable("orbit_cosmetic.menu.featured.unfeatured").withStyle(ChatFormatting.GRAY);
-				}
-				yield orbit().cosmeticStatus(entry).detail().copy().withStyle(ChatFormatting.GRAY);
+		Component line;
+		if (selected instanceof SkinEntry skin) {
+			line = skinStatus(skin.skin().key().equals(orbit().state().skin()), orbit().skins().mojangTexture(skin.skin()) != null, orbit().skins().account().isSkinPending(), orbit().skins().account().skinWaitingSeconds());
+		} else if (selected instanceof CapeEntry cape) {
+			line = skinStatus((cape.cape() == null ? "" : cape.cape().id()).equals(orbit().skins().cape()), true, orbit().skins().account().isCapePending(), orbit().skins().account().capeWaitingSeconds());
+		} else if (selected instanceof OutfitEntry) {
+			line = Component.empty();
+		} else if (selected instanceof MyCosmetic cosmetic) {
+			LocalCosmetic entry = cosmetic.entry();
+			Issue problem = entry.issues().stream().filter(Issue::isError).findFirst().orElse(entry.issues().stream().findFirst().orElse(null));
+			if (problem != null) {
+				line = Component.literal(CosmeticLibrary.readable(problem.message())).withStyle(problem.isError() ? ChatFormatting.RED : ChatFormatting.YELLOW);
 			}
-			case MyEmote emote -> Component.translatable(orbit().emotes().mode(emote.emote()) == EmoteMode.MOBILE
-				? "orbit_cosmetic.menu.emote.mobile_hint" : "orbit_cosmetic.menu.emote.standard_hint").withStyle(ChatFormatting.GRAY);
-			case CatalogEntry entry -> (entry.item().author().isEmpty() ? Component.literal(entry.item().description())
-				: Component.translatable("orbit_cosmetic.menu.by", entry.item().author())).copy().withStyle(ChatFormatting.GRAY);
-			case BundleEntry bundle -> Component.translatable("orbit_cosmetic.menu.bundle.contents",
-				String.join(", ", bundle.bundle().items().stream().map(CatalogItem::name).toList())).withStyle(ChatFormatting.GRAY);
-			case null -> section == Section.EMOTES ? Component.empty() : Component.translatable("orbit_cosmetic.menu.select").withStyle(ChatFormatting.GRAY);
-		};
+			FeaturedCheck.State featured = entry.isFeatured() ? check(entry).state() : null;
+			if (featured == FeaturedCheck.State.OUTDATED) {
+				line = Component.translatable("orbit_cosmetic.menu.featured.outdated").withStyle(ChatFormatting.YELLOW);
+			}
+			if (featured == FeaturedCheck.State.UNFEATURED) {
+				line = Component.translatable("orbit_cosmetic.menu.featured.unfeatured").withStyle(ChatFormatting.GRAY);
+			}
+			line = orbit().cosmeticStatus(entry).detail().copy().withStyle(ChatFormatting.GRAY);
+		} else if (selected instanceof MyEmote emote) {
+			line = Component.translatable(orbit().emotes().mode(emote.emote()) == EmoteMode.MOBILE ? "orbit_cosmetic.menu.emote.mobile_hint" : "orbit_cosmetic.menu.emote.standard_hint").withStyle(ChatFormatting.GRAY);
+		} else if (selected instanceof CatalogEntry entry) {
+			line = (entry.item().author().isEmpty() ? Component.literal(entry.item().description()) : Component.translatable("orbit_cosmetic.menu.by", entry.item().author())).copy().withStyle(ChatFormatting.GRAY);
+		} else if (selected instanceof BundleEntry bundle) {
+			line = Component.translatable("orbit_cosmetic.menu.bundle.contents", String.join(", ", bundle.bundle().items().stream().map(CatalogItem::name).toList())).withStyle(ChatFormatting.GRAY);
+		} else if (selected == null) {
+			line = section == Section.EMOTES ? Component.empty() : Component.translatable("orbit_cosmetic.menu.select").withStyle(ChatFormatting.GRAY);
+		} else {
+			throw new IllegalStateException("unexpected " + selected);
+		}
 		List<FormattedCharSequence> lines = font.split(line, rightW - PAD * 2);
 		for (int i = 0; i < Math.min(2, lines.size()); i++) {
 			graphics.text(font, lines.get(i), rightX + PAD, y + 2 + i * 9, Theme.MUTED, false);

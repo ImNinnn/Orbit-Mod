@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.common.util.Clamp;
 import dev.orbit.cosmetic.client.platform.OrbitPlatform;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import com.google.gson.JsonArray;
@@ -88,7 +89,7 @@ public final class StatsScreen extends OrbitScreen {
 
 	/** The outfit column. */
 	private int side() {
-		return Math.clamp(pw() * 24 / 100, 60, SIDE);
+		return Clamp.clamp(pw() * 24 / 100, 60, SIDE);
 	}
 
 	private int left() {
@@ -138,7 +139,8 @@ public final class StatsScreen extends OrbitScreen {
 		if (own) {
 			return orbit().account().statsColor;
 		}
-		return page != null && page.get("color") instanceof JsonElement color && color.isJsonPrimitive() ? color.getAsInt() & 0xFFFFFF : 0x5A5A66;
+		JsonElement color = page == null ? null : page.get("color");
+		return color != null && color.isJsonPrimitive() ? color.getAsInt() & 0xFFFFFF : 0x5A5A66;
 	}
 
 	private @Nullable JsonObject stats() {
@@ -146,11 +148,13 @@ public final class StatsScreen extends OrbitScreen {
 	}
 
 	private static long number(@Nullable JsonObject json, String key) {
-		return json != null && json.get(key) instanceof JsonElement value && value.isJsonPrimitive() ? value.getAsLong() : 0;
+		JsonElement value = json == null ? null : json.get(key);
+		return value != null && value.isJsonPrimitive() ? value.getAsLong() : 0;
 	}
 
 	private static String text(@Nullable JsonObject json, String key) {
-		return json != null && json.get(key) instanceof JsonElement value && value.isJsonPrimitive() ? value.getAsString() : "";
+		JsonElement value = json == null ? null : json.get(key);
+		return value != null && value.isJsonPrimitive() ? value.getAsString() : "";
 	}
 
 	@Override
@@ -180,7 +184,7 @@ public final class StatsScreen extends OrbitScreen {
 		// The description, up to four lines (as many as fit above the tiles).
 		String description = own ? orbit().account().description : text(stats, "description");
 		int dy = y + 66;
-		int lines = Math.clamp((y + ph() - 2 * (TILE_H + 4) - 22 - 4 - dy) / 10, 0, 4);
+		int lines = Clamp.clamp((y + ph() - 2 * (TILE_H + 4) - 22 - 4 - dy) / 10, 0, 4);
 		if (!description.isBlank()) {
 			for (FormattedCharSequence line : font.split(Component.literal(description), contentW).stream().limit(lines).toList()) {
 				graphics.text(font, line, x + 8, dy, Theme.TEXT, false);

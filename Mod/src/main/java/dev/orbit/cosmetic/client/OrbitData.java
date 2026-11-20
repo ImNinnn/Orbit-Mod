@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client;
 
+import dev.orbit.cosmetic.common.util.Clamp;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParseException;
@@ -146,7 +147,7 @@ public final class OrbitData {
 			if (settings == null) {
 				settings = new Settings();
 			}
-			settings.jokeCoinBalance = Math.clamp(settings.jokeCoinBalance, 0, 999_999_999L);
+			settings.jokeCoinBalance = Clamp.clamp(settings.jokeCoinBalance, 0, 999_999_999L);
 			if (settings.termsAccepted == null) {
 				settings.termsAccepted = "";
 			}

@@ -4,6 +4,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.ConnectScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.multiplayer.ServerData;
+//? if >=1.20.5
 import net.minecraft.client.multiplayer.TransferState;
 import net.minecraft.client.multiplayer.resolver.ServerAddress;
 import org.jspecify.annotations.Nullable;
@@ -15,6 +16,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /** Every way of joining a server goes here: in a party, the player first chooses alone or with the party. */
 @Mixin(ConnectScreen.class)
 abstract class ConnectScreenMixin {
+	//? if >=1.20.5 {
 	@Inject(method = "startConnecting", at = @At("HEAD"), cancellable = true)
 	private static void orbit$askParty(Screen parent, Minecraft minecraft, ServerAddress address, ServerData data, boolean quickPlay, @Nullable TransferState transfer,
 		CallbackInfo ci) {
@@ -27,4 +29,15 @@ abstract class ConnectScreenMixin {
 			ci.cancel();
 		}
 	}
+	//?} else {
+	/*// Before 1.20.5 servers cannot send players on.
+	@Inject(method = "startConnecting", at = @At("HEAD"), cancellable = true)
+	private static void orbit$askParty(Screen parent, Minecraft minecraft, ServerAddress address, ServerData data, boolean quickPlay, CallbackInfo ci) {
+		String shown = address.getPort() == 25565 ? address.getHost() : address.getHost() + ":" + address.getPort();
+		if (dev.orbit.cosmetic.client.social.PartyVote.interceptConnect(parent, shown, data,
+			() -> ConnectScreen.startConnecting(parent, minecraft, address, data, quickPlay))) {
+			ci.cancel();
+		}
+	}
+	*///?}
 }

@@ -1,5 +1,7 @@
 package dev.orbit.cosmetic.client.social;
 
+import dev.orbit.cosmetic.common.util.Lists;
+import dev.orbit.cosmetic.common.util.Clamp;
 import dev.orbit.cosmetic.client.platform.OrbitPlatform;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import com.google.gson.JsonArray;
@@ -114,7 +116,7 @@ public final class FloatingChats {
 			window.x = Math.max(0, minecraft.getWindow().getGuiScaledWidth() - window.w - 8 - offset);
 			window.y = 30 + offset;
 			List<Social.Entry> chat = OrbitClient.get().social().chat(friend);
-			window.lastId = chat.isEmpty() ? null : chat.getLast().id();
+			window.lastId = chat.isEmpty() ? null : Lists.last(chat).id();
 		} else {
 			WINDOWS.remove(window);
 		}
@@ -214,8 +216,8 @@ public final class FloatingChats {
 	private static void clampTo(Window window, int screenW, int screenH) {
 		window.w = Math.min(window.w, screenW);
 		window.h = Math.min(window.h, screenH);
-		window.x = Math.clamp(window.x, 0, Math.max(0, screenW - window.w));
-		window.y = Math.clamp(window.y, 0, Math.max(0, screenH - window.h));
+		window.x = Clamp.clamp(window.x, 0, Math.max(0, screenW - window.w));
+		window.y = Clamp.clamp(window.y, 0, Math.max(0, screenH - window.h));
 	}
 
 	/** True when this conversation has a floating window (it shows new messages, so no popup is needed). */
@@ -298,7 +300,7 @@ public final class FloatingChats {
 		for (Window window : List.copyOf(WINDOWS)) {
 			// News: the window shows again.
 			List<Social.Entry> chat = social.chat(window.friend);
-			String last = chat.isEmpty() ? null : chat.getLast().id();
+			String last = chat.isEmpty() ? null : Lists.last(chat).id();
 			if (last != null && !last.equals(window.lastId)) {
 				window.lastId = last;
 				window.hidden = false;
@@ -389,7 +391,7 @@ public final class FloatingChats {
 		}
 		graphics.disableScissor();
 		window.maxScroll = Math.max(0, height - (bottom - top) + 4);
-		window.scroll = Math.clamp(window.scroll, 0, window.maxScroll);
+		window.scroll = Clamp.clamp(window.scroll, 0, window.maxScroll);
 		if (chat.isEmpty()) {
 			graphics.centeredText(font, Component.translatable("orbit_cosmetic.social.say_hi").withStyle(ChatFormatting.GRAY), x + w / 2, (top + bottom) / 2 - 4, Theme.TEXT);
 		}
@@ -426,8 +428,8 @@ public final class FloatingChats {
 			return;
 		}
 		if (resizing) {
-			window.w = Math.clamp(mouseX - window.x + dragX, MIN_W, Math.max(MIN_W, screenW - window.x));
-			window.h = Math.clamp(mouseY - window.y + dragY, MIN_H, Math.max(MIN_H, screenH - window.y));
+			window.w = Clamp.clamp(mouseX - window.x + dragX, MIN_W, Math.max(MIN_W, screenW - window.x));
+			window.h = Clamp.clamp(mouseY - window.y + dragY, MIN_H, Math.max(MIN_H, screenH - window.y));
 		} else {
 			window.x = mouseX - dragX;
 			window.y = mouseY - dragY;
@@ -558,7 +560,7 @@ public final class FloatingChats {
 		if (window == null || window.hidden) {
 			return false;
 		}
-		window.scroll = Math.clamp(window.scroll + (int) Math.round(amount * 12), 0, window.maxScroll);
+		window.scroll = Clamp.clamp(window.scroll + (int) Math.round(amount * 12), 0, window.maxScroll);
 		window.active = System.currentTimeMillis();
 		return true;
 	}

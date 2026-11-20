@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.hud;
 
+import dev.orbit.cosmetic.common.util.Clamp;
 import dev.orbit.cosmetic.client.platform.OrbitPlatform;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import com.google.gson.JsonObject;
@@ -311,7 +312,7 @@ public final class HudComponent {
 			case CENTER -> point - w / 2F;
 			default -> point;
 		});
-		return Math.clamp(x, 0, Math.max(0, screenWidth - w));
+		return Clamp.clamp(x, 0, Math.max(0, screenWidth - w));
 	}
 
 	/** Where it was put down, on its own. */
@@ -390,7 +391,7 @@ public final class HudComponent {
 			LocalPlayer player = player();
 			if (player != null) {
 				// Held to the body: turned to its angle, swinging a little as the player turns, the head as the player's.
-				float head = Math.clamp(Mth.wrapDegrees(player.yHeadRot - player.yBodyRot), -75, 75);
+				float head = Clamp.clamp(Mth.wrapDegrees(player.yHeadRot - player.yBodyRot), -75, 75);
 				HudDoll.draw(graphics, player, x + 2, y + 2, x + w - 2, y + h - 2, rotation + HudInput.sway(), head, player.getXRot());
 			} else if (preview) {
 				drawDollPlaceholder(graphics, x, y, w, h);

@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.screenshot;
 
+import dev.orbit.cosmetic.common.util.Lists;
 import dev.orbit.cosmetic.client.Notifications;
 import dev.orbit.cosmetic.client.OrbitClient;
 import net.minecraft.client.Minecraft;
@@ -57,7 +58,7 @@ public final class ImageClipboard {
 		for (List<String> command : commands) {
 			try {
 				ProcessBuilder builder = new ProcessBuilder(command).redirectErrorStream(true);
-				if (command.getFirst().equals("wl-copy")) {
+				if (Lists.first(command).equals("wl-copy")) {
 					// wl-copy reads the image from its input and keeps serving it after this returns.
 					builder.redirectInput(image.toFile());
 				}

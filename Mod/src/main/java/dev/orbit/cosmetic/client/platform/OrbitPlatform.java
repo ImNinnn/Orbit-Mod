@@ -289,7 +289,11 @@ public final class OrbitPlatform {
 
 	public static void hudOnTop(Identifier id, HudLayer layer) {
 		if (ON_TOP.isEmpty()) {
+			//? if >=1.21 {
 			HudRenderCallback.EVENT.register((graphics, tick) -> drawHud(ON_TOP, graphics, tick.getGameTimeDeltaPartialTick(false)));
+			//?} else {
+			/^HudRenderCallback.EVENT.register((graphics, partialTick) -> drawHud(ON_TOP, graphics, partialTick));
+			^///?}
 		}
 		ON_TOP.add(new NamedLayer(id, layer));
 	}

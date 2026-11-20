@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.common.util.Lists;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.Notifications;
 import dev.orbit.cosmetic.client.OrbitClient;
@@ -27,7 +28,7 @@ public final class ReportScreen extends OrbitScreen {
 	private final UUID player;
 	private final String name;
 	private final List<String> cosmetics;
-	private String reason = REASONS.getFirst();
+	private String reason = Lists.first(REASONS);
 	private EditBox note;
 	private FlatButton send;
 	private Component status;

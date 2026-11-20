@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.common.util.Clamp;
 import dev.orbit.cosmetic.client.platform.OrbitPlatform;
 import dev.orbit.cosmetic.client.input.OrbitClick;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
@@ -293,7 +294,7 @@ public final class OrbitSettingsScreen extends OrbitScreen {
 		panelX = Math.max(30, (width - panelW) / 2);
 		panelW = Math.min(panelW, width - panelX - 8);
 		panelY = (height - panelH) / 2;
-		sideW = Math.clamp(panelW / 4, 96, 130);
+		sideW = Clamp.clamp(panelW / 4, 96, 130);
 		contentX = panelX + sideW + 8;
 		contentY = panelY + HEADER + 6;
 		contentW = panelW - sideW - 20;
@@ -305,7 +306,11 @@ public final class OrbitSettingsScreen extends OrbitScreen {
 			String[] link = links[i];
 			Component label = Component.translatable("orbit_cosmetic.settings.link." + link[0]);
 			FlatButton button = addRenderableWidget(FlatButton.icon(panelX + panelW - 22 - i * 20, panelY + 3, 16, link[0], label, FlatButton.Style.GHOST,
+				//? if >=1.20.2 {
 				b -> net.minecraft.client.gui.screens.ConfirmLinkScreen.confirmLinkNow(this, java.net.URI.create(link[1]), true)));
+				//?} else {
+				/*b -> net.minecraft.client.gui.screens.ConfirmLinkScreen.confirmLinkNow(link[1], this, true)));
+				*///?}
 			button.setTooltip(net.minecraft.client.gui.components.Tooltip.create(label));
 		}
 		int y = panelY + HEADER + 4;

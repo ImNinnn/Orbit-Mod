@@ -4,7 +4,6 @@ import net.minecraft.client.gui.Gui;
 import org.spongepowered.asm.mixin.Mixin;
 //? if <1.21.6 {
 /*import dev.orbit.cosmetic.client.platform.OrbitPlatform;
-import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -17,10 +16,17 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  */
 @Mixin(Gui.class)
 abstract class GuiChatMixin {
-	//? if <1.21.6 {
+	//? if >=1.21 <1.21.6 {
 	/*@Inject(method = "renderChat(Lnet/minecraft/client/gui/GuiGraphicsExtractor;Lnet/minecraft/client/DeltaTracker;)V", at = @At("HEAD"))
-	private void orbit$underChat(GuiGraphicsExtractor graphics, DeltaTracker tick, CallbackInfo ci) {
+	private void orbit$underChat(GuiGraphicsExtractor graphics, net.minecraft.client.DeltaTracker tick, CallbackInfo ci) {
 		OrbitPlatform.drawUnderChat(graphics, tick.getGameTimeDeltaPartialTick(false));
+	}
+	*///?} else if <1.21 {
+	/*// Before 1.21 the HUD draws the chat in its own drawing.
+	@Inject(method = "render(Lnet/minecraft/client/gui/GuiGraphicsExtractor;F)V", at = @At(value = "INVOKE",
+		target = "Lnet/minecraft/client/gui/components/ChatComponent;render(Lnet/minecraft/client/gui/GuiGraphicsExtractor;III)V"))
+	private void orbit$underChat(GuiGraphicsExtractor graphics, float partialTick, CallbackInfo ci) {
+		OrbitPlatform.drawUnderChat(graphics, partialTick);
 	}
 	*///?}
 }

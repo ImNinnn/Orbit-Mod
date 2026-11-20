@@ -34,8 +34,8 @@ public abstract class OrbitBaseScreen extends Screen {
 	@Override
 	public final void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
 		//? if <1.21.6 {
-		/*// Before 1.21.6 the game asks a screen for its background from within its own drawing, before the widgets: it
-		// is drawn first here instead, as later versions do.
+		/*// Before 1.21.6 the game asks a screen for its background from within its own drawing, before the widgets (and
+		// before 1.20.2 not at all): it is drawn first here instead, as later versions do.
 		drawBackground(OrbitGraphics.of(graphics), mouseX, mouseY, partialTick);
 		*///?}
 		draw(OrbitGraphics.of(graphics), mouseX, mouseY, partialTick);
@@ -60,6 +60,7 @@ public abstract class OrbitBaseScreen extends Screen {
 		*///?}
 	}
 
+	//? if >=1.20.2 {
 	@Override
 	public final void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
 		//? if <1.21.6 {
@@ -69,6 +70,8 @@ public abstract class OrbitBaseScreen extends Screen {
 		*///?}
 		drawBackground(OrbitGraphics.of(graphics), mouseX, mouseY, partialTick);
 	}
+	//?}
+	// (Before 1.20.2 a screen draws its background itself, as this one does in extractRenderState.)
 
 	/** The screen's background: by default Minecraft's own (see {@link #drawMinecraftBackground}). */
 	protected void drawBackground(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
@@ -77,8 +80,27 @@ public abstract class OrbitBaseScreen extends Screen {
 
 	/** Minecraft's own menu background (the blurred world, or the panorama). */
 	protected final void drawMinecraftBackground(OrbitGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		//? if >=1.20.2 {
 		super.extractBackground(graphics.raw(), mouseX, mouseY, partialTick);
+		//?} else {
+		/*super.extractBackground(graphics.raw());
+		*///?}
 	}
+
+	//? if <1.20.2 {
+	/*/^*
+	 * Before 1.20.2 the mouse wheel only scrolls up and down: Orbit's screens take it as the later two amounts
+	 * (sideways, then up and down), and their {@code super} calls come back to Minecraft here.
+	 ^/
+	@Override
+	public final boolean mouseScrolled(double mouseX, double mouseY, double amount) {
+		return mouseScrolled(mouseX, mouseY, 0, amount);
+	}
+
+	public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+		return super.mouseScrolled(mouseX, mouseY, scrollY);
+	}
+	*///?}
 
 	// ---------------------------------------------------------------- input
 

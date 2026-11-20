@@ -56,9 +56,9 @@ abstract class ScreenshotMixin {
 			return open.file();
 		}
 			//?} else {
-			/*&& contents.getArgs()[0] instanceof Component name && name.getStyle().getClickEvent() instanceof ClickEvent event
-			&& event.getAction() == ClickEvent.Action.OPEN_FILE) {
-			return new File(event.getValue());
+			/*&& contents.getArgs()[0] instanceof Component name && name.getStyle().getClickEvent() != null
+			&& name.getStyle().getClickEvent().getAction() == ClickEvent.Action.OPEN_FILE) {
+			return new File(name.getStyle().getClickEvent().getValue());
 		}
 			*///?}
 		return null;

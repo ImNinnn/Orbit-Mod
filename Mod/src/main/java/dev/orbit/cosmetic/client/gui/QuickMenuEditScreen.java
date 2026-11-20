@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.common.util.Clamp;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.OrbitClient;
 import dev.orbit.cosmetic.client.gui.ui.FlatButton;
@@ -49,7 +50,7 @@ public final class QuickMenuEditScreen extends OrbitScreen {
 
 	private int square() {
 		int[] panel = panel();
-		return Math.clamp((panel[3] - 64) / 3, 30, 56);
+		return Clamp.clamp((panel[3] - 64) / 3, 30, 56);
 	}
 
 	private int listX() {
@@ -129,7 +130,7 @@ public final class QuickMenuEditScreen extends OrbitScreen {
 		int lx = listX();
 		int lw = panel[0] + panel[2] - 8 - lx;
 		int ly = panel[1] + 26;
-		scroll = Math.clamp(scroll, 0, Math.max(0, choices.size() - visibleRows()));
+		scroll = Clamp.clamp(scroll, 0, Math.max(0, choices.size() - visibleRows()));
 		for (int i = 0; i < visibleRows() && scroll + i < choices.size(); i++) {
 			Choice choice = choices.get(scroll + i);
 			if (choice.action() == null) {
@@ -149,7 +150,7 @@ public final class QuickMenuEditScreen extends OrbitScreen {
 
 	@Override
 	public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-		scroll = Math.clamp(scroll - (int) Math.signum(scrollY) * 2, 0, Math.max(0, choices.size() - visibleRows()));
+		scroll = Clamp.clamp(scroll - (int) Math.signum(scrollY) * 2, 0, Math.max(0, choices.size() - visibleRows()));
 		rebuildWidgets();
 		return true;
 	}

@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.gui;
 
+import dev.orbit.cosmetic.common.util.Clamp;
 import dev.orbit.cosmetic.client.gfx.OrbitGraphics;
 import dev.orbit.cosmetic.client.gui.ui.FlatButton;
 import dev.orbit.cosmetic.client.gui.ui.FlatCycle;
@@ -176,7 +177,7 @@ public final class AnimationSettingsScreen extends OrbitScreen {
 			})).active = page < pages - 1;
 		}
 		// Narrower with page buttons, so the page number fits beside them.
-		int footerW = pages > 1 ? Math.clamp(width / 2 - 4 - left - 76, 60, 150) : 150;
+		int footerW = pages > 1 ? Clamp.clamp(width / 2 - 4 - left - 76, 60, 150) : 150;
 		FlatButton reset = addRenderableWidget(new FlatButton(width / 2 - footerW - 4, footerY, footerW, 20, Component.translatable("orbit_cosmetic.animations.reset"), null, FlatButton.Style.SECONDARY, b -> {
 			OrbitClient.get().library().resetAnimationSettings(cosmetic);
 			OrbitClient.get().library().resetTextureAnimations(cosmetic);

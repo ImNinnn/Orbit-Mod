@@ -1,5 +1,6 @@
 package dev.orbit.cosmetic.client.render;
 
+import dev.orbit.cosmetic.common.util.Clamp;
 import dev.orbit.cosmetic.client.gfx.OrbitCanvas;
 import dev.orbit.cosmetic.client.gfx.OrbitTextures;
 import dev.orbit.cosmetic.client.gfx.OrbitImage;
@@ -179,7 +180,7 @@ public final class BakedCosmetic {
 
 	/** The colour shown for a style: the average colour of its texture. */
 	public int styleColor(int style) {
-		return styleColors[Math.clamp(style, 0, styleColors.length - 1)];
+		return styleColors[Clamp.clamp(style, 0, styleColors.length - 1)];
 	}
 
 	int textureCount() {

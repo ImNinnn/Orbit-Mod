@@ -1,5 +1,7 @@
 package dev.orbit.cosmetic.client.social;
 
+import dev.orbit.cosmetic.common.util.Lists;
+import dev.orbit.cosmetic.common.util.Clamp;
 import dev.orbit.cosmetic.client.input.OrbitChar;
 import dev.orbit.cosmetic.client.input.OrbitClick;
 import dev.orbit.cosmetic.client.input.OrbitKey;
@@ -437,7 +439,7 @@ public final class SocialScreen extends OrbitScreen {
 				index = i;
 			}
 		}
-		int next = index < 0 ? 0 : Math.clamp(index + step, 0, conversations.size() - 1);
+		int next = index < 0 ? 0 : Clamp.clamp(index + step, 0, conversations.size() - 1);
 		if (next != index) {
 			openChat(conversations.get(next).uuid());
 		}
@@ -493,14 +495,18 @@ public final class SocialScreen extends OrbitScreen {
 
 	/** The message box's height for its lines (one line: as tall as the buttons; up to five, then it scrolls). */
 	private int inputHeight() {
-		return input == null ? 18 : Math.clamp(input.getInnerHeight() + 8, 18, 8 + 9 * 5);
+		return input == null ? 18 : Clamp.clamp(input.getInnerHeight() + 8, 18, 8 + 9 * 5);
 	}
 
 	private void layoutInput() {
 		if (input != null) {
 			int h = inputHeight();
 			if (h != input.getHeight()) {
+				//? if >=1.20.2 {
 				input.setHeight(h);
+				//?} else {
+				/*((dev.orbit.cosmetic.client.mixin.AbstractWidgetAccessor) input).orbit$setHeight(h);
+				*///?}
 				input.setY(py() + ph() - PAD - h);
 				// Scrolled while it was smaller: everything shows again (or as much as fits).
 				//? if >=1.21.6 {
@@ -668,11 +674,11 @@ public final class SocialScreen extends OrbitScreen {
 		int fits = Math.max(1, (bottom - top) / ROW);
 		for (int i = 0; open != null && !open.equals(scrolledTo) && i < conversations.size(); i++) {
 			if (conversations.get(i).uuid().equals(open)) {
-				listScroll = Math.clamp(listScroll, Math.max(0, i - fits + 1), i);
+				listScroll = Clamp.clamp(listScroll, Math.max(0, i - fits + 1), i);
 				scrolledTo = open;
 			}
 		}
-		listScroll = Math.clamp(listScroll, 0, Math.max(0, conversations.size() - fits));
+		listScroll = Clamp.clamp(listScroll, 0, Math.max(0, conversations.size() - fits));
 		int y = top;
 		for (int i = listScroll; i < conversations.size() && y + ROW <= bottom; i++) {
 			Social.Person person = conversations.get(i);
@@ -702,13 +708,13 @@ public final class SocialScreen extends OrbitScreen {
 			}
 			List<Social.Entry> chat = social().chat(uuid);
 			Component preview = chat.isEmpty() ? Component.translatable("orbit_cosmetic.social.say_hi")
-				: chat.getLast().deleted() ? Component.translatable("orbit_cosmetic.social.deleted")
-				: Component.literal(chat.getLast().content() == null ? "…" : Social.preview(chat.getLast().content()));
+				: Lists.last(chat).deleted() ? Component.translatable("orbit_cosmetic.social.deleted")
+				: Component.literal(Lists.last(chat).content() == null ? "…" : Social.preview(Lists.last(chat).content()));
 			int unread = social().unread(uuid);
 			int badge = unread > 0 ? font.width(String.valueOf(Math.min(99, unread))) + 10 : 0;
 			graphics.text(font, Theme.clip(font, preview.copy().withStyle(ChatFormatting.GRAY), LIST - 34 - badge), x + 28, y + 15, Theme.TEXT, false);
 			if (!chat.isEmpty()) {
-				String date = when(chat.getLast().at());
+				String date = when(Lists.last(chat).at());
 				graphics.text(font, date, x + LIST - 6 - font.width(date), y + 4, Theme.FAINT, false);
 			}
 			if (unread > 0) {
@@ -833,7 +839,7 @@ public final class SocialScreen extends OrbitScreen {
 		Social.Party party = social.party();
 		if (party != null && party.chat().equals(group.id()) && social.inParty(uuid) && PartyVote.place(uuid) != null) {
 			// A party member playing elsewhere: join them there.
-			actions.addFirst(Map.entry(Component.translatable("orbit_cosmetic.party.join_member", name), () -> PartyVote.joinMember(this, uuid)));
+			actions.add(0, Map.entry(Component.translatable("orbit_cosmetic.party.join_member", name), () -> PartyVote.joinMember(this, uuid)));
 		}
 		if (group.owner().equals(social.me())) {
 			actions.add(Map.entry(Component.translatable("orbit_cosmetic.social.group.make_leader", name),
@@ -1259,10 +1265,10 @@ public final class SocialScreen extends OrbitScreen {
 		int textX = cx + 44;
 		int textW = cw - 44 - 54;
 		graphics.text(font, Theme.clip(font, Component.literal(name != null ? name : address), textW), textX, y + 6, Theme.TEXT, false);
-		boolean answered = data.state() == ServerData.State.SUCCESSFUL;
+		boolean answered = ServerLinks.ping(data) == ServerLinks.Ping.ANSWERED;
 		Component motd = answered && data.motd != null ? data.motd
 			: sharedMotd != null ? Component.literal(sharedMotd)
-			: data.state() == ServerData.State.UNREACHABLE ? Component.translatable("orbit_cosmetic.social.server.offline")
+			: ServerLinks.ping(data) == ServerLinks.Ping.UNREACHABLE ? Component.translatable("orbit_cosmetic.social.server.offline")
 			: Component.literal(address);
 		int ly = y + 17;
 		for (FormattedCharSequence line : font.split(motd.copy().withStyle(style -> style.getColor() == null ? style.withColor(ChatFormatting.GRAY) : style), textW).stream()
@@ -1272,7 +1278,7 @@ public final class SocialScreen extends OrbitScreen {
 		}
 		if (answered && data.status != null) {
 			graphics.text(font, data.status, cx + cw - 6 - font.width(data.status), y + 6, Theme.MUTED, false);
-		} else if (data.state() == ServerData.State.UNREACHABLE) {
+		} else if (ServerLinks.ping(data) == ServerLinks.Ping.UNREACHABLE) {
 			Component offline = Component.translatable("orbit_cosmetic.social.server.down").withStyle(ChatFormatting.RED);
 			graphics.text(font, offline, cx + cw - 6 - font.width(offline), y + 6, Theme.TEXT, false);
 		}

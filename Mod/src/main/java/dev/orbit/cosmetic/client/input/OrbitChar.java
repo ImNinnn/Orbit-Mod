@@ -62,7 +62,11 @@ public final class OrbitChar {
 
 	/^* Whether it may be typed in a chat message (not a control character). ^/
 	public boolean isAllowedChatCharacter() {
+		//? if >=1.20.2 {
 		return StringUtil.isAllowedChatCharacter(character);
+		//?} else {
+		/^return net.minecraft.SharedConstants.isAllowedChatCharacter(character);
+		^///?}
 	}
 
 	/^* Types the character into a text box, or anything that takes typing (as if it had been typed there). ^/
