@@ -2,9 +2,9 @@
 
 **Website: [orbitcosmetics.dev](https://orbitcosmetics.dev)** · [Creator guide](https://orbitcosmetics.dev/guide.html)
 
-Orbit (the Orbit Mod) for Minecraft Java Edition **26.x**: wear your own Blockbench cosmetics and play emotes that
-other Orbit players see on any server, chat with your friends, host your worlds for them, manage your screenshots
-and zoom.
+Orbit (the Orbit Mod) for Minecraft Java Edition **1.20.1 to 26.3** (Fabric, Forge 1.20.1, NeoForge 1.21.1): wear
+your own Blockbench cosmetics and play emotes that other Orbit players see on any server, chat with your friends,
+play in parties, host your worlds for them, manage your screenshots and zoom.
 
 * Put cosmetics in `Orbit/Cosmetics/<name>/` and emotes in `Orbit/Emotes/<name>/`, then pick them in the Orbit menu.
   No resource packs, no restarts, no converting.

@@ -207,6 +207,12 @@ pre code {
 	text-align: center;
 }
 
+/* A loader's group of download buttons. */
+h3.loader {
+	text-align: center;
+	margin: 28px 0 4px;
+}
+
 .button-row {
 	display: flex;
 	flex-wrap: wrap;
