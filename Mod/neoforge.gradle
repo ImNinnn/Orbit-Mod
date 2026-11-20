@@ -58,8 +58,39 @@ neoForge {
 					jvmArguments.add("-Dorbit.devPlayer=${System.getenv('ORBIT_TEST_DEV_PLAYER')}")
 				}
 				if (System.getenv('ORBIT_TEST_ROLE') != 'title') {
-					programArguments.addAll('--quickPlayMultiplayer', 'localhost:25599')
+					// Or a singleplayer world from the run's saves (ORBIT_TEST_WORLD), for mods that need a modded server.
+					programArguments.addAll(System.getenv('ORBIT_TEST_WORLD') ? ['--quickPlaySingleplayer', System.getenv('ORBIT_TEST_WORLD')] : ['--quickPlayMultiplayer', 'localhost:25599'])
 				}
+			}
+		}
+	}
+}
+
+// The harness as a jar of its own, for checks in a normal (non-development) game: with mods that only run there.
+if (harness) {
+	def testmodJar = tasks.register('testmodJar', Jar) {
+		from sourceSets.testmod.output
+		archiveClassifier = 'testmod'
+	}
+}
+
+// Other mods in development runs, for compatibility tests: ORBIT_TEST_MODS="embeddium:UTbfe5d1 oculus:iQ1SwGc3" (Modrinth
+// projects and versions, each mod's own dependencies listed too) for the project ORBIT_TEST_MODS_PROJECT names
+// ("1.20.1-forge"). Never part of a release.
+if (System.getenv('ORBIT_TEST_MODS') && System.getenv('ORBIT_TEST_MODS_PROJECT') == project.name) {
+	repositories {
+		maven {
+			name = 'Modrinth'
+			url = 'https://api.modrinth.com/maven'
+			content {
+				includeGroup 'maven.modrinth'
+			}
+		}
+	}
+	dependencies {
+		System.getenv('ORBIT_TEST_MODS').trim().split(/\s+/).each { mod ->
+			runtimeOnly("maven.modrinth:${mod}") {
+				transitive = false
 			}
 		}
 	}

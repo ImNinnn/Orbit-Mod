@@ -71,7 +71,8 @@ loom {
 			}
 			// The "title" role stays on the title screen; the others join the local test server.
 			if (System.getenv('ORBIT_TEST_ROLE') != 'title') {
-				programArgs '--quickPlayMultiplayer', 'localhost:25599'
+				// Or a singleplayer world from the run's saves (ORBIT_TEST_WORLD), for mods that need a modded server.
+				programArgs(*(System.getenv('ORBIT_TEST_WORLD') ? ['--quickPlaySingleplayer', System.getenv('ORBIT_TEST_WORLD')] : ['--quickPlayMultiplayer', 'localhost:25599']))
 			}
 		}
 	}
@@ -96,6 +97,28 @@ dependencies {
 		implementation "net.fabricmc:fabric-loader:${loader_version}"
 		implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 		compileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
+	}
+}
+
+// Other mods in development runs, for compatibility tests: ORBIT_TEST_MODS="embeddium:UTbfe5d1 oculus:iQ1SwGc3" (Modrinth
+// projects and versions, each mod's own dependencies listed too) for the project ORBIT_TEST_MODS_PROJECT names
+// ("1.20.1-forge"). Never part of a release.
+if (System.getenv('ORBIT_TEST_MODS') && System.getenv('ORBIT_TEST_MODS_PROJECT') == project.name) {
+	repositories {
+		maven {
+			name = 'Modrinth'
+			url = 'https://api.modrinth.com/maven'
+			content {
+				includeGroup 'maven.modrinth'
+			}
+		}
+	}
+	dependencies {
+		System.getenv('ORBIT_TEST_MODS').trim().split(/\s+/).each { mod ->
+			"${obfuscated ? 'modRuntimeOnly' : 'runtimeOnly'}"("maven.modrinth:${mod}") {
+				transitive = false
+			}
+		}
 	}
 }
 
