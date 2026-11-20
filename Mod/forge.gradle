@@ -1,0 +1,112 @@
+// The Forge part of a client project's build (build.gradle applies it): ModDevGradle (Legacy) with Mojang's names,
+// the mixin annotation processor (Forge players' Minecraft uses Forge's own "SRG" names, which the refmap maps to),
+// and the reobfuscated jar players get. Forge builds are store builds only: no self-updater, no Mod Menu.
+
+// The development test harness (screenshots, diagnostics) is only on the maintainer's computer, not in the repository.
+def harness = file('../../src/testmod').isDirectory()
+
+// Fabric-only shared classes: the entrypoint, the self-updater and the Mod Menu button.
+sourceSets.main.java.exclude('dev/orbit/cosmetic/client/platform/OrbitFabric.java', 'dev/orbit/cosmetic/client/update/**',
+	'dev/orbit/cosmetic/client/gui/OrbitModMenu.java')
+sourceSets.main.resources.exclude('fabric.mod.json', 'orbit-release.pub')
+
+// Built and run on the Java that Minecraft version uses (Forge 1.20.1 is not made for newer ones).
+java.toolchain.languageVersion = JavaLanguageVersion.of(project.java_release as int)
+
+sourceSets {
+	if (harness) {
+		testmod {
+			compileClasspath += main.compileClasspath + main.output
+			runtimeClasspath += main.runtimeClasspath + main.output
+		}
+	}
+}
+
+legacyForge {
+	version = project.forge_version
+	mods {
+		"orbit_cosmetic" {
+			sourceSet sourceSets.main
+			sourceSet project(':common').sourceSets.main
+		}
+		if (harness) {
+			"orbit_cosmetic_testharness" {
+				sourceSet sourceSets.testmod
+			}
+		}
+	}
+	runs {
+		configureEach {
+			// A run directory per Minecraft version and loader, outside the source tree.
+			gameDirectory = file(System.getenv('ORBIT_RUN_DIR') ?: "../../../run/client-${project.minecraft_version}-forge")
+			jvmArguments.add('-Xmx2G')
+		}
+		client {
+			client()
+		}
+		if (harness) {
+			testClient {
+				client()
+				sourceSet = sourceSets.testmod
+				loadedMods = [mods.orbit_cosmetic, mods.orbit_cosmetic_testharness]
+				programArguments.addAll('--width', System.getenv('ORBIT_TEST_WIDTH') ?: '960', '--height', System.getenv('ORBIT_TEST_HEIGHT') ?: '540')
+				programArguments.addAll('--username', System.getenv('ORBIT_TEST_USERNAME') ?: 'OrbitTester')
+				if (System.getenv('ORBIT_TEST_BACKEND')) {
+					jvmArguments.add("-Dorbit.backendUrl=${System.getenv('ORBIT_TEST_BACKEND')}")
+				}
+				if (System.getenv('ORBIT_TEST_DEV_PLAYER')) {
+					jvmArguments.add("-Dorbit.devPlayer=${System.getenv('ORBIT_TEST_DEV_PLAYER')}")
+				}
+				if (System.getenv('ORBIT_TEST_ROLE') != 'title') {
+					programArguments.addAll('--quickPlayMultiplayer', 'localhost:25599')
+				}
+			}
+		}
+	}
+}
+
+mixin {
+	add sourceSets.main, 'orbit_cosmetic.refmap.json'
+	config 'orbit_cosmetic.mixins.json'
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+	// MixinExtras: its annotations go into the refmap too, and the jar carries it (Forge 1.20.1 has none).
+	compileOnly annotationProcessor("io.github.llamalad7:mixinextras-common:${project.mixinextras_version}")
+	implementation "io.github.llamalad7:mixinextras-forge:${project.mixinextras_version}"
+	jarJar "io.github.llamalad7:mixinextras-forge:${project.mixinextras_version}"
+	// The Log4j Minecraft brings (a library of Forge's asks for an older one, which would win otherwise).
+	constraints {
+		implementation 'org.apache.logging.log4j:log4j-core:2.19.0'
+	}
+}
+
+processResources {
+	// The description is Fabric's (one text for both).
+	def fabricJson = new groovy.json.JsonSlurper().parse(file('../../src/main/resources/fabric.mod.json'))
+	def properties = [version: project.version, minecraft: project.minecraft_dependency, java: project.java_release,
+		description: fabricJson.description]
+	inputs.properties properties
+	filesMatching(['META-INF/mods.toml', 'orbit_cosmetic.mixins.json']) {
+		expand properties
+	}
+	// Forge reads Mojang's names through the refmap.
+	filesMatching('orbit_cosmetic.mixins.json') {
+		filter { line -> line.contains('"package"') ? line + '\n\t"refmap": "orbit_cosmetic.refmap.json",' : line }
+	}
+}
+
+jar {
+	// Forge 1.20.1 finds a mod's mixins through its manifest.
+	manifest.attributes('MixinConfigs': 'orbit_cosmetic.mixins.json')
+}
+
+// The jar players get: Minecraft's names in it mapped back to Forge's.
+ext.releaseJar = 'reobfJar'
+// What goes to mod sites ("forge-1.20.1" in the store release's list).
+ext.storeJars = ["${loader}-${project.minecraft_version}": 'reobfJar']

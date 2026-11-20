@@ -1,5 +1,7 @@
 plugins {
 	id 'net.fabricmc.fabric-loom' version "${loom_version}" apply false
+	// Forge 1.20.1 (Mod/forge.gradle).
+	id 'net.neoforged.moddev.legacyforge' version "${moddev_version}" apply false
 }
 
 // The Java settings every project shares are in gradle/java.gradle (each project applies it).
@@ -22,8 +24,10 @@ plugins {
 
 def releaseKeyFile = file(System.getenv('ORBIT_RELEASE_KEY') ?: "${System.getProperty('user.home')}/.config/orbit-release.key")
 def publicKeyFile = file('Mod/src/main/resources/orbit-release.pub')
-// The client's version projects, as Stonecutter made them (settings.gradle lists the versions).
+// The client's version projects, as Stonecutter made them (settings.gradle lists the versions). Only the Fabric ones
+// (named by their Minecraft version alone) update themselves; Forge's ("1.20.1-forge") are for mod sites only.
 def clientProjects = project(':Mod').subprojects.collect { it.path }.sort()
+def selfUpdatingProjects = clientProjects.findAll { !it.contains('-') }
 
 tasks.register('releaseKey') {
 	group = 'orbit'
@@ -49,7 +53,7 @@ tasks.register('releaseKey') {
 tasks.register('publishRelease') {
 	group = 'orbit'
 	description = 'Builds, signs and publishes this version to the releases folder of Orbit Cloud.'
-	dependsOn clientProjects.collect { "${it}:build" }
+	dependsOn selfUpdatingProjects.collect { "${it}:build" }
 	doLast {
 		if (!releaseKeyFile.exists()) {
 			throw new GradleException("No release key at ${releaseKeyFile}: run ./gradlew releaseKey first")
@@ -73,7 +77,7 @@ tasks.register('publishRelease') {
 		project.delete(staging)
 		staging.mkdirs()
 		def files = [:]
-		clientProjects.each { path ->
+		selfUpdatingProjects.each { path ->
 			def client = project(path)
 			def jar = client.tasks.named(client.releaseJar).get().archiveFile.get().asFile
 			def target = client.minecraft_version
@@ -101,7 +105,7 @@ tasks.register('publishRelease') {
 tasks.register('storeRelease') {
 	group = 'orbit'
 	description = 'Builds the jars for mod sites (without self-updating) into the releases folder, as <version>-store.'
-	dependsOn clientProjects.collect { "${it}:storeJar" }
+	dependsOn clientProjects.collect { "${it}:build" }
 	doLast {
 		def version = project.mod_version
 		if (!(version ==~ /\d+\.\d+\.\d+/)) {
@@ -116,12 +120,15 @@ tasks.register('storeRelease') {
 		project.delete(staging)
 		staging.mkdirs()
 		def files = [:]
+		// Each project's jars for mod sites, by target: "1.21.1" (Fabric), "neoforge-1.21.1", "forge-1.20.1"...
 		clientProjects.each { path ->
 			def client = project(path)
-			def jar = client.tasks.named('storeJar').get().archiveFile.get().asFile
-			def bytes = jar.bytes
-			new File(staging, jar.name).bytes = bytes
-			files[client.minecraft_version] = [file: jar.name, size: bytes.length, sha256: java.security.MessageDigest.getInstance('SHA-256').digest(bytes).encodeHex().toString()]
+			client.storeJars.each { target, task ->
+				def jar = client.tasks.named(task).get().archiveFile.get().asFile
+				def bytes = jar.bytes
+				new File(staging, jar.name).bytes = bytes
+				files[target] = [file: jar.name, size: bytes.length, sha256: java.security.MessageDigest.getInstance('SHA-256').digest(bytes).encodeHex().toString()]
+			}
 		}
 		new File(staging, 'store.json').text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson([version: version, store: true, files: files])) + '\n'
 		if (!staging.renameTo(folder)) {

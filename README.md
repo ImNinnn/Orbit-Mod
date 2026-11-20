@@ -25,13 +25,28 @@ and zoom.
 * HUD components: FPS, coordinates, rotation, keystrokes, CPS and mouse, a paperdoll, the inventory, a compass
   ribbon and chat windows, placed and sized anywhere on the screen.
 
-| Minecraft | File |
-|---|---|
-| 26.1, 26.1.1, 26.1.2 | `Mod/versions/26.1/build/libs/orbit-mod-mc26.1-<version>.jar` |
-| 26.2 | `Mod/versions/26.2/build/libs/orbit-mod-mc26.2-<version>.jar` |
-| 26.3 | `Mod/versions/26.3/build/libs/orbit-mod-mc26.3-<version>.jar` |
+| Minecraft | Loader | File |
+|---|---|---|
+| 1.20.1 | Fabric | `Mod/versions/1.20.1/build/libs/orbit-mod-mc1.20.1-<version>.jar` |
+| 1.20.1 | Forge 47+ | `Mod/versions/1.20.1-forge/build/libs/orbit-mod-mc1.20.1-forge-<version>.jar` |
+| 1.21, 1.21.1 | Fabric | `Mod/versions/1.21.1/build/libs/orbit-mod-mc1.21.1-<version>.jar` |
+| 1.21.1 | NeoForge, with Sinytra Connector | `Mod/versions/1.21.1/build/libs/orbit-mod-mc1.21.1-neoforge-<version>.jar` |
+| 1.21.6, 1.21.7, 1.21.8 | Fabric | `Mod/versions/1.21.8/build/libs/orbit-mod-mc1.21.8-<version>.jar` |
+| 1.21.9, 1.21.10 | Fabric | `Mod/versions/1.21.10/build/libs/orbit-mod-mc1.21.10-<version>.jar` |
+| 1.21.11 | Fabric | `Mod/versions/1.21.11/build/libs/orbit-mod-mc1.21.11-<version>.jar` |
+| 26.1, 26.1.1, 26.1.2 | Fabric | `Mod/versions/26.1/build/libs/orbit-mod-mc26.1-<version>.jar` |
+| 26.2 | Fabric | `Mod/versions/26.2/build/libs/orbit-mod-mc26.2-<version>.jar` |
+| 26.3 | Fabric | `Mod/versions/26.3/build/libs/orbit-mod-mc26.3-<version>.jar` |
 
-Install the jar for your Minecraft version in `mods/`, with Fabric Loader 0.20.1+ and Fabric API. Java 25.
+Install the jar for your Minecraft version and loader in `mods/`:
+
+* Fabric: with Fabric Loader 0.20.1+ and Fabric API. Java 25 for 26.x, 21 for 1.21 to 1.21.11, 17 for 1.20.1.
+* Forge 1.20.1: Forge 47 or newer, nothing else.
+* NeoForge 1.21.1: with [Sinytra Connector](https://modrinth.com/mod/connector) and
+  [Forgified Fabric API](https://modrinth.com/mod/forgified-fabric-api), which run Fabric mods on NeoForge. This jar
+  is the Fabric one made for that (it asks for NeoForge and has no self-updater).
+
+The Forge and NeoForge jars are for mod sites and launchers, which update them: they do not update themselves.
 Orbit is client-only: servers do not need it.
 
 ## For players
@@ -652,14 +667,14 @@ time Minecraft starts. While the game runs, Orbit Cloud tells the game as soon a
 connection that brings messages), and you get a notification. Only a required update (Orbit Cloud needs a newer version) still asks before Minecraft
 loads.
 
-Mod sites (Modrinth, CurseForge) do not allow mods that update themselves, so every build also makes a
+Mod sites (Modrinth, CurseForge) do not allow mods that update themselves, so every Fabric build also makes a
 `-store` jar without the update check: it has no update code at all (the build checks this), and those sites
 update it instead. Without a full Java (some Linux "headless" Java packages lack the
 window libraries) the window cannot open and Minecraft just loads.
 
 ### Settings
 
-The gear in the Orbit menu (also the **Configure** button of Orbit in Mod Menu's mod list): what is drawn (your cosmetics, other players', first-person arms, animations,
+The gear in the Orbit menu (also the **Configure** button of Orbit in Mod Menu's mod list, or in Forge's): what is drawn (your cosmetics, other players', first-person arms, animations,
 other players' emotes), the player on the title and pause screens, nameplate icons, Orbit Cloud, render and
 animation distances, the download cache, and, at the very bottom of Advanced, something just for fun.
 
@@ -698,10 +713,11 @@ All cosmetic and emote files, local or downloaded, are treated as untrusted:
 ./gradlew build
 ```
 
-builds a client jar per Minecraft version (and its `-store` jar without self-updating, for mod sites). Gradle
-provisions Java 25 automatically if needed; the code for 1.21 to 1.21.11 is compiled for Java 21 and the code for 1.20.1
-for Java 17, the Java those versions run on. One jar covers 1.21.9 and 1.21.10 (`Mod/versions/1.21.10`), one 1.21.6 to
-1.21.8 (`Mod/versions/1.21.8`), one 1.21 and 1.21.1 (`Mod/versions/1.21.1`).
+builds a client jar per Minecraft version and loader (and, for Fabric, its `-store` jar without self-updating, for
+mod sites; for 1.21.1 also the NeoForge jar). Gradle provisions Java 25 automatically if needed; the code for 1.21 to
+1.21.11 is compiled for Java 21 and the code for 1.20.1 for Java 17, the Java those versions run on. One jar covers
+1.21.9 and 1.21.10 (`Mod/versions/1.21.10`), one 1.21.6 to 1.21.8 (`Mod/versions/1.21.8`), one 1.21 and 1.21.1
+(`Mod/versions/1.21.1`).
 
 Orbit Cloud, the server every Orbit player shares, is private: its code is not part of this repository, and the
 mod only talks to the official Orbit Cloud at `api.orbitcosmetics.dev` (development runs can use a local test
@@ -709,17 +725,18 @@ server with `-Dorbit.backendUrl=...`, which released games ignore).
 
 Development runs (run directories are under `run/`):
 
-* `./gradlew :Mod:26.3:runClient` (or `:Mod:26.1`, `:Mod:26.2`, `:Mod:1.21.11`, `:Mod:1.21.10`, `:Mod:1.21.8`, `:Mod:1.21.1`, `:Mod:1.20.1`).
+* `./gradlew :Mod:26.3:runClient` (or `:Mod:26.1`, `:Mod:26.2`, `:Mod:1.21.11`, `:Mod:1.21.10`, `:Mod:1.21.8`, `:Mod:1.21.1`, `:Mod:1.20.1`,
+  `:Mod:1.20.1-forge`).
 * `./gradlew :Mod:1.21.11:prodClient` runs the jar players get in a normal game (no development names), with Fabric
   API only and on that version's Java: the way to check a release for an obfuscated Minecraft version.
   `ORBIT_PROD_MINECRAFT=1.21.9 ORBIT_PROD_FABRIC_API=0.134.1+1.21.9 ./gradlew :Mod:1.21.10:prodClient` runs a jar in
   another release it covers.
 
 Versions: `mod_version` in `gradle.properties`.
-`./gradlew publishRelease` builds and signs the jars and hands them to Orbit Cloud, which offers them to
+`./gradlew publishRelease` builds and signs the Fabric jars and hands them to Orbit Cloud, which offers them to
 players (the release key never leaves the maintainer's computer). `./gradlew storeRelease` puts the jars for mod sites
-(Modrinth, CurseForge: no self-updating) into `~/orbit-data/releases/<version>-store/`, which Orbit Cloud never
-offers as an update.
+(Modrinth, CurseForge: no self-updating; Fabric's `-store` jars, Forge's and NeoForge's) into
+`~/orbit-data/releases/<version>-store/`, which Orbit Cloud never offers as an update.
 
 Project layout:
 
@@ -731,7 +748,11 @@ Mod/
   versions/<version>/        One Gradle project per Minecraft version (made by Stonecutter): its
                             gradle.properties and the few classes that differ between versions
                             (compat/Compat, compat/PreviewRenderer)
+  versions/1.20.1-forge/     Forge 1.20.1: its entry, its OrbitPlatform, mods.toml (it also takes
+                            versions/1.20.1's classes)
   build.gradle              The build shared by every version
+  fabric.gradle             Fabric's part of it (Loom, Fabric API, the store and NeoForge jars)
+  forge.gradle              Forge's part of it (ModDevGradle Legacy, mixin refmap, the reobfuscated jar)
   stonecutter.gradle        Which version the shared sources are written for right now (the "active" one)
 website/                    orbitcosmetics.dev
 ```
@@ -748,7 +769,14 @@ three ways:
 * Code that differs is written as `//? if >=26.1 {` … `//?} else {` … `//?}` comments; the inactive part stays
   commented out.
 * A version's own `Mod/versions/<version>/src` holds whole classes that only exist per version (compat/Compat,
-  compat/PreviewRenderer).
+  compat/PreviewRenderer); a class there replaces a shared one of the same name.
+
+Mod loaders are Stonecutter projects too: `1.20.1-forge` builds the same sources for Minecraft 1.20.1 on Forge
+(`//? if forge {` marks Forge-only code). Everything Orbit asks of the loader is in `platform/OrbitPlatform`: the
+shared one is Fabric's, Forge's is in `Mod/versions/1.20.1-forge/src`. Forge's Minecraft uses Forge's own names in
+players' games, so the mixin annotation processor writes a refmap and the jar is reobfuscated (`reobfJar`).
+NeoForge 1.21.1 has no build of its own: Sinytra Connector runs the Fabric jar there, and the `neoforgeJar` task
+makes the copy for mod sites.
 
 Minecraft before 26.1 is obfuscated: those versions build with Loom's remapping plugin and Mojang's names, and players
 get the remapped jar (`remapJar`). Mixin targets there need full descriptors where a name alone would not be remapped.

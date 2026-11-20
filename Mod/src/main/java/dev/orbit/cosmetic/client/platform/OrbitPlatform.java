@@ -89,9 +89,23 @@ public final class OrbitPlatform {
 		return FabricLoader.getInstance().getModContainer(OrbitClient.MOD_ID).map(mod -> mod.getMetadata().getVersion().getFriendlyString()).orElse("dev");
 	}
 
-	/** The mod loader Orbit runs on, as players know it. */
+	/**
+	 * The mod loader Orbit runs on, as players know it: NeoForge or Forge when Sinytra Connector runs this Fabric build
+	 * there.
+	 */
 	public static String loaderName() {
-		return "Fabric";
+		return LOADER;
+	}
+
+	private static final String LOADER = findLoader();
+
+	/** Under Connector the other loader's classes are present (none is loaded to find out). */
+	private static String findLoader() {
+		ClassLoader loader = OrbitPlatform.class.getClassLoader();
+		if (loader.getResource("net/neoforged/fml/loading/FMLLoader.class") != null) {
+			return "NeoForge";
+		}
+		return loader.getResource("net/minecraftforge/fml/loading/FMLLoader.class") != null ? "Forge" : "Fabric";
 	}
 
 	/** The Minecraft version being played (one jar can cover several, such as 1.21.9 and 1.21.10). */

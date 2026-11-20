@@ -1,0 +1,28 @@
+# Forge's description of Orbit (Fabric's is fabric.mod.json).
+modLoader = "javafml"
+loaderVersion = "[47,)"
+license = "All Rights Reserved"
+
+[[mods]]
+modId = "orbit_cosmetic"
+version = "${version}"
+displayName = "Orbit"
+displayURL = "https://orbitcosmetics.dev"
+logoFile = "assets/orbit_cosmetic/icon.png"
+description = '''${description}'''
+# A client mod: servers need not have it.
+displayTest = "IGNORE_ALL_VERSION"
+
+[[dependencies.orbit_cosmetic]]
+modId = "forge"
+mandatory = true
+versionRange = "[47,)"
+ordering = "NONE"
+side = "CLIENT"
+
+[[dependencies.orbit_cosmetic]]
+modId = "minecraft"
+mandatory = true
+versionRange = "${minecraft}"
+ordering = "NONE"
+side = "CLIENT"

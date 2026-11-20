@@ -29,6 +29,8 @@ stonecutter {
 	kotlinController = false
 	create(':Mod') {
 		versions('1.20.1', '1.21.1', '1.21.8', '1.21.10', '1.21.11', '26.1', '26.2', '26.3')
+		// Forge: a project named <Minecraft version>-forge (Mod/forge.gradle builds it).
+		vers('1.20.1-forge', '1.20.1')
 		// The version the shared sources are written for in git (switch with the "Set active project" tasks).
 		vcsVersion = '26.3'
 	}

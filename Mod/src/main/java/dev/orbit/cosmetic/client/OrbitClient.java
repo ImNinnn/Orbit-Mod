@@ -204,7 +204,7 @@ public final class OrbitClient {
 			emotes.reload();
 			skins.library().reload();
 		}).start();
-		LOGGER.info("Orbit ready; folder: {}", paths.root());
+		LOGGER.info("Orbit {} ready on {}; folder: {}", OrbitPlatform.version(), OrbitPlatform.gameName(), paths.root());
 	}
 
 	/** What Orbit Cloud keeps for the signed-in account (a copy in gg.orbit.mod, for when it cannot be reached). */
